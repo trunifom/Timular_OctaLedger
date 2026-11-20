@@ -37,7 +37,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-18d | GUI-Seiten Daten (Export/Sicherung/Restore mit Vorschau), Einstellungen, Diagnose (anonymisierter Bericht) | 2026-11-20 | 22:39 | f4ae3de |
 | AP-19 | Agent-Laufzeit (`agent.main`), erweiterte CLI, Start-Skripte, CI; End-to-End-Tests; Thread-Sicherheit im Worker | 2026-11-20 | 22:48 | 78184d2 |
 | AP-20 | Abschlussdokumentation: Benutzerhandbuch neu geordnet, Installation, Softwaredoku, Testplan mit Abnahmestatus, README, Grenzen; `constraints-tested.txt` | 2026-11-20 | 22:57 | 4099b39 |
-| AP-21 | GUI-Überarbeitung auf Basis der UX-Recherche: gruppiertes Menü, Statusleiste, neue Übersicht, Design-System mit lokaler Schrift (`docs/GUI_KONZEPT.md`) | 2026-11-20 | 23:26 | folgt |
+| AP-21 | GUI-Überarbeitung auf Basis der UX-Recherche: gruppiertes Menü, Statusleiste, neue Übersicht, Design-System mit lokaler Schrift (`docs/GUI_KONZEPT.md`) | 2026-11-20 | 23:26 | 709bb86 |
 
 ## Offen
 
