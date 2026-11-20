@@ -151,7 +151,7 @@ def _device_panel(
         if a.button(
             "🔗 Verbinden",
             key=f"connect_{did}",
-            use_container_width=True,
+            width="stretch",
             help="Baut die Bluetooth-Verbindung auf. Erfordert eine zugeordnete Adresse.",
         ):
             if call(client.connect_device, did)[0]:
@@ -159,7 +159,7 @@ def _device_panel(
         if b.button(
             "⛔ Trennen",
             key=f"disconnect_{did}",
-            use_container_width=True,
+            width="stretch",
             help="Beendet die Verbindung bewusst. Es folgen keine automatischen Neuversuche.",
         ):
             if call(client.disconnect_device, did)[0]:
@@ -167,7 +167,7 @@ def _device_panel(
         if c.button(
             "⭐ Zum aktiven Tracker machen",
             key=f"activate_{did}",
-            use_container_width=True,
+            width="stretch",
             disabled=device["is_active"],
             help="Übergabe: Nur der aktive Tracker erzeugt Zeiten. Die laufende "
             "Tracker-Zeit des bisherigen Trackers endet dabei.",

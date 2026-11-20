@@ -12,7 +12,7 @@ Rules for every page (``CLAUDE.md`` section 6)
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime, time, timezone
 from typing import Any, TypeVar
 from zoneinfo import ZoneInfo
 
@@ -46,6 +46,13 @@ STATE_LEVEL: dict[str, str] = {
     ConnectionState.RECONNECT_WAIT.value: "warn",
     ConnectionState.IDLE.value: "warn",
 }
+
+
+def from_local(day: date, clock: time, tz_name: str) -> datetime:
+    """Combine a date and time entered in the display timezone into an aware UTC datetime."""
+    return datetime.combine(day, clock.replace(tzinfo=None), tzinfo=ZoneInfo(tz_name)).astimezone(
+        timezone.utc
+    )
 
 
 def format_hms(total_seconds: int) -> str:

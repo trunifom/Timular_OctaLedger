@@ -144,7 +144,7 @@ def _sidebar(client: ApiClient, display: dict[str, str], agent_up: bool) -> str:
             key="btn_theme",
             on_click=_toggle_theme,
             args=(client,),
-            use_container_width=True,
+            width="stretch",
             help="Wechselt zwischen heller und dunkler Darstellung.",
         )
         font_col.button(
@@ -152,7 +152,7 @@ def _sidebar(client: ApiClient, display: dict[str, str], agent_up: bool) -> str:
             key="btn_font",
             on_click=_toggle_font,
             args=(client,),
-            use_container_width=True,
+            width="stretch",
             help="Wechselt zwischen normaler und größerer Schrift.",
         )
         if st.session_state.get("_persist_failed"):

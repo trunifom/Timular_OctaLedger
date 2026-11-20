@@ -1010,3 +1010,45 @@ Suche mit/ohne Agent, Adresse speichern (nie angezeigt), Fehlerfälle der Suche,
 Übergabe, Kalibrierung (nur Änderungen, Löschen einer Seite, „Seite oben“), fehlende Tätigkeiten,
 Umbenennen/Löschen mit Bestätigung, Hilfetexte aller Eingaben, Escaping, kompletter Lebenszyklus
 von Tätigkeiten/Projekten, eigene Farbe, Schutz verwendeter Einträge, Duplikate, leere Kataloge.
+
+## 23. Seiten „Zeitjournal“ und „Statistik“ (`dashboard.pages.journal`, `dashboard.pages.statistics`, AP-18c)
+
+### 23.1 Zeitjournal (drei Reiter)
+
+| Reiter | Inhalt |
+|---|---|
+| **Journal** | Filter Von/Bis (einschließlich, Ihre Zeitzone), Tätigkeit, Projekt, Gerät; Tabelle (Beginn, Ende/„läuft“, Dauer, Tätigkeit, Projekt, Gerät/„von Hand“, Qualität, Revision, Notiz), Summe als Beschriftung; darunter **Sitzung bearbeiten** |
+| **Zu prüfen** | alle *unsicheren* Sitzungen mit **Bestätigen**; leer → „Alles bestätigt“ |
+| **Nachtragen** | Formular für vergangene Zeiten (Tätigkeit, optionales Projekt, Beginn/Ende, Notiz) |
+
+Sitzung bearbeiten: **Korrigieren** (Tätigkeit, Projekt, Beginn, Ende, Notiz, **Grund Pflicht**;
+laufende Sitzungen behalten ihr Ende; „Als bestätigt markieren“ bei unsicheren), **Teilen** (Zeitpunkt +
+Grund) und **Löschen** (Grund + Bestätigung). Datum und Uhrzeit werden **in der Anzeigezeitzone**
+eingegeben und mit `from_local` in UTC umgerechnet; die API nimmt nur zeitzonenbehaftete Zeiten.
+Regelverstöße (Überschneidung, fehlender Grund, Ende in der Zukunft) erscheinen als deutsche Meldung
+mit Fehlercode, die Daten bleiben unverändert.
+
+### 23.2 Statistik
+
+- Zeitraum **Tag**, **Woche** (Montag–Sonntag) oder **eigener Zeitraum**; Filter wie im Journal. Ein
+  Zeitraum über 400 Tage und ein Ende vor dem Beginn ergeben klare Meldungen statt eines Absturzes.
+- Kennzahlen mit Hilfetext: **Persönliche Arbeitszeit**, **Gerätezeit**, **Davon unsicher**,
+  **Überschneidung**; Warnung, solange unsichere Zeit enthalten ist; Hinweis auf eine laufende Sitzung.
+- Diagramme (Plotly, Template folgt dem gewählten Hell/Dunkel-Schema): Balken **Verlauf pro Tag**
+  (nur bei mehr als einem Tag), Ringdiagramme **nach Tätigkeit** und **nach Projekt** in den
+  Tätigkeitsfarben. **Jedes Diagramm hat darunter dieselben Daten als Tabelle**
+  (Barrierefreiheit, Kopieren).
+- Leerer Zeitraum → Hinweis „keine Zeiten“.
+
+### 23.3 Technische Hinweise
+
+- `pandas` ist jetzt direkte Abhängigkeit (Tabellen), `pandas-stubs` Entwicklungsabhängigkeit;
+  für das untypisierte `plotly` ist nur der Import von `mypy` ausgenommen (`[[tool.mypy.overrides]]`).
+- Alle Knöpfe/Tabellen nutzen `width="stretch"` statt des in Streamlit entfernten
+  `use_container_width`.
+- **Tests** (`tests/gui/test_gui_journal_statistics.py`, 17): Journal mit Namen/Dauern/Reihenfolge,
+  leere und umgekehrte Bereiche, Filter, Korrektur mit Pflichtgrund, Teilen und Löschen, Prüf-Reiter,
+  Nachtragen mit Überschneidungsfehler, Hilfetexte; Statistik für Tag/Woche/eigenen Zeitraum, Filter,
+  Unsicherheitswarnung, leerer Zustand, 400-Tage-Grenze, Dunkel-Template, Hilfetexte. Die Testdaten
+  liegen heute 00:00–03:00 UTC; zwischen 00:00 und 03:30 UTC werden diese Tests übersprungen, weil die
+  Sitzungen sonst in der Zukunft lägen.

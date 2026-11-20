@@ -73,7 +73,7 @@ def _live_status(client: ApiClient, tz: str) -> None:
             if pause_col.button(
                 "⏸ Pause",
                 key="btn_pause",
-                use_container_width=True,
+                width="stretch",
                 help="Beendet die laufende Zeit und merkt sich die Tätigkeit. Mit „Fortsetzen“ "
                 "geht es dort weiter.",
             ):
@@ -83,7 +83,7 @@ def _live_status(client: ApiClient, tz: str) -> None:
                 "⏹ Stopp",
                 key="btn_stop",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
                 help="Beendet die laufende Zeit.",
             ):
                 if call(client.stop_tracking)[0]:

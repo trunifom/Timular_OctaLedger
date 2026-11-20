@@ -385,3 +385,28 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
   den Auswahllisten, alte Auswertungen bleiben) oder **🗑 Löschen** (nur wenn nirgends verwendet; sonst
   erscheint „Bitte archivieren Sie sie stattdessen“). Mit **Archivierte anzeigen** finden Sie
   archivierte Einträge zum **♻️ Wiederherstellen**.
+
+### Bereich „Zeitjournal“
+- **Journal:** Zeitraum und Filter wählen; die Tabelle zeigt Ihre Sitzungen (neueste zuerst). Darunter
+  wählen Sie eine **Sitzung** und dann:
+  - **Korrigieren:** Tätigkeit, Projekt, Beginn, Ende oder Notiz ändern – und einen **Grund** angeben
+    (Pflicht). Bei *unsicheren* Zeiten gibt es zusätzlich **✅ Als bestätigt markieren**.
+  - **Teilen:** zerlegt eine Sitzung an einem Zeitpunkt in zwei Teile (z. B. vergessene Pause).
+  - **Löschen:** mit Grund und Bestätigung; wird im Protokoll festgehalten.
+- **Zu prüfen:** alle unsicheren Zeiten. **✅ Bestätigen**, wenn der Zeitraum stimmt; sonst im Reiter
+  *Journal* korrigieren.
+- **Nachtragen:** Tätigkeit, Beginn und Ende einer vergangenen Zeit eintragen. Das Ende darf nicht in
+  der Zukunft liegen, und es darf keine Überschneidung mit vorhandenen Zeiten geben – sonst erscheint
+  eine verständliche Meldung und nichts wird gespeichert.
+- Datum und Uhrzeit geben Sie immer in **Ihrer Zeitzone** ein (Einstellungen).
+
+### Bereich „Statistik“
+1. **Zeitraum** wählen: *Tag*, *Woche* (Montag bis Sonntag) oder *Eigener Zeitraum*, dazu das Datum.
+2. Optional nach **Tätigkeit**, **Projekt** oder **Gerät** filtern.
+3. Oben stehen die **Kennzahlen**:
+   *Persönliche Arbeitszeit* (ohne Doppelzählung – die Zahl für Ihre Arbeitszeit), *Gerätezeit*,
+   *Davon unsicher* und *Überschneidung*. Fahren Sie mit der Maus über eine Kennzahl für eine Erklärung.
+4. Darunter **Diagramme**: Verlauf pro Tag (bei Woche/eigenem Zeitraum) sowie die Verteilung nach
+   Tätigkeit und nach Projekt in den Farben der Tätigkeiten. **Unter jedem Diagramm steht dieselbe
+   Information als Tabelle.**
+5. Eine **gelbe Warnung** zeigt, wie viel Zeit noch unbestätigt ist – bestätigen Sie sie im Zeitjournal.

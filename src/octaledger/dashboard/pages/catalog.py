@@ -96,7 +96,7 @@ def _item_panel(client: ApiClient, kind: str, singular: str, item: dict[str, Any
         if save.button(
             "💾 Speichern",
             key=f"save_{kind}_{iid}",
-            use_container_width=True,
+            width="stretch",
             help="Speichert Name und Farbe.",
         ):
             if call(client.update_item, kind, iid, new_name, new_color)[0]:
@@ -104,7 +104,7 @@ def _item_panel(client: ApiClient, kind: str, singular: str, item: dict[str, Any
         if archive.button(
             "♻️ Wiederherstellen" if archived else "📦 Archivieren",
             key=f"archive_{kind}_{iid}",
-            use_container_width=True,
+            width="stretch",
             help="Archivierte Einträge verschwinden aus den Auswahllisten, bleiben aber in "
             "Auswertungen erhalten.",
         ):
@@ -120,7 +120,7 @@ def _item_panel(client: ApiClient, kind: str, singular: str, item: dict[str, Any
             "🗑 Löschen",
             key=f"delete_{kind}_{iid}",
             disabled=not confirm,
-            use_container_width=True,
+            width="stretch",
             help="Entfernt den Eintrag endgültig.",
         ):
             if call(client.delete_item, kind, iid)[0]:
