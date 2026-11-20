@@ -376,3 +376,71 @@ korrekt, auch Trigger-Rümpfe mit inneren Semikolons.
   atomar unter dem Zielnamen abgelegt (kein halbes Backup).
 - `Database.integrity_check()`: SQLite-Integritätsprüfung plus `foreign_key_check`; leere
   Liste = gesund.
+
+## 10. Repositories (`octaledger.infrastructure.storage.repositories`, AP-08)
+
+Übersetzen zwischen Domänenmodellen und SQL-Zeilen. **Sämtliches SQL der Anwendung liegt in
+`database.py` und `repositories.py`**, immer parametrisiert; Services und GUI enthalten kein SQL.
+
+### 10.1 Aufbau
+
+- Jedes Repository bindet **eine** `sqlite3.Connection` und öffnet/committet nichts selbst.
+  Die Transaktionsgrenze liegt beim Aufrufer, damit mehrere Aufrufe **gemeinsam** gelingen
+  oder scheitern.
+- `Storage(database)` ist der Einstiegspunkt:
+
+  ```python
+  storage = Storage(database)
+  with storage.transaction() as repos:      # atomar: Commit bei Erfolg, Rollback bei Fehler
+      repos.sessions.end(running.id, now)
+      repos.sessions.add(next_session)
+  with storage.read() as repos:             # nur lesen
+      sessions = repos.sessions.list_between(start, end)
+  ```
+- `Repositories` bündelt `devices`, `activities`, `projects`, `mappings`, `events`,
+  `sessions`, `audit` für dieselbe Verbindung.
+- Mehrschrittige Operationen (Korrektur, Löschen mit Audit) laufen in einem `SAVEPOINT`:
+  atomar für sich und korrekt verschachtelt in einer äußeren Transaktion.
+- Zeilen, die die Domänenregeln verletzen (z. B. von Hand verändert), werden als
+  `DataIntegrityError` gemeldet statt als ungültiges Objekt zurückgegeben.
+
+### 10.2 Zeitkodierung
+
+`to_db_time()` / `from_db_time()` speichern UTC als Text fester Breite
+`YYYY-MM-DDTHH:MM:SS.ffffffZ`; Textvergleich entspricht zeitlichem Vergleich (Indizes,
+Bereichsabfragen, Trigger). Falsche Texte → `DataIntegrityError`.
+
+### 10.3 Repositories
+
+| Repository | Methoden (Auswahl) | Besonderheiten |
+|---|---|---|
+| `devices` | `add`, `get`, `require`, `list_all`, `update`, `delete` | Alias eindeutig; Löschen scheitert (`ConflictError`), solange Ereignisse/Sitzungen das Gerät verwenden |
+| `activities`, `projects` | `add`, `get`, `require`, `list_all(include_archived)`, `update`, `set_archived`, `delete` | Name unter nicht archivierten eindeutig; verwendete Einträge werden **archiviert** statt gelöscht |
+| `mappings` | `assign`, `get`, `list_for_device`, `clear` | `revision` steigt nur, wenn sich das Ziel ändert; gleiche Zuordnung ändert nichts |
+| `events` | `add`, `add_many`, `list_for_device(since, limit)`, `count`, `delete_older_than` | Aufbewahrungsregel `delete_older_than` wird im Audit-Log vermerkt |
+| `sessions` | `add`, `get`, `require`, `get_running`, `list_between`, `list_all`, `end`, `correct`, `list_corrections`, `delete` | siehe unten |
+| `audit` | `add`, `recent` | Append-only-Protokoll destruktiver Aktionen |
+
+`list_between(start, end, device_id, activity_id, project_id)` liefert Sitzungen, die sich mit
+`[start, end)` überschneiden – **ungekürzt**; Berichte teilen und kürzen selbst
+(`time_rules`). Laufende Sitzungen zählen als „bis in die Zukunft“.
+
+### 10.4 Korrekturen mit Auditspur (`SessionRepository.correct`)
+
+```python
+repos.sessions.correct(
+    session_id,
+    {"ended_at": new_end, "note": "Nachgetragen", "quality": "confirmed"},
+    reason="Tracker lag auf der falschen Seite",
+)
+```
+
+- Erlaubte Felder: `activity_id`, `project_id`, `started_at`, `ended_at`, `note`, `quality`.
+  Alles andere → `ValidationError`.
+- Nur **tatsächlich geänderte** Felder werden protokolliert (derselbe Zeitpunkt in anderer
+  Zeitzone ist keine Änderung). Ändert sich nichts → `ValidationError`.
+- Pro geändertem Feld ein `corrections`-Eintrag (alt, neu, Grund, Zeit, Revision); die
+  Sitzungs-`revision` steigt um 1. Das Original bleibt rekonstruierbar.
+- Der Grund ist Pflicht. Die gesamte Änderung wird revalidiert (Intervall, Enums, IDs) und ist
+  atomar; entsteht dadurch eine Überschneidung, wird alles zurückgerollt (`ConflictError`).
+- `delete(session_id, reason, audit)` verlangt ebenfalls einen Grund und schreibt in `audit_log`.

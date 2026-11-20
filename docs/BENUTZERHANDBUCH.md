@@ -169,3 +169,22 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - **Fehlermeldung „Datenbank belegt“** ist vorübergehend; einen Moment warten und wiederholen.
 - **Beschädigte Datei** (`OL-STORAGE-003`): Stellen Sie eine Sicherung aus `backups\` wieder
   her (siehe Abschnitt Backup/Restore).
+
+## 10. Zeiten korrigieren und löschen
+
+- **Nichts geht still verloren:** Jede Änderung an einer gebuchten Zeit (Tätigkeit, Projekt,
+  Beginn, Ende, Notiz, Qualität) wird mit **Grund**, Zeitpunkt sowie altem und neuem Wert
+  protokolliert. Die Sitzung erhält eine neue Versionsnummer („Revision“).
+- **Grund ist Pflicht** – bei Korrekturen und beim Löschen. Beispiel: „Tracker lag auf der
+  falschen Seite“.
+- Nur **echte** Änderungen werden protokolliert. Wenn Sie nichts ändern, meldet OctaLedger
+  „Es wurde nichts geändert“.
+- Eine Korrektur, die zu einer **Überschneidung** mit einer anderen Sitzung führen würde, wird
+  vollständig abgelehnt; Ihre Daten bleiben unverändert.
+- **Löschen** einer Sitzung ist möglich, wird aber im Protokoll („Audit-Log“) mit Grund
+  vermerkt. Alte Tracker-Rohdaten können nach einer Aufbewahrungsfrist bereinigt werden;
+  auch das wird protokolliert.
+- **Tätigkeiten/Projekte** mit gebuchten Zeiten lassen sich nicht löschen. Archivieren Sie sie:
+  Sie verschwinden aus den Auswahllisten, alte Auswertungen bleiben korrekt.
+- **Zuordnung einer Würfelseite ändern:** Die Zuordnung bekommt eine neue Revision; bereits
+  gebuchte Zeiten bleiben unverändert.

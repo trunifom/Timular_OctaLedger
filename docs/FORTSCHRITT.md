@@ -19,13 +19,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-04 | Domänenmodelle (`domain.models`): Device, Activity, Project, FaceMapping, RawEvent, Session, Correction; Zeithelfer `utc_now`/`ensure_utc` | 2026-11-20 | 21:01 | bb76d6d |
 | AP-05 | Zustandsautomaten (`domain.state_machine`): Baseline, Duplikate, Entprellung, Verbindungslebenszyklus, Backoff | 2026-11-20 | 21:03 | 8e75d02 |
 | AP-06 | Zeitregeln (`domain.time_rules`): Tagesgrenzen/Sommerzeit, Wochen, Vereinigung, Überschneidungen | 2026-11-20 | 21:04 | 11b7289 |
-| AP-07 | SQLite-Schicht (`storage.database`): Schema 0001, Migrationen mit Prüfsumme/Backup, Transaktionen, Backup, Integritätsprüfung | 2026-11-20 | 21:09 | folgt |
+| AP-07 | SQLite-Schicht (`storage.database`): Schema 0001, Migrationen mit Prüfsumme/Backup, Transaktionen, Backup, Integritätsprüfung | 2026-11-20 | 21:09 | c15119c |
+| AP-08 | Repositories (`storage.repositories`): Storage-Fassade, Savepoints, auditierte Korrekturen, Audit-Log, Aufbewahrung | 2026-11-20 | 21:12 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
 | AP | Beschreibung | Roadmap |
 |---|---|---|
-| AP-08 | Repositories mit Transaktionen und Auditspur | M3 |
 | AP-09 | Tracking-Service: Sitzungslogik, Start/Stop/Pause, Unsicherheit | M3 |
 | AP-10 | Device-Service: Registrierung, Kalibrierung, Übergabe | M3 |
 | AP-11 | BLE-Protokoll, Transport-Abstraktion und FakeTransport | M2 |
