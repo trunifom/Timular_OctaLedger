@@ -531,3 +531,46 @@ Sitzungen ändert.
   `ConflictError` mit dem Hinweis „bitte archivieren“. Archivierte Einträge verschwinden aus den
   Auswahllisten, bleiben aber in alten Auswertungen erhalten; ihr Name wird wieder frei.
 - Löschen unbenutzter Einträge wird im Audit-Log protokolliert.
+
+## 13. BLE-Protokoll, Transport-Abstraktion, FakeTransport (`infrastructure.ble`, AP-11)
+
+### 13.1 Sicherheitsregel
+
+OctaLedger **liest und abonniert nur**. Es gibt in der gesamten BLE-Schicht **keine
+Schreiboperation** (keine Motor-/LED-/Firmware-Befehle, Pflichtenheft §2). Das ist per
+Konstruktion erzwungen: `DeviceTransport` besitzt keine `write`-Methode; ein Test sichert das ab.
+
+### 13.2 `protocol.py`
+
+- Konstanten: Orientierungsdienst `c7e70010-…`, Characteristic `c7e70012-…` (Community-Referenz,
+  **kein** Hardwarebeweis); Standarddienste Batterie (`180f`/`2a19`) und Geräteinformation
+  (`180a`, Modell `2a24`, Firmware `2a26`) nur lesend und optional.
+- `discover_capabilities(services)` prüft, was das Gerät **wirklich** anbietet:
+  - Orientierungs-Characteristic fehlt → `UnsupportedDeviceError` (OL-BLE-003); `details['services']`
+    listet alle angebotenen Dienste für einen Kompatibilitätsbericht (F-04).
+  - ohne `notify` und `indicate` → `UnsupportedDeviceError`; `notify` wird bevorzugt.
+  - Ergebnis `DeviceCapabilities`: `orientation_mode`, `can_read_orientation`, `has_battery`,
+    `has_model`, `has_firmware`, `service_uuids`. Fehlende optionale Dienste werden toleriert (F-18).
+  - UUID-Vergleiche sind groß-/kleinschreibungsunabhängig.
+- Decoder (alle mit `ProtocolError` bei Verstoß): `decode_orientation_payload` (genau 1 Byte,
+  0–8), `decode_battery_level` (1 Byte, 0–100), `decode_text` (striktes UTF-8, NUL-Padding
+  entfernt, nicht leer, ≤ 100 Zeichen, keine Steuerzeichen).
+
+### 13.3 `transport.py`
+
+`DeviceTransport` (Protocol) ist die **einzige** Schnittstelle des Agenten zu einem Tracker:
+`connect`, `disconnect`, `discover`, `read`, `start_notify`, `stop_notify`,
+`set_disconnected_callback`, `is_connected`. `TransportFactory.create(adresse)` liefert pro
+Verbindungsversuch einen frischen Transport. Alle Methoden laufen im **einen** AsyncIO-Loop des
+Agenten. Callbacks müssen kurz und synchron sein (validieren, übergeben, zurückkehren); keine
+GUI-Aufrufe und nichts Langsames im BLE-Callback.
+
+### 13.4 `fake.py` (nur synthetische Daten)
+
+`FakeTransport` verhält sich wie ein Tracker ohne Hardware: Verbinden dauert (`connect_delay`)
+und kann scheitern (`fail_next_connects`), Dienste müssen entdeckt werden, Benachrichtigungen
+kommen per Callback (`push`), die Verbindung kann jederzeit abreißen (`drop_link`, löst den
+Verlust-Callback genau einmal aus; ein bewusstes `disconnect` löst ihn nicht aus).
+`FakeTransportFactory` verwaltet erzeugte Instanzen. Alles hier ist **synthetisch** und darf nie
+als echte Arbeitszeitdaten ausgegeben werden (Testplan). Die Tests nutzen `asyncio.run`, es wird
+kein `pytest-asyncio` benötigt.
