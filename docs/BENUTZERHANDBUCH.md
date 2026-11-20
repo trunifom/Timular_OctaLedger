@@ -88,3 +88,19 @@ festlegen. Ihre Daten werden **nie** im Programmordner gespeichert.
 Ungültige Einstellungen werden **nicht stillschweigend ignoriert**: Das Programm nennt die
 Einstellung und was erlaubt ist (Fehlercode `OL-CONFIG-001`). Löschen Sie `settings.toml`,
 um auf die Standardwerte zurückzusetzen.
+
+## 6. Grundbegriffe
+
+| Begriff | Bedeutung |
+|---|---|
+| **Tracker / Gerät** | Ihr Würfel. Sie geben ihm einen Namen (Alias), z. B. „Tracker Büro“. |
+| **Seite** | Eine der acht Flächen des Würfels, technisch 1 bis 8. Neutral (0) bedeutet: keine stabile Seite. |
+| **Tätigkeit (Aktivität)** | Was Sie tun, z. B. „Meeting“. Jeder Seite wird eine Tätigkeit zugeordnet. |
+| **Projekt** | Optional: wofür Sie die Zeit buchen. |
+| **Sitzung (Zeitabschnitt)** | Ein Zeitraum mit Beginn und Ende für eine Tätigkeit. Läuft die Sitzung noch, hat sie kein Ende. |
+| **Qualität** | *bestätigt* oder *unsicher*. Unsicher heißt: ein Teil des Zeitraums ist nicht sicher (z. B. Verbindung abgebrochen). Sie sollten solche Sitzungen prüfen. |
+| **Korrektur** | Jede nachträgliche Änderung einer Sitzung wird mit Grund protokolliert; das Original bleibt nachvollziehbar. |
+
+Regeln für Eingaben: Namen dürfen nicht leer sein und höchstens 100 Zeichen haben,
+Notizen höchstens 2000 Zeichen. Farben werden als `#RRGGBB` angegeben (z. B. `#2A9D8F`).
+Zeiten werden intern immer in UTC gespeichert und in Ihrer Zeitzone angezeigt.

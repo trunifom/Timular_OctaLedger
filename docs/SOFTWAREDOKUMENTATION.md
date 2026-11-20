@@ -199,3 +199,38 @@ Der API-Token gehört **nicht** in diese Datei (siehe AP-16).
 - `save_settings(settings, datei)`: atomar über `core.fileio`; bei Fehler bleibt die alte
   Datei erhalten.
 - Vorlage: `config/settings.example.toml`.
+
+## 6. Domänenmodelle (`octaledger.domain.models`, AP-04)
+
+Reine Wertobjekte ohne Kenntnis von BLE, SQL, HTTP oder Streamlit. Alle Modelle sind
+
+- **unveränderlich** (`frozen=True`; Änderungen mit `dataclasses.replace`, das erneut validiert),
+- **selbstvalidierend** (`__post_init__` → `ValidationError`): ein inkonsistentes Objekt kann
+  nicht existieren, auch nicht durch Import oder Datenbank,
+- **UTC-normalisiert**: jede Zeit ist zeitzonenbewusst und wird in UTC umgerechnet; naive
+  Zeiten werden abgelehnt.
+
+IDs sind zufällige UUID4-Strings (`new_id()`). Eine Bluetooth-Adresse ist **keine** Identität,
+nur ein optionaler Hinweis (`Device.platform_address`).
+
+| Modell | Zweck | Wichtige Regeln |
+|---|---|---|
+| `Device` | Registrierter Tracker | Alias Pflicht (≤ 100 Zeichen); Modell/Firmware optional; leere Texte → `None` |
+| `Activity`, `Project` | Tätigkeit / Projekt | Name Pflicht; Farbe `#RRGGBB` (wird groß geschrieben); `archived` |
+| `FaceMapping` | Seite 1–8 eines Geräts → Aktivität/Projekt | `face` ∈ 1..8 (kein `bool`); `revision` ≥ 1 |
+| `RawEvent` | Unveränderte Beobachtung (Audit) | Art/Wert-Konsistenz: `baseline`/`face_change`/`neutral` brauchen einen Wert, `neutral` genau `0`, `face_change` 1..8; `disconnect`/`reconnect`/`invalid` dürfen keinen haben |
+| `Session` | Zeitabschnitt | Ende ≥ Start; `ended_at=None` = läuft; `device`-Quelle braucht `device_id`; `quality` bestätigt/unsicher |
+| `Correction` | Auditeintrag einer Änderung | Grund Pflicht; erzeugt Revision ≥ 2; Original bleibt erhalten |
+
+`EventKind` trennt Baseline, Seitenwechsel, Neutralwert, Trennung, Wiederverbindung und
+ungültige Pakete bewusst (Pflichtenheft F-06/F-07). Ungültige Pakete erzeugen nie eine Sitzung.
+
+`Session.duration(now)` misst laufende Sitzungen bis `now`.
+
+### Zeithelfer (`octaledger.domain.time_rules`)
+
+| Funktion | Zweck |
+|---|---|
+| `utc_now()` | Aktuelle Zeit als zeitzonenbewusste UTC-`datetime` |
+| `ensure_utc(wert, name=…)` | Rechnet in UTC um, lehnt naive Zeiten ab |
+| `interval_duration(start, ende)` | Dauer; lehnt naive und umgekehrte Intervalle ab |

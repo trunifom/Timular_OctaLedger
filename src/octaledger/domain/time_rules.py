@@ -1,12 +1,43 @@
-"""Minimal timezone-aware interval validation.
+"""Timezone-aware time helpers shared by the whole application.
 
-All durations are computed in UTC. Naive datetimes are rejected on purpose because they
-silently depend on the local machine timezone and daylight-saving rules.
+Rules (see ``CLAUDE.md``): inside OctaLedger every point in time is a timezone-aware
+``datetime`` normalised to **UTC**. Naive datetimes are rejected on purpose because they
+silently depend on the local machine timezone and daylight-saving rules. Conversion to
+the user's display timezone happens only at the presentation edge.
 """
 
 from datetime import datetime, timedelta, timezone
 
 from octaledger.core.errors import ValidationError
+
+
+def utc_now() -> datetime:
+    """Return the current time as a timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
+
+
+def ensure_utc(value: datetime, *, name: str = "datetime") -> datetime:
+    """Normalise ``value`` to UTC, rejecting naive datetimes.
+
+    Args:
+        value: A timezone-aware datetime in any timezone.
+        name: Field name used in the error message.
+
+    Returns:
+        The same instant expressed in UTC.
+
+    Raises:
+        ValidationError: If ``value`` is not a datetime or has no timezone.
+    """
+    if not isinstance(value, datetime):
+        raise ValidationError(f"{name} must be a datetime", details={"field": name})
+    if value.utcoffset() is None:
+        raise ValidationError(
+            f"{name} must be timezone-aware",
+            user_message="Zeitangaben benötigen eine Zeitzone.",
+            details={"field": name},
+        )
+    return value.astimezone(timezone.utc)
 
 
 def interval_duration(start: datetime, end: datetime) -> timedelta:
