@@ -234,3 +234,51 @@ ungültige Pakete bewusst (Pflichtenheft F-06/F-07). Ungültige Pakete erzeugen 
 | `utc_now()` | Aktuelle Zeit als zeitzonenbewusste UTC-`datetime` |
 | `ensure_utc(wert, name=…)` | Rechnet in UTC um, lehnt naive Zeiten ab |
 | `interval_duration(start, ende)` | Dauer; lehnt naive und umgekehrte Intervalle ab |
+
+## 7. Zustandsautomaten (`octaledger.domain.state_machine`, AP-05)
+
+Zwei kleine, **reine und deterministische** Automaten (kein I/O, keine Threads, keine echte
+Uhr). Zeit wird als ganzzahlige **Millisekunden einer monotonen Uhr** übergeben
+(`time.monotonic_ns() // 1_000_000`); sie ist nur innerhalb eines Prozesses vergleichbar.
+Läuft sie rückwärts, wird `ValidationError` ausgelöst.
+
+### 7.1 `OrientationDebouncer` (Baseline, Duplikate, Entprellung)
+
+| Regel | Verhalten |
+|---|---|
+| 1 Baseline | Der erste Wert nach `reset()` ist ein `BASELINE`-Ereignis (sofort, auch bei `0`). Er startet nie eine Sitzung. |
+| 2 Duplikate | Wert = bestätigter Wert → ignoriert (`duplicates_ignored`). Gab es einen anderen Kandidaten, wird er verworfen (Rückkehr vor Stabilität). |
+| 3 Entprellung | Ein anderer Wert wird *Kandidat*. Erst nach `debounce_ms` Stabilität wird er bestätigt; ein anderer Wert dazwischen startet die Frist neu (Zwischenflächen beim Drehen zählen nicht). |
+| 4 Ereignisart | Bestätigte `0` → `NEUTRAL`, `1..8` → `FACE_CHANGE`. |
+
+- `feed(wert, now_ms)` verarbeitet einen Wert, `tick(now_ms)` bestätigt einen stabil
+  gewordenen Kandidaten, `next_deadline_ms()` sagt dem Agenten, wann `tick` fällig ist.
+- `OrientationEvent.observed_at_ms` ist der Zeitpunkt, an dem die Seite **zum ersten Mal**
+  gesehen wurde (nicht das Ende der Frist) – Sitzungen beginnen so zur wahren Zeit.
+- Ein später eintreffender Wert bestätigt zuerst einen abgelaufenen alten Kandidaten und
+  wird danach beurteilt (kein Verlust bei verspätetem `tick`).
+- `debounce_ms=0` bestätigt sofort. Abnahme A-02 (20 identische Werte → keine zusätzliche
+  Änderung) und A-03 (Zwischenfläche unter Stabilitätsfrist → kein Wechsel) sind durch
+  Unit-Tests abgedeckt.
+
+### 7.2 `ConnectionStateMachine` (Verbindungslebenszyklus)
+
+```text
+idle → scanning → connecting → discovering → subscribing → baseline → ready
+ready → disconnected → reconnect_wait → connecting          (jeder Zustand → stopped)
+```
+
+- Ungültige Übergänge → `InvalidStateError` (Zustand bleibt unverändert).
+- „Verbunden“ ≠ „gültige Orientierung“: nur `READY` (`is_ready`) bedeutet, dass die
+  Baseline gelesen wurde.
+- Jeder Eintritt in `CONNECTING` vergibt eine neue **Verbindungskennung**. Mit
+  `is_current(id)` werden späte Ergebnisse alter Zyklen erkannt und ignoriert.
+- `attempt` zählt Fehlversuche vor `READY`; Erreichen von `READY` setzt ihn zurück. Ein
+  Verlust im Zustand `READY` zählt nicht als Fehlversuch.
+- `STOPPED` (bewusster Benutzerstopp) verhindert Reconnects; nur `idle` (expliziter Neustart)
+  ist danach erlaubt.
+- `history` hält die letzten 50 Übergänge für die Diagnose.
+
+`reconnect_delay_seconds(attempt, base=1, factor=2, cap=60)` liefert die begrenzte
+exponentielle Wartezeit (1, 1, 2, 4, 8, … höchstens 60 s); der Supervisor (AP-13) kann
+Jitter ergänzen.

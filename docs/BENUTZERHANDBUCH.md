@@ -104,3 +104,30 @@ um auf die Standardwerte zurückzusetzen.
 Regeln für Eingaben: Namen dürfen nicht leer sein und höchstens 100 Zeichen haben,
 Notizen höchstens 2000 Zeichen. Farben werden als `#RRGGBB` angegeben (z. B. `#2A9D8F`).
 Zeiten werden intern immer in UTC gespeichert und in Ihrer Zeitzone angezeigt.
+
+## 7. So erkennt OctaLedger Ihre Würfelbewegungen
+
+Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regeln:
+
+- **Erste Meldung nach dem Verbinden** ist nur die *Ausgangslage*. Sie startet standardmäßig
+  keine Zeiterfassung. Erst wenn Sie den Würfel auf eine andere Seite drehen, beginnt eine
+  neue Tätigkeit. (Wer möchte, kann in den Einstellungen „aktuelle Seite übernehmen“ wählen.)
+- **Wiederholte Meldungen derselben Seite** werden ignoriert.
+- **Entprellung:** Eine Seite zählt erst, wenn der Würfel sie rund 0,3 Sekunden ruhig oben
+  hält. Beim Drehen über andere Seiten hinweg werden diese „Durchgangsseiten“ nicht gebucht.
+  Die Tätigkeit beginnt trotzdem zu dem Zeitpunkt, an dem die Seite erstmals oben lag.
+- **Neutral (0):** Liegt der Würfel auf keiner stabilen Seite, wird das zunächst nur
+  vermerkt; es pausiert nichts, solange die Pause-Regel nicht aktiviert ist.
+
+### Verbindungsstatus
+
+| Status | Bedeutung |
+|---|---|
+| Leerlauf | Keine Verbindung aktiv |
+| Suche / Verbinden / Dienste prüfen / Abonnieren | Verbindung wird aufgebaut |
+| Ausgangslage lesen | Verbunden, aktuelle Seite wird gelesen |
+| **Bereit** | Alles in Ordnung: Drehen wird erfasst |
+| Getrennt / Warte auf neuen Versuch | Verbindung verloren; OctaLedger versucht es mit wachsenden Pausen (1 s, 2 s, 4 s … höchstens 60 s) erneut |
+| Gestoppt | Sie haben das Gerät bewusst gestoppt; es gibt **keinen** automatischen Neuversuch |
+
+„Verbunden“ heißt noch nicht „bereit“: Erfasst wird erst im Status **Bereit**.

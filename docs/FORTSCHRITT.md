@@ -16,13 +16,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-02 | Zentrales Logging (`core.logging`): Redaktion von Geheimnissen, rotierende Datei, Ringpuffer, `log_step` | 2026-11-20 | 20:54 | b9b13cd |
 | AP-03a | Sicheres Dateischreiben/-lesen (`core.fileio`): atomares Schreiben, größenbegrenztes Lesen, Fehlerübersetzung | 2026-11-20 | 20:55 | 21f6273 |
 | AP-03 | Einstellungen und Benutzerprofil-Pfade (`core.settings`): validierte Settings, TOML laden/speichern, Umgebungs-Overrides, `tzdata` | 2026-11-20 | 20:59 | d908a2f |
-| AP-04 | Domänenmodelle (`domain.models`): Device, Activity, Project, FaceMapping, RawEvent, Session, Correction; Zeithelfer `utc_now`/`ensure_utc` | 2026-11-20 | 21:01 | folgt |
+| AP-04 | Domänenmodelle (`domain.models`): Device, Activity, Project, FaceMapping, RawEvent, Session, Correction; Zeithelfer `utc_now`/`ensure_utc` | 2026-11-20 | 21:01 | bb76d6d |
+| AP-05 | Zustandsautomaten (`domain.state_machine`): Baseline, Duplikate, Entprellung, Verbindungslebenszyklus, Backoff | 2026-11-20 | 21:03 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
 | AP | Beschreibung | Roadmap |
 |---|---|---|
-| AP-05 | Orientierungs-Zustandsautomat: Baseline, Entprellung, Duplikate | M2 |
 | AP-06 | Zeitregeln: Tagesgrenzen-Teilung, Überschneidungen, Zeitzonen | M3 |
 | AP-07 | SQLite-Datenbank und Migrationen (`storage.database`) | M3 |
 | AP-08 | Repositories mit Transaktionen und Auditspur | M3 |
