@@ -1,15 +1,26 @@
-# Planned configuration; no loader implemented yet.
+# Example of the OctaLedger user settings file (settings.toml).
+# The real file lives in the per-user data folder (see docs/INSTALLATION.md) and is
+# written by the application. Unknown keys are rejected so typos are noticed.
+
 [agent]
+# Only loopback addresses are accepted: 127.0.0.1, ::1, localhost.
 host = "127.0.0.1"
-port = 8765
+port = 8765               # 1024..65535
 
 [tracking]
-debounce_ms = 300
-baseline_policy = "observe_only"
-disconnect_policy = "mark_uncertain"
-neutral_policy = "observe_only"
+debounce_ms = 300         # 0..10000; a face must stay this long before it counts
+baseline_policy = "observe_only"    # observe_only | adopt_current
+disconnect_policy = "mark_uncertain" # mark_uncertain | stop_session
+neutral_policy = "observe_only"     # observe_only | pause (experimental)
 mode = "single_active_tracker"
 
 [display]
 language = "de"
-timezone = "Europe/Berlin" # Example only: choose your own IANA timezone.
+timezone = "UTC"          # IANA name for display only, e.g. "Europe/Zurich"
+theme = "light"           # light | dark
+font_size = "normal"      # normal | large
+
+[logging]
+level = "INFO"            # DEBUG | INFO | WARNING | ERROR | CRITICAL
+max_bytes = 1000000
+backup_count = 5

@@ -16,6 +16,8 @@ dependencies = [
   "requests>=2.32,<3",
   "plotly>=5.24,<7",
   "platformdirs>=4,<5",
+  # Windows ships no timezone database; zoneinfo needs this package there.
+  "tzdata>=2024.1",
 ]
 
 [project.optional-dependencies]

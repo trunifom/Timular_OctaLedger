@@ -142,3 +142,60 @@ Datei liest (Import, Restore), nutzt dieses Modul. So gelten überall dieselben 
 `OSError` verlässt das Modul nie: Er wird in die vom Aufrufer gewählte Klasse
 (`ExportError`, `StorageError`, `ImportDataError` …) übersetzt, die Ursache bleibt als
 `__cause__` erhalten, die Benutzermeldung nennt den Dateinamen.
+
+## 5. Einstellungen und Pfade (`octaledger.core.settings`, AP-03)
+
+### 5.1 Datenablage (`AppPaths`, `resolve_paths`)
+
+Nutzerdaten liegen nie im Projektordner. Rangfolge für das Wurzelverzeichnis:
+**Argument → Umgebungsvariable `OCTALEDGER_DATA_DIR` → Benutzerprofil des Betriebssystems**
+(`platformdirs`, unter Windows `%LOCALAPPDATA%\OctaLedger`).
+
+```text
+<root>/
+  settings.toml            Benutzereinstellungen
+  data/octaledger.sqlite3  Datenbank
+  logs/octaledger.log      rotierende Logdatei
+  backups/                 automatische und manuelle Backups
+  exports/                 Standardziel für CSV/JSON
+```
+
+`resolve_paths()` legt nichts an; `ensure_directories()` erzeugt die Ordner idempotent und
+meldet Fehler als `StorageError`.
+
+### 5.2 Einstellungen (`Settings`)
+
+Unveränderliche, **selbstvalidierende** Datenklassen (`__post_init__`): ungültige Werte
+können weder aus einer Datei geladen noch im Code erzeugt werden. Änderungen erfolgen mit
+`dataclasses.replace(...)`, das erneut validiert.
+
+| Abschnitt | Schlüssel | Standard | Erlaubt |
+|---|---|---|---|
+| `agent` | `host` | `127.0.0.1` | nur Loopback: `127.0.0.1`, `::1`, `localhost` |
+| | `port` | `8765` | 1024–65535 |
+| `tracking` | `debounce_ms` | `300` | 0–10000 |
+| | `baseline_policy` | `observe_only` | `observe_only`, `adopt_current` |
+| | `disconnect_policy` | `mark_uncertain` | `mark_uncertain`, `stop_session` |
+| | `neutral_policy` | `observe_only` | `observe_only`, `pause` (experimentell) |
+| | `mode` | `single_active_tracker` | `single_active_tracker` |
+| `display` | `language` | `de` | `de` |
+| | `timezone` | `UTC` | beliebiger IANA-Name (nur Anzeige) |
+| | `theme` | `light` | `light`, `dark` |
+| | `font_size` | `normal` | `normal`, `large` |
+| `logging` | `level` | `INFO` | `DEBUG` … `CRITICAL` |
+| | `max_bytes` | `1000000` | 10 000 – 104 857 600 |
+| | `backup_count` | `5` | 0–50 |
+
+Der API-Token gehört **nicht** in diese Datei (siehe AP-16).
+
+### 5.3 Laden und Speichern
+
+- `load_settings(datei)`: fehlt die Datei → Standardwerte. Ist sie vorhanden, aber
+  unlesbar, kein gültiges TOML, zu groß (> 1 MB), enthält unbekannte Abschnitte/Schlüssel
+  oder ungültige Werte → `ConfigurationError` mit klarer deutscher Meldung. Nichts wird
+  stillschweigend ignoriert (Tippfehler werden bemerkt).
+- Danach gelten die Umgebungsvariablen `OCTALEDGER_HOST` und `OCTALEDGER_PORT` als
+  Überschreibung (ebenfalls validiert).
+- `save_settings(settings, datei)`: atomar über `core.fileio`; bei Fehler bleibt die alte
+  Datei erhalten.
+- Vorlage: `config/settings.example.toml`.

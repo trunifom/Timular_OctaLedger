@@ -57,3 +57,34 @@ Ordner `logs` Ihres Benutzerprofils. Sie hilft bei der Fehlersuche.
   abgelehnt, bevor irgendetwas verändert wird.
 - Meldungen nennen immer den Dateinamen, z. B. „Die Datei ‚export.csv‘ konnte nicht
   gespeichert werden (Rechte, Speicherplatz oder Pfad prüfen)“.
+
+## 5. Einstellungen und Speicherort
+
+### Wo liegen meine Daten?
+
+Standardmäßig im Benutzerprofil, unter Windows in `%LOCALAPPDATA%\OctaLedger`:
+
+| Ordner/Datei | Inhalt |
+|---|---|
+| `data\octaledger.sqlite3` | Ihre Zeitdaten (Datenbank) |
+| `settings.toml` | Ihre Einstellungen |
+| `logs\` | Protokolldateien |
+| `backups\` | Sicherungen |
+| `exports\` | Exportierte Dateien (CSV/JSON) |
+
+Einen anderen Speicherort können Sie mit der Umgebungsvariablen `OCTALEDGER_DATA_DIR`
+festlegen. Ihre Daten werden **nie** im Programmordner gespeichert.
+
+### Wichtige Einstellungen
+
+| Einstellung | Bedeutung | Empfehlung |
+|---|---|---|
+| Zeitzone | In welcher Zeitzone Zeiten angezeigt werden (gespeichert wird immer UTC) | Ihre eigene wählen, z. B. `Europe/Zurich` |
+| Entprellung (ms) | So lange muss eine Seite oben liegen, bevor sie zählt; verhindert Fehlwechsel beim Drehen | 300 |
+| Erste Seite nach Verbindung | `observe_only`: nur merken, nicht automatisch starten. `adopt_current`: aktuelle Seite sofort als Start übernehmen | `observe_only` |
+| Bei Verbindungsverlust | `mark_uncertain`: Zeitraum als unsicher markieren, Sie bestätigen danach | `mark_uncertain` |
+| Darstellung | Hell/Dunkel und Schriftgröße normal/groß | nach Geschmack |
+
+Ungültige Einstellungen werden **nicht stillschweigend ignoriert**: Das Programm nennt die
+Einstellung und was erlaubt ist (Fehlercode `OL-CONFIG-001`). Löschen Sie `settings.toml`,
+um auf die Standardwerte zurückzusetzen.

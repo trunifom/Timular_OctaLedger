@@ -49,14 +49,32 @@ scripts\start_dashboard.bat
 
 Das Dashboard bindet ausschließlich an `127.0.0.1` und ist nur lokal erreichbar.
 
-## 5. Datenablage
+## 5. Datenablage und Konfiguration
 
-Nutzerdaten liegen **nicht** im Projektordner, sondern im Benutzerprofil (Pfade über
-`platformdirs`). Details folgen mit AP-03 (Einstellungen und Pfade).
+Nutzerdaten liegen **nicht** im Projektordner. Rangfolge für das Wurzelverzeichnis:
+
+1. Programmargument (für Tests/Skripte),
+2. Umgebungsvariable `OCTALEDGER_DATA_DIR`,
+3. Benutzerprofil: unter Windows `%LOCALAPPDATA%\OctaLedger`.
+
+```text
+settings.toml   data\octaledger.sqlite3   logs\octaledger.log   backups\   exports\
+```
+
+Konfiguration: Vorlage `config\settings.example.toml` nach `<Wurzel>\settings.toml` kopieren
+und anpassen. Fehlt die Datei, gelten Standardwerte. Überschreibungen per Umgebungsvariable:
+
+| Variable | Wirkung |
+|---|---|
+| `OCTALEDGER_DATA_DIR` | Datenverzeichnis |
+| `OCTALEDGER_HOST` | API-Adresse (nur `127.0.0.1`, `::1`, `localhost`) |
+| `OCTALEDGER_PORT` | API-Port (1024–65535) |
+
+Beispiel (PowerShell): `$env:OCTALEDGER_DATA_DIR = "D:\OctaLedgerDaten"`
 
 ## 6. Logfiles
 
-Logfiles liegen im Ordner `logs` des Benutzerprofils (genauer Pfad nach AP-03). Die
+Logfiles liegen im Ordner `logs` der Datenablage (siehe Abschnitt 5). Die
 Protokollstufe (`DEBUG`, `INFO`, `WARNING`, `ERROR`) wird in den Einstellungen gesetzt.
 Geheimnisse werden vor dem Schreiben maskiert; siehe SOFTWAREDOKUMENTATION.md §3.
 
