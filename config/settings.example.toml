@@ -1,0 +1,15 @@
+# Planned configuration; no loader implemented yet.
+[agent]
+host = "127.0.0.1"
+port = 8765
+
+[tracking]
+debounce_ms = 300
+baseline_policy = "observe_only"
+disconnect_policy = "mark_uncertain"
+neutral_policy = "observe_only"
+mode = "single_active_tracker"
+
+[display]
+language = "de"
+timezone = "Europe/Berlin" # Example only: choose your own IANA timezone.
