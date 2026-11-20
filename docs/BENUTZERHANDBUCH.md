@@ -220,3 +220,33 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 
 Nach einem **Neustart** von Programm oder Rechner bleiben alle bestätigten Daten erhalten; ein
 Zeitraum mit unklarer Verbindung bleibt als *unsicher* gekennzeichnet.
+
+## 12. Geräte einrichten und Seiten zuordnen
+
+### Tracker registrieren
+1. Öffnen Sie im Dashboard den Bereich **Geräte**.
+2. Geben Sie dem Tracker einen **Namen** (z. B. „Tracker Büro“). Namen müssen eindeutig sein.
+3. Der **erste** registrierte Tracker wird automatisch zum **aktiven Tracker**. Nur er erzeugt
+   Zeiten. Weitere Tracker bleiben registriert; mit **Übergabe** wechseln Sie bewusst.
+4. Modell und Firmware zeigt OctaLedger an, sobald sie vom Gerät gemeldet werden; sind sie
+   unbekannt, ist das in Ordnung.
+
+### Seiten kalibrieren (jede der 8 Seiten einzeln)
+1. Halten Sie **eine Seite des Würfels oben**.
+2. OctaLedger zeigt Ihnen die **technische Nummer** dieser Seite (1–8), sobald der Würfel sie
+   gemeldet hat.
+3. Wählen Sie die **Tätigkeit** (und optional das **Projekt**) für diese Seite.
+4. Wiederholen Sie das für alle acht Seiten. Eine Fortschrittsanzeige zeigt, wie viele Seiten
+   schon zugeordnet sind. Eine Seite ohne Tätigkeit bucht nichts.
+
+Tipp: Kleben Sie einen kleinen Aufkleber oder schreiben Sie die Seitennummer auf eine Karte,
+damit Sie die Zuordnung später im Alltag wiederfinden.
+
+### Tätigkeiten und Projekte verwalten (Bereich **Verwaltung**)
+- Anlegen, umbenennen, Farbe ändern. Ohne eigene Farbe vergibt OctaLedger automatisch
+  gut unterscheidbare Farben.
+- **Archivieren statt Löschen:** Wird eine Tätigkeit/ein Projekt bereits verwendet, lässt sie/es
+  sich nicht löschen („Bitte archivieren Sie sie stattdessen“). Archivierte Einträge sind aus
+  den Auswahllisten verschwunden, aber alte Zeiten und Auswertungen bleiben korrekt. Sie
+  können sie jederzeit wiederherstellen.
+- Ein **Gerät** löschen ist nur möglich, solange es keine aufgezeichneten Daten hat.

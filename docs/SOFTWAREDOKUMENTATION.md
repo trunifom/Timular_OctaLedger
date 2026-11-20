@@ -501,3 +501,33 @@ höchstens eine Sitzung der Länge 0, aber nie eine Überschneidung (WARNING im 
 A-04 (Reconnect erzeugt keine neue Sitzung), A-06 (Neustart erhält Daten und markiert den
 unklaren Abschnitt), A-07 (Übergabe ohne doppelte Zeit) und A-08 (Korrektur nachvollziehbar)
 sind durch Unit-Tests belegt (`tests/unit/test_tracking_service.py`).
+
+## 12. Geräte- und Katalog-Service (`application.device_service`, `application.catalog_service`, AP-10)
+
+### 12.1 `DeviceService`
+
+| Methode | Verhalten |
+|---|---|
+| `register(alias, platform_address, model, firmware)` | Registriert einen Tracker (interne UUID + Alias). Der **erste** registrierte Tracker wird automatisch aktiver Tracker. Modell/Firmware dürfen unbekannt sein (F-03). |
+| `list_devices()` / `get(id)` | `DeviceInfo`: Gerät, Kalibrierung (`mappings` je Seite), `is_active`; `configured_faces`, `is_fully_calibrated` (alle 8 Seiten mit Tätigkeit) |
+| `rename(id, alias)` | Alias ändern (eindeutig, ohne Groß-/Kleinschreibung) |
+| `update_hardware_info(id, model, firmware, platform_address)` | Ergänzt bekannte Werte; `None` behält den alten Wert |
+| `remove(id)` | Löscht ein Gerät **ohne** aufgezeichnete Daten und räumt die Auswahl des aktiven Trackers auf; sonst `ConflictError` mit klarer Meldung |
+| `assign_face(id, face, aktivität, projekt)` | Kalibrierung: Seite 1–8 → Tätigkeit/Projekt (Referenzen werden geprüft); `revision` steigt bei Änderung |
+| `clear_face(id, face)` | Zuordnung entfernen |
+| `last_observed_face(id)` | Zuletzt gesehene Seite (aus gespeicherten Baseline/Seitenwechsel/Neutral-Ereignissen) – Grundlage der geführten Kalibrierung |
+
+Die ausdrückliche Übergabe zwischen Trackern liegt im `TrackingService.handover()`, weil sie
+Sitzungen ändert.
+
+### 12.2 `CatalogService` (Tätigkeiten und Projekte)
+
+`create_*`, `list_*(include_archived)`, `update_*`, `archive_*(archived=True/False)`,
+`delete_*` jeweils für Tätigkeiten und Projekte.
+
+- Neue Einträge ohne Farbe erhalten die **am seltensten verwendete Farbe** der
+  farbenblind-freundlichen Okabe-Ito-Palette (`PALETTE`), damit Diagramme unterscheidbar bleiben.
+- Verwendete Einträge (Sitzungen oder Seitenzuordnungen) lassen sich **nicht löschen**;
+  `ConflictError` mit dem Hinweis „bitte archivieren“. Archivierte Einträge verschwinden aus den
+  Auswahllisten, bleiben aber in alten Auswertungen erhalten; ihr Name wird wieder frei.
+- Löschen unbenutzter Einträge wird im Audit-Log protokolliert.
