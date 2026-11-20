@@ -5,11 +5,13 @@ import threading
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 import uvicorn
 
+from octaledger.agent.supervisor import DeviceStatus
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.application.catalog_service import CatalogService
@@ -17,12 +19,44 @@ from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
+from octaledger.core.errors import BleConnectionError
 from octaledger.core.settings import Settings, SettingsStore
 from octaledger.dashboard_client.client import ApiClient
+from octaledger.domain.state_machine import ConnectionState
+from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
 API_TOKEN = "i" * 43
+
+
+class FakeAgent:
+    """Stands in for the BLE agent: records calls instead of touching Bluetooth."""
+
+    def __init__(self) -> None:
+        self.started: list[str] = []
+        self.stopped: list[str] = []
+        self.fail_scan = False
+        self.scan_results = [ScanResult("AA:BB", "ZEI", -60, ("c7e70010",), True)]
+
+    def start_device(self, device_id: str) -> None:
+        self.started.append(device_id)
+
+    def stop_device(self, device_id: str) -> None:
+        self.stopped.append(device_id)
+
+    def device_statuses(self) -> list[DeviceStatus]:
+        now = datetime.now(timezone.utc)
+        return [
+            DeviceStatus(d, ConnectionState.READY, "c1", 0, None, 3, now, 87, 0, 2)
+            for d in self.started
+            if d not in self.stopped
+        ]
+
+    def scan(self, seconds: float) -> list[ScanResult]:
+        if self.fail_scan:
+            raise BleConnectionError("off", user_message="Bluetooth ist aus.")
+        return list(self.scan_results)
 
 
 def free_port() -> int:

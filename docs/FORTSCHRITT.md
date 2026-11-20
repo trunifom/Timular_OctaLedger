@@ -31,7 +31,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-16a | API-Sicherheit (`api.security`): Token (Env/Datei/Erzeugung), Bearer-Prüfung, Host-/Origin-Validierung, Log-Redaktion | 2026-11-20 | 21:39 | 54e58e9 |
 | AP-16 | Lokale HTTP-API (`api`): Routen, Schemas, Fehlerabbildung, Middleware, SettingsStore; deckte 2 echte Fehler auf (behoben) | 2026-11-20 | 21:46 | ccdb007 |
 | AP-17 | Dashboard-Client (`dashboard_client.client`): Token nur an Loopback, Fehlerabbildung per Code, Integrationstests über echtes HTTP | 2026-11-20 | 21:50 | 2a0a1a5 |
-| AP-18a | GUI-Grundgerüst (`dashboard`): Hell/Dunkel + Schriftgröße (WCAG AA), UI-Helfer, Übersichtsseite, AppTest-GUI-Tests | 2026-11-20 | 22:00 | folgt |
+| AP-18a | GUI-Grundgerüst (`dashboard`): Hell/Dunkel + Schriftgröße (WCAG AA), UI-Helfer, Übersichtsseite, AppTest-GUI-Tests | 2026-11-20 | 22:00 | 1b134db |
+| AP-18b | GUI-Seiten Geräte (Registrierung, Suche, Kalibrierung, Übergabe) und Verwaltung (Tätigkeiten/Projekte) | 2026-11-20 | 22:16 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 

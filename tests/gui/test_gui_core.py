@@ -7,6 +7,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from octaledger.core.settings import FontSize, Theme
+from octaledger.dashboard.pages import PAGES
 from octaledger.dashboard.theme import (
     FONT_PIXELS,
     PALETTES,
@@ -69,7 +70,8 @@ def test_app_renders_without_exceptions(client: ApiClient) -> None:
     assert not at.exception
     assert at.header[0].value == "Übersicht"
     assert "Keine Zeiterfassung läuft" in texts(at)
-    assert at.sidebar.radio(key="nav").options == ["🏠 Übersicht"]
+    assert at.sidebar.radio(key="nav").options == list(PAGES)  # navigation shows every page
+    assert at.sidebar.radio(key="nav").options[0] == "🏠 Übersicht"
     assert any("Agent läuft" in c.value for c in at.sidebar.caption)
 
 

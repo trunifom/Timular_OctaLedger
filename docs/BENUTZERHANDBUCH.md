@@ -359,3 +359,29 @@ damit Sie die Zuordnung später im Alltag wiederfinden.
 ### Wenn „Agent nicht erreichbar“ erscheint
 Der Agent läuft nicht (Fehlercode `OL-API-002`). Starten Sie ihn mit `octaledger agent` und klicken
 Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solange der Agent fehlt.
+
+### Bereich „Geräte“ – Schritt für Schritt
+1. **Tracker registrieren:** Namen eingeben (z. B. „Tracker Büro“), **➕ Registrieren**. Der erste
+   Tracker wird automatisch der **aktive** (⭐); nur er erzeugt Zeiten.
+2. **Bluetooth-Suche:** Würfel einmal drehen (weckt ihn), dann **🔍 Nach Geräten suchen**. Wählen Sie
+   Ihr Gerät – Geräte mit **✅ passender Dienst** sind die wahrscheinlichsten – und den Tracker, dem
+   es gehört, dann **💾 Adresse speichern**. OctaLedger verbindet nie von selbst mit unbekannten
+   Geräten, und die Adresse wird aus Datenschutzgründen nicht angezeigt.
+3. **🔗 Verbinden:** baut die Verbindung auf. Im Kasten sehen Sie den Zustand (Bereit, Verbinde …),
+   den Batteriestand und die letzte Meldung. **⛔ Trennen** beendet sie bewusst (kein automatischer
+   Neuversuch).
+4. **Seiten zuordnen (Kalibrierung):** Halten Sie eine Seite nach oben; „👈 Aktuell liegt **Seite N**
+   oben“ zeigt die technische Nummer. Wählen Sie für jede der acht Seiten eine Tätigkeit (und
+   optional ein Projekt), dann **💾 Kalibrierung speichern**. Der Balken zeigt, wie viele Seiten
+   fertig sind. „– nicht belegt –“ bucht nichts.
+5. **⭐ Zum aktiven Tracker machen:** bewusste Übergabe an den zweiten Tracker (die Zeit des alten
+   Trackers endet, es entsteht keine doppelte Zeit).
+6. **Umbenennen oder löschen:** Löschen geht nur, solange noch keine Daten aufgezeichnet wurden.
+
+### Bereich „Verwaltung“
+- Reiter **Tätigkeiten** und **Projekte**: neuen Namen eingeben, **➕ anlegen**. Ohne eigene Farbe
+  wählt OctaLedger gut unterscheidbare Farben.
+- Zu jedem Eintrag: Name und Farbe ändern (**💾 Speichern**), **📦 Archivieren** (verschwindet aus
+  den Auswahllisten, alte Auswertungen bleiben) oder **🗑 Löschen** (nur wenn nirgends verwendet; sonst
+  erscheint „Bitte archivieren Sie sie stattdessen“). Mit **Archivierte anzeigen** finden Sie
+  archivierte Einträge zum **♻️ Wiederherstellen**.

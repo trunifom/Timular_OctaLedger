@@ -7,7 +7,6 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from octaledger.agent.supervisor import DeviceStatus
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.application.catalog_service import CatalogService
@@ -15,12 +14,10 @@ from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
-from octaledger.core.errors import BleConnectionError
 from octaledger.core.settings import Settings, SettingsStore
-from octaledger.domain.state_machine import ConnectionState
-from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
+from tests.conftest import FakeAgent
 
 PORT = 8765
 TOKEN = "t" * 43
@@ -28,32 +25,6 @@ BASE = f"http://127.0.0.1:{PORT}"
 V1 = "/api/v1"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 NOW = datetime.now(timezone.utc).replace(microsecond=0)
-
-
-class FakeAgent:
-    """Records calls instead of touching Bluetooth."""
-
-    def __init__(self) -> None:
-        self.started: list[str] = []
-        self.stopped: list[str] = []
-        self.fail_scan = False
-
-    def start_device(self, device_id: str) -> None:
-        self.started.append(device_id)
-
-    def stop_device(self, device_id: str) -> None:
-        self.stopped.append(device_id)
-
-    def device_statuses(self) -> list[DeviceStatus]:
-        return [
-            DeviceStatus(d, ConnectionState.READY, "c1", 0, None, 3, NOW, 87, 0, 2)
-            for d in self.started
-        ]
-
-    def scan(self, seconds: float) -> list[ScanResult]:
-        if self.fail_scan:
-            raise BleConnectionError("off", user_message="Bluetooth ist aus.")
-        return [ScanResult("AA:BB", "ZEI", -60, ("c7e70010",), True)]
 
 
 class Env:

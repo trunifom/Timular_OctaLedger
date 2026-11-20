@@ -974,3 +974,39 @@ inkl. Persistenz und Wiederöffnen, Ausfall beim Speichern, Kontrastverhältniss
 fehlt, kompletter Start→Pause→Fortsetzen→Stopp-Ablauf, Projekt und Notiz, HTML-Escaping, Hinweis auf
 unsichere Sitzungen, Tracker-Box und die Formatierungshilfen.
 Hinweis: AppTest prüft Logik und Elemente, **nicht** das visuelle Erscheinungsbild im Browser.
+
+## 22. Seiten „Geräte“ und „Verwaltung“ (`dashboard.pages.devices`, `dashboard.pages.catalog`, AP-18b)
+
+### 22.1 Geräte-Seite
+
+| Bereich | Verhalten |
+|---|---|
+| Tracker registrieren | Formular (Name, max. 100 Zeichen, eindeutig); Fehler (Duplikat, leer) erscheinen mit deutschem Text und Fehlercode |
+| Bluetooth-Suche | Nur auf Knopfdruck (≈ 5 s, Spinner); Ergebnisse in `st.session_state["_scan"]`; passende Geräte mit „✅ passender Dienst“, **nichts wird ausgeblendet**; Auswahl + Tracker → „Adresse speichern“. Die Adresse selbst wird **nie angezeigt** (nur `has_address`). Leere Treffer/keine Tracker/fehlender Agent/Bluetooth aus → erklärende Hinweise |
+| Tracker-Panel | Zustand mit Statuspunkt **und** Text, Modell/Firmware (oder „unbekannt“), Adresse „gespeichert/noch nicht zugeordnet“, Batterie, letzte Meldung; Knöpfe **Verbinden**, **Trennen**, **Zum aktiven Tracker machen** (deaktiviert beim aktiven) |
+| Kalibrierung | Fortschrittsbalken „n von 8 Seiten“; Anzeige der zuletzt gemeldeten Seite („👈 Seite N liegt oben“, neutral, noch keine); Formular mit je Seite 1–8 Tätigkeit + Projekt; **gespeichert werden nur geänderte Seiten** (neue Zuordnung → `assign_face`, auf „nicht belegt“ → `clear_face`) |
+| Umbenennen / Löschen | Löschen erst nach Bestätigungs-Haken (Gerät mit Daten bleibt geschützt, Fehlermeldung erklärt es) |
+
+Widget-Schlüssel sind je Gerät/Seite eindeutig (`face_act_<id>_<n>`, `connect_<id>` …), was auch die
+Tests nutzen.
+
+### 22.2 Verwaltung
+
+Zwei Reiter **Tätigkeiten** und **Projekte** (gemeinsame Implementierung):
+
+- Anlegen: Name + optional „Eigene Farbe wählen“ (sonst automatische, unterscheidbare Farbe aus der
+  Okabe-Ito-Palette).
+- Liste (archivierte optional per Schalter) mit Name, Farbwähler, **Speichern**, **Archivieren /
+  Wiederherstellen**, **Löschen** (nur nach Bestätigung; verwendete Einträge → Meldung „bitte
+  archivieren“).
+- Namen werden, wo sie in HTML erscheinen, escaped; in Labels (Markdown) erscheinen sie unverändert,
+  weil Streamlit dort kein rohes HTML rendert.
+
+### 22.3 Tests
+
+`tests/gui/test_gui_devices_catalog.py` (22 Tests, `AppTest` gegen den echten Server, `FakeAgent`
+aus `tests/conftest.py`): leere Zustände, Registrierung inkl. Duplikat und leerem Namen,
+Suche mit/ohne Agent, Adresse speichern (nie angezeigt), Fehlerfälle der Suche, Verbinden/Trennen,
+Übergabe, Kalibrierung (nur Änderungen, Löschen einer Seite, „Seite oben“), fehlende Tätigkeiten,
+Umbenennen/Löschen mit Bestätigung, Hilfetexte aller Eingaben, Escaping, kompletter Lebenszyklus
+von Tätigkeiten/Projekten, eigene Farbe, Schutz verwendeter Einträge, Duplikate, leere Kataloge.
