@@ -574,3 +574,42 @@ Verlust-Callback genau einmal aus; ein bewusstes `disconnect` löst ihn nicht au
 `FakeTransportFactory` verwaltet erzeugte Instanzen. Alles hier ist **synthetisch** und darf nie
 als echte Arbeitszeitdaten ausgegeben werden (Testplan). Die Tests nutzen `asyncio.run`, es wird
 kein `pytest-asyncio` benötigt.
+
+## 14. Bleak-Scanner und -Client (`infrastructure.ble.scanner`, `infrastructure.ble.client`, AP-12)
+
+### 14.1 Scanner
+
+`await scan(timeout=5.0)` sucht **nur auf ausdrückliche Anforderung** (1–30 s) und liefert
+`ScanResult(address, name, rssi, service_uuids, is_candidate, label)`. Er verbindet **nie**
+selbstständig (Testplan: „niemals automatisch unbekannte Geräte verbinden“).
+
+- Geräte, die den Orientierungsdienst bewerben, sind **Kandidaten** und stehen zuerst, danach
+  nach Signalstärke. **Es wird nichts herausgefiltert**: Namens-/Dienstfilter dürfen andere
+  Hardwaregenerationen nicht unbemerkt ausschließen.
+- Fehler (Bluetooth aus, kein Adapter, Rechte) → `BleConnectionError` mit deutscher Meldung.
+- `discover=` ist injizierbar, damit die Logik ohne Funk testbar ist.
+
+### 14.2 `BleakTransport`
+
+Implementiert `DeviceTransport` auf Basis von Bleak – bewusst dünn:
+
+- übersetzt Bleak-Typen in neutrale (`GattService`/`GattCharacteristic`, Eigenschaften klein
+  geschrieben) und jeden Bleak-/OS-Fehler (`BleakError`, `OSError`, `TimeoutError`) in
+  `BleConnectionError` (mit `details['stage']`: `connect`, `discover`, `read`, `subscribe`),
+- meldet nur **unerwartete** Verbindungsverluste per Callback; ein bewusstes `disconnect()` löst
+  ihn nicht aus,
+- `disconnect()`/`stop_notify()` sind idempotent und ignorieren Fehler auf bereits defekter
+  Verbindung,
+- **keine Schreiboperation**; pro Verbindungszyklus entsteht ein **neuer** Transport
+  (`BleakTransportFactory`), alte Instanzen werden nie wiederverwendet.
+
+Alle Operationen laufen im **einen** Loop des Agenten (Bleak-Anforderung).
+
+### 14.3 Teststrategie und Grenzen
+
+Die Unit-Tests ersetzen `BleakClient` bzw. `discover` durch Stubs (Datenübersetzung,
+Fehlerabbildung, Loss-Callback). **Das Verhalten mit echten Trackern ist damit nicht belegt**
+(parallele Verbindungen am Adapter, Aufwecken, Reichweite, Windows-Treiber). Dafür gibt es
+`tests/hardware/test_hardware_smoke.py`: standardmäßig übersprungen, nur mit
+`OCTALEDGER_HARDWARE_TESTS=1` (Scan) bzw. zusätzlich `OCTALEDGER_HARDWARE_ADDRESS` (Verbinden,
+Dienste, Anfangswert lesen). Ergebnisse gehören in die Kompatibilitätsmatrix des Testplans.

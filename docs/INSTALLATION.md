@@ -94,6 +94,25 @@ Geheimnisse werden vor dem Schreiben maskiert; siehe SOFTWAREDOKUMENTATION.md §
 - Beim Paket-Build werden die SQL-Migrationen als Package-Data mitgeliefert
   (`pyproject.toml`, Abschnitt `[tool.setuptools.package-data]`).
 
+## Bluetooth und Hardwaretest
+
+- Voraussetzung für echte Erfassung: Bluetooth-LE-Adapter mit funktionierendem Windows-Treiber,
+  Bluetooth in den Windows-Einstellungen **eingeschaltet**. Der Tracker darf nicht gleichzeitig
+  mit der Hersteller-App verbunden sein (ein Gerät hat meist nur eine aktive Verbindung).
+- Die normale Testsuite benötigt **keine** Hardware (`pytest` überspringt die Hardwaretests).
+- **Hardwaretest bewusst starten** (nur Suchen/Lesen/Abonnieren, kein Schreiben):
+
+  ```bat
+  set OCTALEDGER_HARDWARE_TESTS=1
+  .venv\Scripts\python.exe -m pytest tests\hardware -s
+  rem Adresse aus der Ausgabe übernehmen und Verbindungstest starten:
+  set OCTALEDGER_HARDWARE_ADDRESS=<Adresse>
+  .venv\Scripts\python.exe -m pytest tests\hardware -s
+  ```
+- Trage Ergebnisse (Modell, Firmware, Windows, Adapter, Treiber, Python, Bleak, App-Version) in die
+  Kompatibilitätsmatrix von `docs\TESTPLAN.md` ein. **Erst danach** gelten Abnahmekriterien mit
+  Hardwarebezug (A-01, A-05…) als geprüft.
+
 ## 7. Fehlersuche
 
 | Symptom | Ursache / Abhilfe |
