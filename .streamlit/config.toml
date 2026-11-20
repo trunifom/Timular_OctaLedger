@@ -1,0 +1,8 @@
+# Streamlit settings for the OctaLedger dashboard.
+# Secrets never belong here (.streamlit/secrets.toml is git-ignored).
+[server]
+address = "127.0.0.1"      # local only
+headless = false
+
+[browser]
+gatherUsageStats = false   # no hidden telemetry

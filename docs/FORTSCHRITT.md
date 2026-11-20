@@ -34,14 +34,14 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-18a | GUI-Grundgerüst (`dashboard`): Hell/Dunkel + Schriftgröße (WCAG AA), UI-Helfer, Übersichtsseite, AppTest-GUI-Tests | 2026-11-20 | 22:00 | 1b134db |
 | AP-18b | GUI-Seiten Geräte (Registrierung, Suche, Kalibrierung, Übergabe) und Verwaltung (Tätigkeiten/Projekte) | 2026-11-20 | 22:16 | 75df345 |
 | AP-18c | GUI-Seiten Zeitjournal (Filter, Korrigieren/Teilen/Löschen, Zu prüfen, Nachtragen) und Statistik (Kennzahlen, Diagramme mit Tabellen) | 2026-11-20 | 22:30 | b7048af |
-| AP-18d | GUI-Seiten Daten (Export/Sicherung/Restore mit Vorschau), Einstellungen, Diagnose (anonymisierter Bericht) | 2026-11-20 | 22:39 | folgt |
+| AP-18d | GUI-Seiten Daten (Export/Sicherung/Restore mit Vorschau), Einstellungen, Diagnose (anonymisierter Bericht) | 2026-11-20 | 22:39 | f4ae3de |
+| AP-19 | Agent-Laufzeit (`agent.main`), erweiterte CLI, Start-Skripte, CI; End-to-End-Tests; Thread-Sicherheit im Worker | 2026-11-20 | 22:48 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
 | AP | Beschreibung | Roadmap |
 |---|---|---|
 | AP-18 | Streamlit-GUI: Seiten, Hilfetexte, Hell/Dunkel, Schriftgröße | M4 |
-| AP-19 | CLI-Erweiterung und CI-Anpassung | M4 |
 | AP-20 | Abschlussdokumentation: Benutzerhandbuch, Software, Installation | M5 |
 
 Hinweis: Nicht erledigt und ausdrücklich außerhalb dieses Protokolls bleibt der

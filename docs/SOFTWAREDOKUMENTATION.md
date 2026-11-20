@@ -391,10 +391,10 @@ korrekt, auch Trigger-Rümpfe mit inneren Semikolons.
 
   ```python
   storage = Storage(database)
-  with storage.transaction() as repos:      # atomar: Commit bei Erfolg, Rollback bei Fehler
+  with storage.transaction() as repos:  # atomar: Commit bei Erfolg, Rollback bei Fehler
       repos.sessions.end(running.id, now)
       repos.sessions.add(next_session)
-  with storage.read() as repos:             # nur lesen
+  with storage.read() as repos:  # nur lesen
       sessions = repos.sessions.list_between(start, end)
   ```
 - `Repositories` bündelt `devices`, `activities`, `projects`, `mappings`, `events`,
@@ -1096,3 +1096,73 @@ Zeitzone sofort, Regeln speichern mit Neustart-Hinweis, nur lesende technische A
 und ohne Live-Status, leere Zustände, Anonymisierung des Berichts und ein Durchlauf über **alle acht
 Seiten ohne Ausnahme**. Hinweis: Streamlits `AppTest` kann Datei-Uploads nicht simulieren; der Pfad
 „Inhalt einfügen“ nutzt dieselbe Prüf- und Restore-Logik und wird getestet.
+
+## 25. Agent-Laufzeit und Kommandozeile (`octaledger.agent.main`, `octaledger.cli`, AP-19)
+
+### 25.1 Prozessaufbau des Agenten
+
+| Thread | Aufgabe |
+|---|---|
+| Hauptthread | wartet auf Strg+C bzw. `request_stop()` und fährt danach alles in Reihenfolge herunter |
+| **BLE-Thread** | der **eine** AsyncIO-Loop, der alle Tracker-Verbindungen besitzt (Bleak-Anforderung); hier lebt der `AgentSupervisor` |
+| API-Thread | uvicorn mit der Loopback-API; deren Handler laufen im Worker-Threadpool |
+
+`AgentRuntime` baut alle Services (Datenbank mit Migration, Storage, Tracking-, Geräte-, Katalog-,
+Reporting-, Export-Service, Token, `SettingsStore`) und implementiert `AgentControl`. Die API ruft den
+BLE-Teil **nur** darüber auf; `_call()` übergibt Coroutinen thread-sicher per
+`run_coroutine_threadsafe`. Das Schließen des Dashboards berührt diesen Prozess nicht (A-05).
+
+- **Start** (`start()`): prüft zuerst den Port (`check_port_free`; belegt → `ConfigurationError`
+  „läuft der Agent schon?“, damit nie zwei Schreiber um die Datenbank konkurrieren), startet BLE-Loop und
+  API und wartet, bis der Server bereit ist. Danach **Autostart nur des aktiven Trackers**, und nur wenn
+  er eine Adresse hat; Fehler dabei brechen den Start nicht ab. Mehrere registrierte Geräte bedeuten
+  nicht automatisch mehrere zuverlässige gleichzeitige Verbindungen (Pflichtenheft §1) – weitere
+  Tracker verbindet der Benutzer ausdrücklich.
+- **Herunterfahren** (`shutdown()`, idempotent): API stoppen → Supervisor beendet alle Tracker
+  (Verbindung trennen, abschließende `DISCONNECT`-Ereignisse) → BLE-Loop anhalten → Threads joinen.
+- `AgentControl`: `start_device`, `stop_device`, `device_statuses`, `scan` (der Scan läuft auf dem
+  BLE-Loop und verbindet nie).
+- `run_agent(data_dir, log_level, factory)` konfiguriert das Logging (Datei + Konsole, Redaktion),
+  startet die Laufzeit und fährt sicher herunter. Die Transportfabrik ist austauschbar (Bleak
+  produktiv, Fake in Tests).
+
+**Robustheitsfund durch den End-to-End-Test:** Die Callbacks des Workers dürfen sich nicht darauf
+verlassen, auf dem Loop-Thread zu laufen. `asyncio.Event.set()` weckt die Schleife aus einem fremden
+Thread nicht. `DeviceWorker._set()` setzt Ereignisse deshalb thread-sicher (`call_soon_threadsafe`),
+auch für `request_stop()`.
+
+### 25.2 Kommandozeile (`octaledger <befehl>`)
+
+| Befehl | Zweck |
+|---|---|
+| `agent [--data-dir D] [--log-level L]` | Agent starten |
+| `dashboard [--data-dir D]` | Streamlit-Dashboard starten (`--server.address 127.0.0.1`, `--browser.gatherUsageStats false`: nur lokal, **keine Telemetrie**); Einstiegsskript liegt im Paket (`dashboard/streamlit_app.py`) |
+| `status` | läuft der Agent, laufende Tätigkeit, unsichere Sitzungen, Tracker-Zustände |
+| `scan [--seconds N]` | Bluetooth-Geräte suchen (nur Anzeige, Adressen werden nicht ausgegeben, verbindet nie) |
+| `paths` | Speicherorte anzeigen |
+| `backup [--output FILE]` | JSON-Sicherung erstellen (funktioniert auch bei laufendem Agent) |
+| `restore FILE [--yes]` | Sicherung prüfen (ohne `--yes` nur Vorschau, Exit-Code 3) bzw. wiederherstellen; **verweigert**, solange der Agent läuft |
+| `--decode-test N` | Dekodertest ohne Hardware (wie bisher) |
+
+Exit-Codes: `0` Erfolg, `1` negativer Status (z. B. Agent läuft nicht), `2` Fehler (eine lesbare Zeile
+`Fehler [OL-…-nnn]: …`, **nie** ein Stacktrace), `3` Bestätigung nötig, `130` abgebrochen.
+
+### 25.3 Skripte, Konfiguration, CI
+
+- `scripts\start_agent.bat`, `start_dashboard.bat`, `start_all.bat` (Agent im eigenen Fenster, danach
+  Dashboard), `run_tests.bat` (Qualitäts-Gate: pytest, ruff check, ruff format --check, mypy).
+- `.streamlit/config.toml`: `server.address = 127.0.0.1`, `browser.gatherUsageStats = false`.
+- CI (`.github/workflows/ci.yml`): Windows, Python 3.12, pip-Cache, pytest, `ruff check`,
+  `ruff format --check`, `mypy`; Hardwaretests laufen dort nie.
+
+### 25.4 Tests
+
+`tests/integration/test_agent_runtime.py` (11) fährt den **ganzen Agenten** (BLE-Thread + API-Thread) mit
+synthetischem Tracker: komplette Kette vom Tracker bis zum Dashboard-Client, Verbindungsverlust →
+unsicher → Reconnect ohne neue Sitzung (A-04), bewusstes Trennen ohne Wiederverbinden, Scan über den
+BLE-Loop, Autostart nur des aktiven Trackers mit Adresse, Port-Konflikt, geordnetes und idempotentes
+Herunterfahren, `wait()`/`request_stop()`. `tests/unit/test_cli.py` (17): alle Befehle, Exit-Codes,
+Fehlerdarstellung, Backup/Restore-Rundlauf mit Bestätigung, Restore-Sperre bei laufendem Agent,
+Dashboard-Befehl (lokal, ohne Telemetrie).
+**Das beweist nicht das Verhalten mit echten Trackern** – dafür sind die manuellen Hardwaretests
+(`tests/hardware`, Testplan) vorgesehen.

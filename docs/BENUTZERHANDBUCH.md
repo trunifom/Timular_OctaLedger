@@ -438,3 +438,38 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
 - **Protokoll:** die letzten Ereignisse des Agenten (Geheimnisse sind automatisch unkenntlich gemacht).
 - **⬇️ Diagnosebericht (anonymisiert):** Textdatei **ohne** Gerätenamen, Bluetooth-Adressen und
   Tätigkeiten. Diese Datei können Sie bei einem Problem gefahrlos mitschicken.
+
+## 17. Programm starten und beenden
+
+**Zwei Teile, ein Ziel:** Der **Agent** erfasst die Zeit im Hintergrund, das **Dashboard** ist die
+Anzeige im Browser. Das Dashboard darf jederzeit geschlossen werden – der Agent erfasst weiter.
+
+| Aktion | So geht es |
+|---|---|
+| Alles starten | Doppelklick auf `scripts\start_all.bat` |
+| Nur den Agenten starten | `scripts\start_agent.bat` (Fenster offen lassen) |
+| Nur das Dashboard starten | `scripts\start_dashboard.bat` → Browser öffnet `http://127.0.0.1:8501` |
+| Beenden | Im Agent-Fenster **Strg+C** drücken (der Tracker wird sauber getrennt) |
+
+**Befehle in der Eingabeaufforderung** (im Projektordner, mit aktivierter Umgebung bzw.
+`.venv\Scripts\python.exe -m octaledger …`):
+
+- `octaledger status` – läuft der Agent? Was läuft gerade? Wie ist der Tracker verbunden?
+- `octaledger scan` – Bluetooth-Geräte in der Nähe anzeigen (verbindet nichts).
+- `octaledger paths` – zeigt, wo Ihre Daten liegen.
+- `octaledger backup` – erstellt eine Sicherung (auch bei laufendem Agent).
+- `octaledger restore DATEI` – prüft eine Sicherung und zeigt eine Vorschau; mit `--yes` wird
+  wiederhergestellt. Das geht nur, **solange der Agent nicht läuft**.
+
+Meldungen erscheinen als eine verständliche Zeile mit Fehlercode, z. B.
+`Fehler [OL-CONFIG-001]: …` – ohne technische Stacktraces.
+
+**Telemetrie:** OctaLedger sendet keine Nutzungsdaten. Das Dashboard läuft ausschließlich lokal.
+
+### Typische Meldungen beim Start
+- **„Der Port 8765 ist bereits belegt“:** Der Agent läuft schon (nicht ein zweites Mal starten), oder
+  ein anderes Programm nutzt den Port. Dann in `settings.toml` einen anderen `port` eintragen.
+- **„Es gibt noch kein API-Token“** (im Dashboard): Den Agenten starten – er legt das Token beim ersten
+  Start an.
+- **Mit dem aktiven Tracker verbindet der Agent von selbst**, sobald für ihn eine Bluetooth-Adresse
+  gespeichert ist. Weitere Tracker verbinden Sie bewusst im Bereich *Geräte*.

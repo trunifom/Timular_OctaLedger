@@ -148,6 +148,7 @@ class DeviceWorker:
         self._values: deque[tuple[int, int]] = deque(maxlen=self._tuning.buffer_size)
         self._wake = asyncio.Event()
         self._stop = asyncio.Event()
+        self._loop: asyncio.AbstractEventLoop | None = None  # set when run() starts
         self._lost = False
         self._pending_invalid: list[str] = []
         self._sequence = 0
@@ -160,10 +161,30 @@ class DeviceWorker:
 
     # ------------------------------------------------------------------ public API
 
+    def _set(self, event: asyncio.Event) -> None:
+        """Set an asyncio event from ANY thread and make sure the worker really wakes up.
+
+        ``asyncio.Event.set`` is not thread-safe: called from a foreign thread it does not wake
+        the event loop. Bleak normally delivers callbacks on the loop thread, but that is an
+        implementation detail of the platform backend, so callbacks must not rely on it.
+        """
+        loop = self._loop
+        if loop is None:
+            event.set()
+            return
+        try:
+            on_loop_thread = asyncio.get_running_loop() is loop
+        except RuntimeError:
+            on_loop_thread = False
+        if on_loop_thread:
+            event.set()
+        elif not loop.is_closed():
+            loop.call_soon_threadsafe(event.set)
+
     def request_stop(self) -> None:
-        """Ask the worker to stop for good (also cancels reconnecting)."""
-        self._stop.set()
-        self._wake.set()
+        """Ask the worker to stop for good (also cancels reconnecting). Thread-safe."""
+        self._set(self._stop)
+        self._set(self._wake)
 
     @property
     def state(self) -> ConnectionState:
@@ -204,18 +225,18 @@ class DeviceWorker:
                     "Value buffer full, dropping oldest values (%d dropped so far)", self._dropped
                 )
         self._values.append((value, self._mono_ms()))
-        self._wake.set()
+        self._set(self._wake)
 
     def _on_link_lost(self) -> None:
         """Bleak callback: flag the loss and wake the worker."""
         self._lost = True
-        self._wake.set()
+        self._set(self._wake)
 
     def _record_invalid(self, detail: str) -> None:
         """Remember an invalid packet; it is stored as diagnostic event by the main loop."""
         if len(self._pending_invalid) < self._tuning.buffer_size:
             self._pending_invalid.append(detail)
-        self._wake.set()
+        self._set(self._wake)
 
     # ------------------------------------------------------------------ event output
 
@@ -259,6 +280,7 @@ class DeviceWorker:
 
     async def run(self) -> None:
         """Run connection cycles until stopped. Never raises (errors are recorded)."""
+        self._loop = asyncio.get_running_loop()
         logger.info("Worker for device %s started", self.device_id[:8])
         try:
             while not self._stop.is_set():

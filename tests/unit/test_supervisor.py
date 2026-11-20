@@ -489,3 +489,21 @@ def test_two_devices_run_independently(env: Env) -> None:
 
 def test_default_services_helper_is_compatible() -> None:
     assert default_services()[0].uuid == ORIENTATION_SERVICE_UUID
+
+
+def test_notifications_and_stop_from_a_foreign_thread_wake_the_worker(env: Env) -> None:
+    """Callbacks must not rely on running on the loop thread (found by the end-to-end test)."""
+    import threading
+
+    async def scenario() -> None:
+        fac = factory(1)
+        worker, task = await start_ready(env, fac)
+        loop = asyncio.get_running_loop()
+        pusher = threading.Thread(target=lambda: fac.last.push(b"\x02"))
+        await loop.run_in_executor(None, lambda: (pusher.start(), pusher.join()))
+        await wait_until(lambda: len(env.sessions()) == 1)  # the idle worker did wake up
+        stopper = threading.Thread(target=worker.request_stop)
+        await loop.run_in_executor(None, lambda: (stopper.start(), stopper.join()))
+        await asyncio.wait_for(task, timeout=2.0)  # and a stop from another thread works too
+
+    run(scenario())
