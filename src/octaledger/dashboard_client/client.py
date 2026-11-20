@@ -1,4 +1,522 @@
 """Authenticated local API client, no direct BLE or SQL.
 
-Planned module boundary. Implementation is intentionally absent.
+Responsibility
+--------------
+The only way the dashboard talks to the agent. It
+
+* sends the bearer token **only to loopback addresses** (a misconfigured base URL can never
+  leak the token to another host) and never puts it into a URL or a log line,
+* translates connection problems into :class:`ApiUnavailableError` ("agent not reachable")
+  and API error bodies back into the matching :class:`OctaLedgerError` subclass (by its stable
+  code), so GUI code handles failures exactly like the rest of the application,
+* uses strict timeouts (a hanging agent must never freeze the GUI) and does **not** retry
+  automatically: many calls change data, and a silent second attempt could do it twice.
+
+All methods return plain JSON-like values (dictionaries/lists) exactly as documented in
+``docs/SOFTWAREDOKUMENTATION.md`` section 19.
 """
+
+from __future__ import annotations
+
+import logging
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Final
+from urllib.parse import urlsplit
+
+import requests
+
+from octaledger.api.security import LOOPBACK_NAMES, TOKEN_FILE_NAME, validate_token_format
+from octaledger.core.errors import (
+    ERROR_CODE_PATTERN,
+    ERROR_REGISTRY,
+    ApiUnavailableError,
+    ConfigurationError,
+    OctaLedgerError,
+    ValidationError,
+)
+from octaledger.core.fileio import read_text_limited
+from octaledger.core.settings import AgentSettings
+
+logger = logging.getLogger(__name__)
+
+#: (connect, read) timeouts in seconds.
+DEFAULT_TIMEOUT: Final = (3.0, 30.0)
+_CATALOG_KINDS: Final = ("activities", "projects")
+_PREFIX: Final = "/api/v1"
+
+
+def read_token(token_file: Path) -> str:
+    """Read the token the agent created (the dashboard never creates one).
+
+    Raises:
+        ConfigurationError: If the file is missing (agent never started) or malformed.
+    """
+    if not token_file.exists():
+        raise ConfigurationError(
+            f"Token file {token_file} does not exist",
+            user_message=(
+                "Es gibt noch kein API-Token. Bitte starten Sie zuerst den OctaLedger-Agenten; "
+                "er legt das Token an."
+            ),
+        )
+    return validate_token_format(
+        read_text_limited(token_file, max_bytes=1024, error_cls=ConfigurationError).strip()
+    )
+
+
+def _time(value: datetime | None) -> str | None:
+    """Serialise an aware datetime (naive ones are a programming error)."""
+    if value is None:
+        return None
+    if value.utcoffset() is None:
+        raise ValidationError("Timezone-aware datetime required", details={"value": str(value)})
+    return value.isoformat()
+
+
+def error_from_response(status: int, payload: Any) -> OctaLedgerError:
+    """Rebuild the matching :class:`OctaLedgerError` from an API error body.
+
+    Unknown or malformed bodies become a generic error that still names the HTTP status.
+    """
+    body = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(body, dict):
+        return OctaLedgerError(
+            f"Unexpected response (HTTP {status})",
+            user_message=f"Der Agent hat unerwartet geantwortet (HTTP {status}).",
+        )
+    code = str(body.get("code", ""))
+    message = str(body.get("technical_message") or body.get("message") or f"HTTP {status}")
+    kwargs: dict[str, Any] = {
+        "user_message": str(body["message"]) if body.get("message") else None,
+        "details": body.get("details") if isinstance(body.get("details"), dict) else None,
+    }
+    error_class = ERROR_REGISTRY.get(code)
+    if error_class is not None:
+        return error_class(message, **kwargs)
+    safe_code = code if ERROR_CODE_PATTERN.match(code) else None
+    return OctaLedgerError(message, code=safe_code, **kwargs)
+
+
+class ApiClient:
+    """Client for the OctaLedger local API."""
+
+    def __init__(
+        self,
+        base_url: str,
+        token: str,
+        *,
+        timeout: tuple[float, float] = DEFAULT_TIMEOUT,
+        session: requests.Session | None = None,
+    ) -> None:
+        """Create the client.
+
+        Args:
+            base_url: ``http://127.0.0.1:<port>`` (loopback only).
+            token: The API token.
+            timeout: ``(connect, read)`` timeouts in seconds.
+            session: Injectable ``requests.Session`` (tests).
+
+        Raises:
+            ConfigurationError: If ``base_url`` is not a plain-http loopback URL or the token
+                is malformed.
+        """
+        parts = urlsplit(base_url)
+        host = f"[{parts.hostname}]" if parts.hostname and ":" in parts.hostname else parts.hostname
+        if (
+            parts.scheme != "http"
+            or (host or "").lower() not in LOOPBACK_NAMES
+            or parts.port is None
+        ):
+            raise ConfigurationError(
+                "The API client only talks to a loopback http URL with a port",
+                user_message=(
+                    "Die Adresse der lokalen Schnittstelle ist ungültig. Erlaubt ist nur "
+                    "http://127.0.0.1:<Port> (das Token wird nie an fremde Rechner gesendet)."
+                ),
+                details={"scheme": parts.scheme},
+            )
+        self._base = f"http://{parts.netloc}"
+        self._token = validate_token_format(token)
+        self._timeout = timeout
+        self._session = session or requests.Session()
+
+    @classmethod
+    def from_settings(cls, agent: AgentSettings, data_dir: Path, **kwargs: Any) -> ApiClient:
+        """Create a client from the agent settings and the token file in ``data_dir``."""
+        host = f"[{agent.host}]" if ":" in agent.host else agent.host
+        return cls(f"http://{host}:{agent.port}", read_token(data_dir / TOKEN_FILE_NAME), **kwargs)
+
+    # ------------------------------------------------------------------ transport
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Any = None,
+        params: dict[str, Any] | None = None,
+        authenticated: bool = True,
+    ) -> Any:
+        """Send one request and return the decoded JSON body (``None`` for 204).
+
+        Raises:
+            ApiUnavailableError: If the agent cannot be reached or does not answer in time.
+            OctaLedgerError: The error reported by the API (class chosen by its code).
+        """
+        headers = {"Authorization": f"Bearer {self._token}"} if authenticated else {}
+        clean = {k: v for k, v in (params or {}).items() if v is not None}
+        try:
+            response = self._session.request(
+                method,
+                f"{self._base}{_PREFIX}{path}",
+                json=json,
+                params=clean or None,
+                headers=headers,
+                timeout=self._timeout,
+            )
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            # Do not log the exception text verbatim: it may contain the request URL.
+            logger.warning("Agent not reachable (%s)", type(exc).__name__)
+            raise ApiUnavailableError(
+                f"Agent not reachable: {type(exc).__name__}",
+                details={"path": path},
+            ) from exc
+        except requests.RequestException as exc:
+            raise ApiUnavailableError(
+                f"Request failed: {type(exc).__name__}", details={"path": path}
+            ) from exc
+        if response.status_code == 204:
+            return None
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+        if response.status_code >= 400:
+            raise error_from_response(response.status_code, payload)
+        return payload
+
+    def _get(self, path: str, **params: Any) -> Any:
+        return self._request("GET", path, params=params)
+
+    def _post(self, path: str, body: dict[str, Any] | None = None) -> Any:
+        return self._request("POST", path, json=body if body is not None else {})
+
+    # --------------------------------------------------------------------- overview
+
+    def health(self) -> dict[str, Any]:
+        """Public liveness check (does not need the token)."""
+        result: dict[str, Any] = self._request("GET", "/health", authenticated=False)
+        return result
+
+    def is_agent_running(self) -> bool:
+        """``True`` if the agent answers; never raises for connection problems."""
+        try:
+            return self.health().get("status") == "ok"
+        except OctaLedgerError:
+            return False
+
+    def status(self) -> dict[str, Any]:
+        """Running session, active tracker and live device states."""
+        result: dict[str, Any] = self._get("/status")
+        return result
+
+    # ---------------------------------------------------------------------- devices
+
+    def devices(self) -> list[dict[str, Any]]:
+        """All devices with calibration and live status."""
+        result: list[dict[str, Any]] = self._get("/devices")
+        return result
+
+    def register_device(self, alias: str) -> dict[str, Any]:
+        """Register a tracker."""
+        result: dict[str, Any] = self._post("/devices", {"alias": alias})
+        return result
+
+    def rename_device(self, device_id: str, alias: str) -> dict[str, Any]:
+        """Change a tracker's alias."""
+        result: dict[str, Any] = self._request(
+            "PATCH", f"/devices/{device_id}", json={"alias": alias}
+        )
+        return result
+
+    def remove_device(self, device_id: str) -> None:
+        """Remove a device without recorded data."""
+        self._request("DELETE", f"/devices/{device_id}")
+
+    def assign_face(
+        self, device_id: str, face: int, activity_id: str | None, project_id: str | None = None
+    ) -> dict[str, Any]:
+        """Assign an activity (and project) to a face."""
+        result: dict[str, Any] = self._request(
+            "PUT",
+            f"/devices/{device_id}/faces/{face}",
+            json={"activity_id": activity_id, "project_id": project_id},
+        )
+        return result
+
+    def clear_face(self, device_id: str, face: int) -> dict[str, Any]:
+        """Remove the assignment of a face."""
+        result: dict[str, Any] = self._request("DELETE", f"/devices/{device_id}/faces/{face}")
+        return result
+
+    def observed_face(self, device_id: str) -> dict[str, Any]:
+        """The face most recently seen from the device (``{"face": None}`` if none yet)."""
+        result: dict[str, Any] = self._get(f"/devices/{device_id}/observed-face")
+        return result
+
+    def activate_device(self, device_id: str) -> dict[str, Any]:
+        """Hand over to this tracker."""
+        result: dict[str, Any] = self._post(f"/devices/{device_id}/activate")
+        return result
+
+    def connect_device(self, device_id: str) -> None:
+        """Start the Bluetooth connection."""
+        self._post(f"/devices/{device_id}/connect")
+
+    def disconnect_device(self, device_id: str) -> None:
+        """Stop a device on purpose."""
+        self._post(f"/devices/{device_id}/disconnect")
+
+    def set_device_address(self, device_id: str, address: str) -> dict[str, Any]:
+        """Store the address found by a scan."""
+        result: dict[str, Any] = self._post(
+            f"/devices/{device_id}/address", {"platform_address": address}
+        )
+        return result
+
+    def scan(self, seconds: float = 5.0) -> list[dict[str, Any]]:
+        """Scan for BLE devices."""
+        result: list[dict[str, Any]] = self._post("/scan", {"seconds": seconds})
+        return result
+
+    # ---------------------------------------------------------- activities / projects
+
+    @staticmethod
+    def _kind(kind: str) -> str:
+        if kind not in _CATALOG_KINDS:
+            raise ValidationError(f"kind must be one of {_CATALOG_KINDS}, got {kind!r}")
+        return kind
+
+    def list_items(self, kind: str, include_archived: bool = False) -> list[dict[str, Any]]:
+        """List ``"activities"`` or ``"projects"``."""
+        result: list[dict[str, Any]] = self._get(
+            f"/{self._kind(kind)}", include_archived=include_archived or None
+        )
+        return result
+
+    def create_item(self, kind: str, name: str, color: str | None = None) -> dict[str, Any]:
+        """Create an activity or project."""
+        result: dict[str, Any] = self._post(f"/{self._kind(kind)}", {"name": name, "color": color})
+        return result
+
+    def update_item(
+        self, kind: str, item_id: str, name: str | None = None, color: str | None = None
+    ) -> dict[str, Any]:
+        """Rename and/or recolour an activity or project."""
+        result: dict[str, Any] = self._request(
+            "PATCH", f"/{self._kind(kind)}/{item_id}", json={"name": name, "color": color}
+        )
+        return result
+
+    def archive_item(self, kind: str, item_id: str, archived: bool = True) -> dict[str, Any]:
+        """Archive or restore an activity or project."""
+        result: dict[str, Any] = self._post(
+            f"/{self._kind(kind)}/{item_id}/archive", {"archived": archived}
+        )
+        return result
+
+    def delete_item(self, kind: str, item_id: str) -> None:
+        """Delete an unused activity or project."""
+        self._request("DELETE", f"/{self._kind(kind)}/{item_id}")
+
+    # --------------------------------------------------------------------- tracking
+
+    def start_tracking(
+        self, activity_id: str, project_id: str | None = None, note: str | None = None
+    ) -> dict[str, Any]:
+        """Start a manual session."""
+        result: dict[str, Any] = self._post(
+            "/tracking/start", {"activity_id": activity_id, "project_id": project_id, "note": note}
+        )
+        return result
+
+    def stop_tracking(self) -> dict[str, Any]:
+        """End the running session."""
+        result: dict[str, Any] = self._post("/tracking/stop")
+        return result
+
+    def pause_tracking(self) -> dict[str, Any]:
+        """Pause."""
+        result: dict[str, Any] = self._post("/tracking/pause")
+        return result
+
+    def resume_tracking(self) -> dict[str, Any]:
+        """Resume."""
+        result: dict[str, Any] = self._post("/tracking/resume")
+        return result
+
+    # --------------------------------------------------------------------- sessions
+
+    def journal(
+        self,
+        start: datetime,
+        end: datetime,
+        *,
+        device_id: str | None = None,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Whole sessions overlapping the window, newest first."""
+        result: list[dict[str, Any]] = self._get(
+            "/sessions",
+            start=_time(start),
+            end=_time(end),
+            device_id=device_id,
+            activity_id=activity_id,
+            project_id=project_id,
+        )
+        return result
+
+    def uncertain_sessions(self) -> list[dict[str, Any]]:
+        """Sessions awaiting confirmation."""
+        result: list[dict[str, Any]] = self._get("/sessions/uncertain")
+        return result
+
+    def add_session(
+        self,
+        activity_id: str,
+        start: datetime,
+        end: datetime,
+        project_id: str | None = None,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        """Add a back-dated session."""
+        result: dict[str, Any] = self._post(
+            "/sessions",
+            {
+                "activity_id": activity_id,
+                "start": _time(start),
+                "end": _time(end),
+                "project_id": project_id,
+                "note": note,
+            },
+        )
+        return result
+
+    def correct_session(
+        self, session_id: str, changes: dict[str, Any], reason: str
+    ) -> dict[str, Any]:
+        """Correct a session (datetimes in ``changes`` are serialised)."""
+        prepared = {k: _time(v) if isinstance(v, datetime) else v for k, v in changes.items()}
+        result: dict[str, Any] = self._post(
+            f"/sessions/{session_id}/correct", {"changes": prepared, "reason": reason}
+        )
+        return result
+
+    def split_session(self, session_id: str, at: datetime, reason: str) -> list[dict[str, Any]]:
+        """Split a session in two."""
+        result: list[dict[str, Any]] = self._post(
+            f"/sessions/{session_id}/split", {"at": _time(at), "reason": reason}
+        )
+        return result
+
+    def confirm_session(self, session_id: str) -> dict[str, Any]:
+        """Confirm an uncertain session."""
+        result: dict[str, Any] = self._post(f"/sessions/{session_id}/confirm")
+        return result
+
+    def delete_session(self, session_id: str, reason: str) -> None:
+        """Delete a session."""
+        self._post(f"/sessions/{session_id}/delete", {"reason": reason})
+
+    # ---------------------------------------------------------------------- reports
+
+    def report(
+        self,
+        start: datetime,
+        end: datetime,
+        *,
+        tz: str | None = None,
+        device_id: str | None = None,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Report for a window."""
+        result: dict[str, Any] = self._get(
+            "/reports",
+            start=_time(start),
+            end=_time(end),
+            tz=tz,
+            device_id=device_id,
+            activity_id=activity_id,
+            project_id=project_id,
+        )
+        return result
+
+    def day_report(self, day: date, **filters: Any) -> dict[str, Any]:
+        """Report for one local day (``tz``, ``device_id``, ``activity_id``, ``project_id``)."""
+        result: dict[str, Any] = self._get("/reports/day", day=day.isoformat(), **filters)
+        return result
+
+    def week_report(self, day: date, **filters: Any) -> dict[str, Any]:
+        """Report for the local week containing ``day``."""
+        result: dict[str, Any] = self._get("/reports/week", day=day.isoformat(), **filters)
+        return result
+
+    # ------------------------------------------------------------------ data / backup
+
+    def export_csv(
+        self,
+        tz: str = "UTC",
+        delimiter: str = ";",
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Create a CSV export; returns ``filename``, ``rows``, ``size`` and ``content``."""
+        result: dict[str, Any] = self._post(
+            "/export/csv",
+            {"tz": tz, "delimiter": delimiter, "start": _time(start), "end": _time(end)},
+        )
+        return result
+
+    def create_backup(self) -> dict[str, Any]:
+        """Create a JSON backup; returns ``filename``, ``records``, ``size`` and ``content``."""
+        result: dict[str, Any] = self._post("/backup")
+        return result
+
+    def inspect_restore(self, content: str) -> dict[str, Any]:
+        """Validate a backup without changing anything."""
+        result: dict[str, Any] = self._post("/restore/inspect", {"content": content})
+        return result
+
+    def restore(self, content: str, confirm: bool) -> dict[str, Any]:
+        """Restore a backup (``confirm`` must be true)."""
+        result: dict[str, Any] = self._post("/restore", {"content": content, "confirm": confirm})
+        return result
+
+    # --------------------------------------------------------------------- settings
+
+    def get_settings(self) -> dict[str, dict[str, Any]]:
+        """Current settings."""
+        result: dict[str, dict[str, Any]] = self._get("/settings")
+        return result
+
+    def update_settings(self, sections: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """Validate and save (partial) settings."""
+        result: dict[str, dict[str, Any]] = self._request(
+            "PUT", "/settings", json={"settings": sections}
+        )
+        return result
+
+    # ------------------------------------------------------------------ diagnostics
+
+    def logs(self, limit: int = 200) -> list[str]:
+        """The most recent redacted log lines."""
+        lines: list[str] = self._get("/diagnostics/logs", limit=limit)["lines"]
+        return lines
+
+    def integrity(self) -> dict[str, Any]:
+        """Database integrity check result."""
+        result: dict[str, Any] = self._get("/diagnostics/integrity")
+        return result

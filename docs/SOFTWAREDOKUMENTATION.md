@@ -862,3 +862,56 @@ FastAPI-Anwendung, die der Agent auf Loopback startet. Das Dashboard spricht **a
 | `GET /diagnostics/logs?limit`, `GET /diagnostics/integrity` | Log-Ausschnitt (redigiert), Datenbank-Integritätsprüfung |
 
 Der API-Vertrag ist über das Präfix `/api/v1` versioniert; Brüche erfordern `/api/v2`.
+
+## 20. Dashboard-Client (`octaledger.dashboard_client.client`, AP-17)
+
+Der **einzige** Weg des Dashboards zum Agenten: kein BLE, kein SQL.
+
+### 20.1 Sicherheitsverhalten
+
+- **Token nur an Loopback:** `ApiClient(base_url, token)` akzeptiert ausschließlich
+  `http://127.0.0.1|localhost|[::1]:<Port>`. Jede andere Adresse (fremder Host, `https`, ohne Port,
+  ähnlich klingende Namen wie `localhost.evil.com`) → `ConfigurationError`, bevor irgendetwas
+  gesendet wird. Ein falsch konfigurierter Client kann das Token also nie an einen anderen Rechner
+  schicken.
+- Das Token steht nur im Header `Authorization: Bearer …`, nie in der URL und nie im Log; bei
+  Verbindungsfehlern wird der Ausnahmetext (kann die URL enthalten) nicht protokolliert.
+- `ApiClient.from_settings(agent_settings, data_dir)` baut die URL aus den Einstellungen und liest
+  das Token aus `<Datenablage>/api_token`. Das Dashboard **erzeugt nie** ein Token: fehlt die Datei,
+  erscheint „Bitte zuerst den Agenten starten“ (`read_token`).
+
+### 20.2 Fehlerverhalten
+
+| Situation | Ergebnis |
+|---|---|
+| Agent nicht erreichbar / Zeitüberschreitung / anderer `requests`-Fehler | `ApiUnavailableError` (OL-API-002), Ursache als `__cause__` |
+| API-Fehlerantwort `{"error": {code, …}}` | die **zum Code passende** Ausnahmeklasse (`error_from_response`) mit Benutzermeldung, technischer Meldung und `details`; unbekannter Code bleibt als Code erhalten, ungültiger Code wird nie übernommen |
+| Antwort ohne brauchbaren Fehlerkörper | generischer `OctaLedgerError` mit HTTP-Status |
+| `204` | `None` |
+| Zeiten ohne Zeitzone | `ValidationError` **lokal**, nichts wird gesendet |
+| unbekannte Katalogart | `ValidationError` lokal (erlaubt: `"activities"`, `"projects"`) |
+
+Zeitlimits: `(3 s Verbindung, 30 s Lesen)`; ein hängender Agent friert die Oberfläche nie ein.
+**Keine automatischen Wiederholungen:** viele Aufrufe ändern Daten, ein stilles zweites Senden könnte
+sie doppelt ausführen.
+
+### 20.3 Methoden
+
+Spiegeln die Endpunkte aus Abschnitt 19 und liefern JSON-artige Werte: `health`,
+`is_agent_running` (wirft nie), `status`, `devices`, `register_device`, `rename_device`,
+`remove_device`, `assign_face`, `clear_face`, `observed_face`, `activate_device`,
+`connect_device`, `disconnect_device`, `set_device_address`, `scan`, `list_items`/`create_item`/
+`update_item`/`archive_item`/`delete_item` (für `"activities"`/`"projects"`), `start_tracking`,
+`stop_tracking`, `pause_tracking`, `resume_tracking`, `journal`, `uncertain_sessions`,
+`add_session`, `correct_session`, `split_session`, `confirm_session`, `delete_session`, `report`,
+`day_report`, `week_report`, `export_csv`, `create_backup`, `inspect_restore`, `restore`,
+`get_settings`, `update_settings`, `logs`, `integrity`.
+
+### 20.4 Tests
+
+38 Unit-Tests mit einer Fake-Session (URL-Prüfung, Header, Fehlerabbildung, Methoden-Verträge,
+Token nicht im Log) und **Integrationstests** (`tests/integration/test_client_server.py`): echter
+uvicorn-Server in einem Thread auf freiem Loopback-Port, echter Client über echtes HTTP – ein
+kompletter Arbeitsablauf (Geräte, Katalog, Tracking, Korrektur, Teilen, Berichte, Export, Backup,
+Restore, Einstellungen), die Überschneidungsregel quer durch den Stack, Fehlertypen und ein
+gestoppter Server.
