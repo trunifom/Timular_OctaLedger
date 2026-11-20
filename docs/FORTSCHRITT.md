@@ -33,7 +33,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-17 | Dashboard-Client (`dashboard_client.client`): Token nur an Loopback, Fehlerabbildung per Code, Integrationstests über echtes HTTP | 2026-11-20 | 21:50 | 2a0a1a5 |
 | AP-18a | GUI-Grundgerüst (`dashboard`): Hell/Dunkel + Schriftgröße (WCAG AA), UI-Helfer, Übersichtsseite, AppTest-GUI-Tests | 2026-11-20 | 22:00 | 1b134db |
 | AP-18b | GUI-Seiten Geräte (Registrierung, Suche, Kalibrierung, Übergabe) und Verwaltung (Tätigkeiten/Projekte) | 2026-11-20 | 22:16 | 75df345 |
-| AP-18c | GUI-Seiten Zeitjournal (Filter, Korrigieren/Teilen/Löschen, Zu prüfen, Nachtragen) und Statistik (Kennzahlen, Diagramme mit Tabellen) | 2026-11-20 | 22:30 | folgt |
+| AP-18c | GUI-Seiten Zeitjournal (Filter, Korrigieren/Teilen/Löschen, Zu prüfen, Nachtragen) und Statistik (Kennzahlen, Diagramme mit Tabellen) | 2026-11-20 | 22:30 | b7048af |
+| AP-18d | GUI-Seiten Daten (Export/Sicherung/Restore mit Vorschau), Einstellungen, Diagnose (anonymisierter Bericht) | 2026-11-20 | 22:39 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 

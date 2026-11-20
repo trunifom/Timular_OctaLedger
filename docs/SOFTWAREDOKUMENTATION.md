@@ -1052,3 +1052,47 @@ mit Fehlercode, die Daten bleiben unverändert.
   Unsicherheitswarnung, leerer Zustand, 400-Tage-Grenze, Dunkel-Template, Hilfetexte. Die Testdaten
   liegen heute 00:00–03:00 UTC; zwischen 00:00 und 03:30 UTC werden diese Tests übersprungen, weil die
   Sitzungen sonst in der Zukunft lägen.
+
+## 24. Seiten „Daten“, „Einstellungen“ und „Diagnose“ (AP-18d)
+
+Damit sind alle acht Seiten umgesetzt (Navigationsreihenfolge = `PAGES`): Übersicht, Geräte,
+Verwaltung, Zeitjournal, Statistik, Daten, Einstellungen, Diagnose.
+
+### 24.1 Daten (`pages/data.py`)
+
+| Reiter | Verhalten |
+|---|---|
+| **CSV-Export** | alle Zeiten oder Zeitraum; Trennzeichen (Semikolon/Komma/Tabulator); „CSV erzeugen“ schreibt die Datei in den Export-Ordner und bietet sie per `st.download_button` an (UTF-8 **mit BOM**, damit Excel Umlaute richtig liest) |
+| **Sicherung** | „Sicherung erstellen“ legt die JSON-Sicherung im Backup-Ordner ab und bietet den Download an |
+| **Wiederherstellen** | Datei hochladen **oder** Inhalt einfügen; **Vorschau ohne Änderung** (Version, App-Version, Stand, Anzahl je Entität); „Jetzt wiederherstellen“ bleibt **deaktiviert, bis die Bestätigung gesetzt ist**; danach Hinweis auf die automatische Kopie `octaledger-pre-restore-…`. Ungültige/manipulierte Dateien: deutsche Meldung mit OL-DATA-002, **keine** Änderung |
+
+### 24.2 Einstellungen (`pages/settings.py`)
+
+Ein Formular für Zeitzone (alle IANA-Namen), Entprellung (0–2000 ms, Schritt 50), Verhalten für die erste
+Seite nach dem Verbinden, bei Verbindungsverlust und für den Neutralwert (jeweils mit der empfohlenen
+Option zuerst bezeichnet; die Pausenregel ist als **experimentell** gekennzeichnet) und die
+Protokollstufe. Speichern geht über `PUT /settings` (alles-oder-nichts-Validierung).
+
+- **Zeitzone** wirkt sofort (Sitzungszustand wird aktualisiert).
+- **Entprellung, Richtlinien, Protokollstufe** liest der Agent beim **Start**: nach dem Speichern
+  erscheint der Hinweis „Neustart des Agenten“ (nur, wenn sich tatsächlich etwas daran geändert hat).
+- „Technische Angaben“ (Schnittstelle, Sprache, Modus) sind **nur lesend**: Adresse/Port ändern sich
+  über `settings.toml` bzw. Umgebungsvariablen, nie über die Oberfläche (Sicherheit).
+
+### 24.3 Diagnose (`pages/diagnostics.py`)
+
+Gerätekarten (Zustand, Fehlversuche, letzter Wert/Ereignis, Batterie, verworfene Werte, ignorierte
+Duplikate, letzte Meldung), „Datenbank prüfen“ (Integritätsprüfung), Protokollausschnitt (1 bis 500
+Zeilen, bereits redigiert) und der **anonymisierte Diagnosebericht** als Download.
+`build_report` ersetzt Gerätenamen durch „Gerät 1, 2 …“, enthält weder Adressen noch Tätigkeits- oder
+Projektnamen, listet Integritätsprobleme und die redigierten Logzeilen (Pflichtenheft F-19).
+
+### 24.4 Tests
+
+`tests/gui/test_gui_data_settings_diagnostics.py` (17): Struktur und Hilfetexte, CSV-Download inkl.
+leerer Daten und Zeitraum, Sicherung (Datei + Download), Restore-Vorschau → Bestätigung → Wiederherstellung
+(Vorschau ändert nichts), ungültige und manipulierte Sicherung, Einstellungswerte und Hilfetexte,
+Zeitzone sofort, Regeln speichern mit Neustart-Hinweis, nur lesende technische Angaben, Diagnose mit
+und ohne Live-Status, leere Zustände, Anonymisierung des Berichts und ein Durchlauf über **alle acht
+Seiten ohne Ausnahme**. Hinweis: Streamlits `AppTest` kann Datei-Uploads nicht simulieren; der Pfad
+„Inhalt einfügen“ nutzt dieselbe Prüf- und Restore-Logik und wird getestet.

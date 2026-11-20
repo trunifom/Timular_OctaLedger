@@ -410,3 +410,31 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
    Tätigkeit und nach Projekt in den Farben der Tätigkeiten. **Unter jedem Diagramm steht dieselbe
    Information als Tabelle.**
 5. Eine **gelbe Warnung** zeigt, wie viel Zeit noch unbestätigt ist – bestätigen Sie sie im Zeitjournal.
+
+### Bereich „Daten“
+- **CSV-Export:** *Alle Zeiten* oder einen Zeitraum wählen, Trennzeichen festlegen (für deutsches Excel:
+  Semikolon), **📄 CSV erzeugen**, danach **⬇️ CSV herunterladen**. Die Datei ist zusätzlich im
+  Ordner `exports` gespeichert.
+- **Sicherung:** **💾 Sicherung erstellen** und herunterladen. Kopieren Sie die Datei auf einen
+  **anderen Datenträger** (USB-Stick, Netzlaufwerk, Cloud nach Ihrer Wahl) und wiederholen Sie das
+  regelmäßig.
+- **Wiederherstellen:** Sicherungsdatei auswählen (oder den Inhalt einfügen). OctaLedger **prüft die
+  Datei vollständig und zeigt eine Vorschau – dabei wird nichts verändert**. Erst wenn Sie bestätigen
+  („Ich habe verstanden …“), wird **♻️ Jetzt wiederherstellen** freigeschaltet. Vorher legt OctaLedger
+  automatisch eine Kopie des aktuellen Stands an. Ist die Datei beschädigt, verändert oder von einer
+  neueren Programmversion, erscheint eine verständliche Meldung und **nichts** wird geändert.
+
+### Bereich „Einstellungen“
+- **Zeitzone:** gilt sofort. **Entprellung** (empfohlen 300 ms), **Erste Seite nach dem Verbinden**,
+  **Bei Verbindungsverlust**, **Neutralwert** und **Protokollstufe** gelten nach einem **Neustart des
+  Agenten** (`octaledger agent`) – ein Hinweis erinnert Sie daran.
+- Bei jeder Einstellung zeigt das **Fragezeichen** eine Erklärung, und die empfohlene Wahl ist
+  gekennzeichnet. Die Neutralwert-Pause ist **experimentell**.
+- Adresse und Port der lokalen Schnittstelle können Sie hier bewusst **nicht** ändern (Sicherheit).
+
+### Bereich „Diagnose“
+- **Geräte:** Verbindungszustand, Fehlversuche, letzter Wert, Batterie, verworfene Werte.
+- **🔎 Datenbank prüfen:** Prüft die Datei auf Beschädigungen.
+- **Protokoll:** die letzten Ereignisse des Agenten (Geheimnisse sind automatisch unkenntlich gemacht).
+- **⬇️ Diagnosebericht (anonymisiert):** Textdatei **ohne** Gerätenamen, Bluetooth-Adressen und
+  Tätigkeiten. Diese Datei können Sie bei einem Problem gefahrlos mitschicken.
