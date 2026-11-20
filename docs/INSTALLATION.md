@@ -113,6 +113,19 @@ Geheimnisse werden vor dem Schreiben maskiert; siehe SOFTWAREDOKUMENTATION.md §
   Kompatibilitätsmatrix von `docs\TESTPLAN.md` ein. **Erst danach** gelten Abnahmekriterien mit
   Hardwarebezug (A-01, A-05…) als geprüft.
 
+## API-Token
+
+- Beim ersten Start des Agenten wird ein zufälliges **API-Token** (256 Bit) erzeugt und in der Datei
+  `api_token` im Datenordner gespeichert (Rechte: nur Ihr Benutzerkonto, über Ihr Windows-Profil).
+  Agent und Dashboard lesen **dieselbe** Datei, es ist keine Eingabe nötig.
+- Alternativ per Umgebungsvariable (mindestens 32 Zeichen):
+  `set OCTALEDGER_API_TOKEN=<langer-zufälliger-Wert>` (für Agent **und** Dashboard setzen).
+- **Neues Token erzeugen:** Agent beenden, Datei `api_token` löschen, Agent und Dashboard neu starten.
+- Das Token gehört **nie** ins Repository, in Screenshots, Tickets oder Logs (Logs maskieren es
+  automatisch). Die Datei steht im Benutzerprofil, nicht im Projektordner.
+- Die API ist nur lokal erreichbar (`127.0.0.1`) und prüft zusätzlich `Host` und `Origin`.
+  Öffnen Sie das Dashboard nur auf dem eigenen Rechner (`127.0.0.1` oder `localhost`).
+
 ## 7. Fehlersuche
 
 | Symptom | Ursache / Abhilfe |

@@ -767,3 +767,34 @@ Es gibt bewusst nur den Modus „ersetzen“ (kein Zusammenführen), damit das E
 **Abnahme A-09** (Restore in leerer Umgebung) ist als Rundlauftest belegt: alle Entitäten sind
 nach dem Restore identisch zum Original. Ein Backup gilt für den Anwender erst als belastbar, nachdem
 ein Restore auf *seinem* Rechner erfolgreich getestet wurde.
+
+## 18. API-Sicherheit (`octaledger.api.security`, AP-16a)
+
+### 18.1 Bedrohungsmodell (MVP)
+
+Die API lauscht nur auf Loopback, das allein reicht nicht: Jedes andere Programm desselben Nutzers
+**und jede im Browser geöffnete Webseite** kann Anfragen an `127.0.0.1` senden (CSRF, „DNS
+Rebinding“). Deshalb gilt:
+
+| Schutz | Umsetzung |
+|---|---|
+| **Geheimes Token** | 256 Bit Zufall; schützt alle Routen mit Seiteneffekten oder personenbezogenen Daten. Übertragung **nur** im Header `Authorization: Bearer <token>`, **nie** in URLs. Vergleich in konstanter Zeit (`hmac.compare_digest`). |
+| **Host-Prüfung** | Der `Host`-Header muss `127.0.0.1`, `localhost` oder `[::1]` **mit genau dem API-Port** nennen. Verhindert DNS-Rebinding (fremder Name, der auf 127.0.0.1 zeigt). Ohne Port → abgelehnt. |
+| **Origin-Prüfung** | Fehlt `Origin` (Dashboard-Server, Skripte), ist die Anfrage zulässig; ist er vorhanden, muss er Loopback über `http(s)` sein. `null`, fremde Seiten, `file:`, Zugangsdaten in der URL und absurde Ports werden abgelehnt. |
+| **Kein Zustandswechsel über GET** | wird in den Routen (AP-16) durchgesetzt. |
+| **Keine Geheimnisse im Log** | das Token wird bei `load_or_create_token` für die Log-Redaktion registriert. |
+
+### 18.2 Token-Verwaltung
+
+- `load_or_create_token(datei, environ)`: Rangfolge **Umgebungsvariable `OCTALEDGER_API_TOKEN`** →
+  vorhandene Datei `<Datenablage>/api_token` → **neu erzeugen** (256 Bit, atomar geschrieben,
+  POSIX `0600` best effort; unter Windows gilt die ACL des Benutzerprofils).
+- `validate_token_format`: 32–256 Zeichen aus `A–Z a–z 0–9 - _ . ~ + / =`; ungültig →
+  `ConfigurationError` mit Hinweis, die Token-Datei zu löschen.
+- `verify_token` → `AuthenticationError` (OL-API-001); die Meldung verrät nie, ob Token fehlt oder
+  falsch ist, und enthält das Token nie. `parse_bearer` extrahiert das Token aus dem Header.
+- `check_request_origin(host, origin, port)` → `ForbiddenOriginError` (OL-API-003) mit
+  `details['reason']` (`host`/`origin`).
+
+Nicht umgesetzt (bewusst): Ratenbegrenzung für Fehlversuche – bei 256 Bit Zufall ist Raten
+aussichtslos; Netzwerkfreigabe (nur Loopback im MVP, siehe `SECURITY.md`).

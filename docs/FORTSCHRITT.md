@@ -27,7 +27,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-12 | Bleak-Scanner und -Transport (`ble.scanner`, `ble.client`) mit Stub-Tests und Opt-in-Hardwaretests (Hardware nicht verifiziert) | 2026-11-20 | 21:24 | ab25903 |
 | AP-13 | Agent-Supervisor (`agent.supervisor`): DeviceWorker, Reconnect/Backoff, begrenzter Puffer, Shutdown, Statusanzeige | 2026-11-20 | 21:28 | b3b4476 |
 | AP-14 | Reporting-Service (`application.reporting_service`): Tages-/Wochenberichte, Filter, Gerätezeit vs. persönliche Zeit, Unsicherheit, Journal | 2026-11-20 | 21:30 | 1257bb0 |
-| AP-15 | Export-Service (`application.export_service`): CSV mit Injection-Schutz, JSON-Backup mit Prüfsumme, validierter atomarer Restore | 2026-11-20 | 21:37 | folgt |
+| AP-15 | Export-Service (`application.export_service`): CSV mit Injection-Schutz, JSON-Backup mit Prüfsumme, validierter atomarer Restore | 2026-11-20 | 21:37 | 90f814a |
+| AP-16a | API-Sicherheit (`api.security`): Token (Env/Datei/Erzeugung), Bearer-Prüfung, Host-/Origin-Validierung, Log-Redaktion | 2026-11-20 | 21:39 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
