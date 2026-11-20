@@ -273,3 +273,26 @@ damit Sie die Zuordnung später im Alltag wiederfinden.
   aktive Tracker.
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
+
+## 14. Auswertungen lesen (Statistik und Zeitjournal)
+
+- **Tag und Woche:** Wählen Sie einen Tag oder eine Woche (Montag bis Sonntag). Alle Zeiten
+  werden in **Ihrer** Zeitzone angezeigt, gespeichert wird intern in UTC.
+- **Filter:** Sie können nach **Tätigkeit**, **Projekt** und **Gerät** filtern. Die Summen
+  beziehen sich immer auf das, was der Filter übrig lässt.
+- **Anteile:** Die Balken und Kreise zeigen, wie sich die Zeit auf Tätigkeiten bzw. Projekte
+  verteilt. Zeit ohne Projekt erscheint als „Ohne Projekt“.
+- **Gerätezeit und persönliche Arbeitszeit:**
+  - *Gerätezeit* = Summe der Zeiten aller Tracker.
+  - *Persönliche Arbeitszeit* = Zeit, in der Sie gearbeitet haben, **ohne Doppelzählung**.
+  - Sind beide gleich, gab es keine Überschneidungen. Sind sie verschieden, zeigt die Differenz
+    („Überschneidung“), wie viel Zeit mehrfach gezählt worden wäre. Verwenden Sie für Ihre
+    Arbeitszeit die **persönliche** Zahl.
+- **Unsichere Zeit:** Der Bereich „davon unsicher“ zeigt, wie viel der Summe noch nicht von
+  Ihnen bestätigt wurde (z. B. nach einem Verbindungsabbruch). Bestätigen Sie solche Sitzungen
+  im Zeitjournal, damit die Auswertung belastbar wird.
+- **Laufende Zeit** wird bis zum aktuellen Moment mitgerechnet und ist als „läuft“ markiert.
+- **Zeitjournal:** Listet ganze Sitzungen (neueste zuerst) mit Tätigkeit, Projekt, Gerät und
+  Dauer. Sitzungen, die über Mitternacht gehen, erscheinen hier als eine Zeile, in der Statistik
+  aber aufgeteilt auf die betroffenen Tage.
+- Der Zeitraum darf höchstens 400 Tage umfassen.

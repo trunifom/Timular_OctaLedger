@@ -25,13 +25,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-10 | Geräte-/Katalog-Service (`application.device_service`, `catalog_service`): Registrierung, Kalibrierung, Tätigkeiten/Projekte, Palette | 2026-11-20 | 21:20 | 0792632 |
 | AP-11 | BLE-Protokoll, Transport-Abstraktion, FakeTransport (`infrastructure.ble`): Capability-Discovery, Decoder, kein Schreibzugriff | 2026-11-20 | 21:22 | 88dd6c5 |
 | AP-12 | Bleak-Scanner und -Transport (`ble.scanner`, `ble.client`) mit Stub-Tests und Opt-in-Hardwaretests (Hardware nicht verifiziert) | 2026-11-20 | 21:24 | ab25903 |
-| AP-13 | Agent-Supervisor (`agent.supervisor`): DeviceWorker, Reconnect/Backoff, begrenzter Puffer, Shutdown, Statusanzeige | 2026-11-20 | 21:28 | folgt |
+| AP-13 | Agent-Supervisor (`agent.supervisor`): DeviceWorker, Reconnect/Backoff, begrenzter Puffer, Shutdown, Statusanzeige | 2026-11-20 | 21:28 | b3b4476 |
+| AP-14 | Reporting-Service (`application.reporting_service`): Tages-/Wochenberichte, Filter, Gerätezeit vs. persönliche Zeit, Unsicherheit, Journal | 2026-11-20 | 21:30 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
 | AP | Beschreibung | Roadmap |
 |---|---|---|
-| AP-14 | Reporting-Service: Tages-/Wochenwerte, Filter | M4 |
 | AP-15 | Export-Service: CSV, JSON-Backup, Restore | M5 |
 | AP-16 | API: Security, Schemas, Routen, App | M4 |
 | AP-17 | Dashboard-Client (HTTP) | M4 |

@@ -668,3 +668,42 @@ werden. Der Supervisor startet nur Geräte, die ausdrücklich gestartet werden.
 
 Abnahme A-04 (Reconnect erzeugt keine neue Sitzung) ist über die komplette Pipeline
 (Fake-Transport → Debouncer → Tracking-Service → Datenbank) getestet; A-02/A-03 ebenfalls.
+
+## 16. Reporting-Service (`octaledger.application.reporting_service`, AP-14)
+
+Aggregiert Sitzungen für Statistik und Zeitjournal. `build_report(...)` ist eine **reine
+Funktion** (mit synthetischen, sogar überlappenden Sitzungen testbar); `ReportService` lädt die
+Daten und ruft sie auf.
+
+### 16.1 Rechenregeln
+
+1. **Filter** (`ReportFilter`: Fenster `[start, end)` in UTC, optional `device_id`,
+   `activity_id`, `project_id`) wählen Sitzungen aus.
+2. Jede Sitzung wird auf das Fenster **gekürzt** und an **lokalen Mitternächten** geteilt
+   (`split_at_day_boundaries`, Sommerzeit-korrekt). Laufende Sitzungen enden bei „jetzt“ (Uhr
+   injizierbar), nie hinter dem Fensterende.
+3. **Gerätezeit** = Summe aller Teile (`sum_durations`). **Persönliche Zeit** = Vereinigung
+   (`union_duration`), Überschneidungen zählen einmal. `Report.overlap_time = Gerätezeit −
+   persönliche Zeit`. Beide Werte werden getrennt ausgewiesen, nie addiert (Pflichtenheft §6).
+4. **Unsicherheit** wird nicht versteckt: `uncertain_time` (Gesamt, je Tag und je Anteil) zeigt,
+   wie viel Zeit noch bestätigt werden muss.
+
+### 16.2 Ergebnis (`Report`)
+
+| Feld | Inhalt |
+|---|---|
+| `daily` | je lokalem Kalendertag des Fensters (auch ohne Daten) `DayTotal(day, device_time, personal_time, uncertain_time)` |
+| `by_activity`, `by_project` | `Share(id, name, color, duration, uncertain, fraction)`, größte zuerst; Zeit ohne Projekt als „Ohne Projekt“; gelöschte/unbekannte Tätigkeit als „Unbekannt“ |
+| `device_time`, `personal_time`, `overlap_time`, `uncertain_time` | Summen |
+| `session_count`, `includes_running` | Anzahl berücksichtigter Sitzungen; ob eine laufende dabei ist |
+
+Fenster länger als `MAX_REPORT_DAYS` (400) → `ValidationError` (schützt GUI und Balkendiagramm).
+
+### 16.3 `ReportService`
+
+- `report(filter, timezone_name)`, `day_report(tag, tz, **filter)`, `week_report(tag, tz,
+  week_starts_on=0, **filter)`; Tage/Wochen werden aus dem **lokalen Kalender** berechnet
+  (23/25-Stunden-Tage, Montag als Wochenanfang).
+- `journal(filter)` liefert **ganze** (ungekürzte) Sitzungen mit aufgelösten Namen
+  (`JournalEntry`: Tätigkeit, Projekt, Gerätealias, Dauer), neueste zuerst. Die Dauer läuft für
+  laufende Sitzungen bis „jetzt“.
