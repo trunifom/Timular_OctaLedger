@@ -296,3 +296,36 @@ damit Sie die Zuordnung später im Alltag wiederfinden.
   Dauer. Sitzungen, die über Mitternacht gehen, erscheinen hier als eine Zeile, in der Statistik
   aber aufgeteilt auf die betroffenen Tage.
 - Der Zeitraum darf höchstens 400 Tage umfassen.
+
+## 15. Daten sichern, exportieren und wiederherstellen
+
+### CSV-Export (für Excel, LibreOffice, Auswertungen)
+- Bereich **Daten → Export**: Zeitraum wählen (oder alles), Zeitzone und Trennzeichen wählen
+  (Standard `;` für deutsches Excel), **Exportieren**.
+- Die Datei enthält Ihre Sitzungen so, **wie sie nach Korrekturen jetzt gelten**: Beginn/Ende in
+  Ihrer Zeitzone und in UTC, Dauer in Sekunden und als `h:mm:ss`, Tätigkeit, Projekt, Gerät,
+  Qualität (bestätigt/unsicher), Revision und Notiz.
+- Laufende Sitzungen sind mit `running = yes` markiert und bis zum Exportzeitpunkt gerechnet.
+- **Sicherheit:** Beginnt ein Text (z. B. eine Notiz) mit `=`, `+`, `-` oder `@`, setzt
+  OctaLedger ein `'` davor, damit Excel ihn nicht als Formel ausführt.
+- Die Dateien liegen im Ordner `exports\` Ihrer Datenablage.
+
+### Vollständige Sicherung (JSON-Backup)
+- **Daten → Sicherung erstellen** speichert alles (Geräte, Seitenzuordnungen, Tätigkeiten,
+  Projekte, Sitzungen, Korrekturen, Rohereignisse, Protokoll) in einer Datei im Ordner
+  `backups\`. Die Datei hat eine **Prüfsumme**: Beschädigung oder nachträgliche Änderung wird beim
+  Wiederherstellen erkannt.
+- Machen Sie Sicherungen regelmäßig und kopieren Sie sie auf einen **anderen** Datenträger.
+
+### Wiederherstellen
+1. **Daten → Wiederherstellen**, Sicherungsdatei wählen.
+2. OctaLedger zeigt eine **Vorschau** (Anzahl Geräte, Sitzungen …) und prüft die Datei
+   vollständig. **Dabei wird nichts verändert.**
+3. Nach Ihrer Bestätigung legt OctaLedger zuerst **automatisch eine Kopie Ihres aktuellen Stands**
+   an (`octaledger-pre-restore-…`) und ersetzt dann alle Daten **in einem Schritt**.
+4. Bei **jedem** Problem wird alles zurückgenommen – Ihre bisherigen Daten bleiben unverändert und
+   Sie erhalten eine verständliche Meldung (`OL-DATA-002`).
+- Eine Sicherung einer **neueren** Programmversion lässt sich nicht einlesen („bitte Programm
+  aktualisieren“).
+- **Wichtig:** Testen Sie das Wiederherstellen einmal in Ruhe, bevor Sie sich auf eine Sicherung
+  verlassen. Erst ein erfolgreich getestetes Backup ist ein belastbares Backup.

@@ -707,3 +707,63 @@ Fenster länger als `MAX_REPORT_DAYS` (400) → `ValidationError` (schützt GUI 
 - `journal(filter)` liefert **ganze** (ungekürzte) Sitzungen mit aufgelösten Namen
   (`JournalEntry`: Tätigkeit, Projekt, Gerätealias, Dauer), neueste zuerst. Die Dauer läuft für
   laufende Sitzungen bis „jetzt“.
+
+## 17. Export, Backup und Restore (`octaledger.application.export_service`, AP-15)
+
+Ergänzend im Storage: `list_all`-Methoden (Ereignisse, Korrekturen, Audit), `StateRepository.items`,
+`Storage.snapshot()` (eine konsistente Lesetransaktion, blockiert den Agenten nicht) und
+`BackupRepository` (`snapshot()`, `replace_all()` – das gesamte SQL bleibt im Storage-Paket).
+
+### 17.1 CSV-Export (`sessions_csv`, `export_sessions_csv`)
+
+- Exportiert die **aktuellen, korrigierten** Werte (A-08), optional für ein Fenster.
+- Spalten (`CSV_COLUMNS`): `session_id`, `started_local`, `ended_local`, `started_utc`,
+  `ended_utc`, `duration_seconds`, `duration_hms`, `running`, `activity`, `project`, `device`,
+  `source`, `quality`, `revision`, `note`. Lokale Zeit in der gewählten Zeitzone **und** UTC;
+  laufende Sitzungen haben kein Ende und werden bis „jetzt“ gemessen (`running=yes`).
+- Datei: **UTF-8 mit BOM** (Excel), Zeilenende `CRLF`, Trennzeichen `;` (Standard, deutsches
+  Excel), `,` oder Tabulator. Anführungszeichen, Trennzeichen und Zeilenumbrüche in Zellen werden
+  korrekt maskiert.
+- **Formel-Injection-Schutz:** Jede Benutzertext-Zelle (Tätigkeit, Projekt, Gerät, Notiz), die mit
+  `= + - @`, Tab oder Zeilenumbruch beginnt, bekommt ein führendes `'` (`neutralize_cell`).
+- Schreiben atomar (`ExportError` bei Problemen). **Dateinamen** werden erzeugt
+  (`sessions-<UTC-Zeit>.csv`) oder streng geprüft (`[A-Za-z0-9._-]`, Endung `.csv`/`.json`, kein
+  Pfad) – kein Schreiben außerhalb des Export-/Backup-Ordners.
+
+### 17.2 JSON-Backup (`create_backup_text`, `export_backup`)
+
+```json
+{ "format": "octaledger-backup", "schema_version": 1, "app_version": "...",
+  "exported_at": "2026-01-05T08:00:00.000000Z", "counts": { "sessions": 3, ... },
+  "checksum": "<sha256 über data>", "data": { "devices": [...], "activities": [...],
+  "projects": [...], "face_mappings": [...], "raw_events": [...], "sessions": [...],
+  "corrections": [...], "audit_log": [...], "app_state": {...} } }
+```
+
+Enthält Schema, Kennungen, Zuordnungen, Korrekturen und Auditdaten (Datenmodell). Die
+**SHA-256-Prüfsumme** über den kanonisierten `data`-Abschnitt erkennt Beschädigung, Abschneiden
+und nachträgliche Änderung. Der Snapshot ist konsistent (`Storage.snapshot`).
+
+### 17.3 Validierung und Restore
+
+`inspect_backup(_text)` prüft eine Sicherung **vollständig, ohne etwas zu ändern** (Vorschau mit
+Anzahl je Entität). `restore_backup(_text)`:
+
+1. **Datei lesen** (Größenlimit 200 MB, UTF-8/BOM), **JSON parsen** – nichts aus der Datei wird
+   je ausgeführt oder als Pfad benutzt.
+2. **Prüfen:** Formatkennung, `schema_version` (neuere Version → Update-Hinweis, nichts
+   verändert), Prüfsumme, exakt die erwarteten Abschnitte/Felder, **jeder Datensatz gegen die
+   Domänenregeln**, eindeutige Kennungen, alle Verweise (Zuordnung → Gerät/Tätigkeit/Projekt,
+   Sitzung → Tätigkeit/Projekt/Gerät, Ereignis → Gerät, Korrektur → Sitzung).
+3. **Vorher-Backup:** automatische, geprüfte Kopie der aktuellen Datenbank
+   `backups/octaledger-pre-restore-<UTC>.sqlite3` (scheitert sie, wird nicht wiederhergestellt).
+4. **Ersetzen in EINER Transaktion** (`replace_all`); Regeln der Datenbank (z. B. Überschneidungen,
+   doppelte Namen) greifen weiterhin. **Jeder Fehler → vollständiger Rollback**, bisherige Daten
+   unverändert, `ImportDataError` (OL-DATA-002) mit `details['cause_code']`.
+5. Ein `restore`-Eintrag im Audit-Log hält fest, was wann wiederhergestellt wurde.
+
+Es gibt bewusst nur den Modus „ersetzen“ (kein Zusammenführen), damit das Ergebnis eindeutig ist.
+
+**Abnahme A-09** (Restore in leerer Umgebung) ist als Rundlauftest belegt: alle Entitäten sind
+nach dem Restore identisch zum Original. Ein Backup gilt für den Anwender erst als belastbar, nachdem
+ein Restore auf *seinem* Rechner erfolgreich getestet wurde.

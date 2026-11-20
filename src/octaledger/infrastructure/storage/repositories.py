@@ -510,6 +510,14 @@ class RawEventRepository:
             rows = self._c.execute(sql, params).fetchall()
         return [self._from_row(r) for r in rows]
 
+    def list_all(self) -> list[RawEvent]:
+        """Return every stored event, oldest first (used by backup)."""
+        with _db_errors("list all events"):
+            rows = self._c.execute(
+                "SELECT * FROM raw_events ORDER BY received_at, sequence, id"
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
     def count(self, device_id: str | None = None) -> int:
         """Return the number of stored events (optionally of one device)."""
         sql, params = "SELECT COUNT(*) FROM raw_events", ()
@@ -820,13 +828,15 @@ class SessionRepository:
             return value.value
         return str(value)
 
-    def list_corrections(self, session_id: str) -> list[Correction]:
-        """Return the audit trail of a session, oldest first."""
+    def list_corrections(self, session_id: str | None = None) -> list[Correction]:
+        """Return the audit trail of one session (or of all sessions), oldest first."""
+        sql = "SELECT * FROM corrections"
+        params: tuple[str, ...] = ()
+        if session_id is not None:
+            sql, params = sql + " WHERE session_id = ?", (session_id,)
         with _db_errors("list corrections"):
             rows = self._c.execute(
-                "SELECT * FROM corrections WHERE session_id = ? ORDER BY corrected_at, revision, "
-                "field_name",
-                (session_id,),
+                sql + " ORDER BY corrected_at, revision, field_name, id", params
             ).fetchall()
         return [
             _load(
@@ -904,6 +914,22 @@ class AuditLogRepository:
             )
         return entry
 
+    def list_all(self) -> list[AuditEntry]:
+        """Return every audit entry, oldest first (used by backup)."""
+        with _db_errors("read audit log"):
+            rows = self._c.execute("SELECT * FROM audit_log ORDER BY at, id").fetchall()
+        return [
+            AuditEntry(
+                r["id"],
+                from_db_time(r["at"]),
+                r["action"],
+                r["entity"],
+                r["entity_id"],
+                r["detail"],
+            )
+            for r in rows
+        ]
+
     def recent(self, limit: int = 100) -> list[AuditEntry]:
         """Return the newest entries first."""
         if not 1 <= limit <= 10_000:
@@ -951,10 +977,147 @@ class StateRepository:
                 (key, value, to_db_time(utc_now())),
             )
 
+    def items(self) -> dict[str, str]:
+        """Return all stored key/value pairs."""
+        with _db_errors("read state"):
+            rows = self._c.execute("SELECT key, value FROM app_state ORDER BY key").fetchall()
+        return {str(r["key"]): str(r["value"]) for r in rows}
+
     def delete(self, key: str) -> None:
         """Remove a value (no error if absent)."""
         with _db_errors("delete state"):
             self._c.execute("DELETE FROM app_state WHERE key = ?", (key,))
+
+
+# ---------------------------------------------------------------------------- backup
+
+
+@dataclass(frozen=True, slots=True)
+class BackupContent:
+    """The complete, validated content of a backup (domain objects only)."""
+
+    devices: tuple[Device, ...] = ()
+    activities: tuple[Activity, ...] = ()
+    projects: tuple[Project, ...] = ()
+    mappings: tuple[FaceMapping, ...] = ()
+    events: tuple[RawEvent, ...] = ()
+    sessions: tuple[Session, ...] = ()
+    corrections: tuple[Correction, ...] = ()
+    audit: tuple[AuditEntry, ...] = ()
+    state: Mapping[str, str] | None = None
+
+    def counts(self) -> dict[str, int]:
+        """Number of records per entity (for previews and summaries)."""
+        return {
+            "devices": len(self.devices),
+            "activities": len(self.activities),
+            "projects": len(self.projects),
+            "face_mappings": len(self.mappings),
+            "raw_events": len(self.events),
+            "sessions": len(self.sessions),
+            "corrections": len(self.corrections),
+            "audit_log": len(self.audit),
+        }
+
+
+class BackupRepository:
+    """Read the complete content and replace it with a validated :class:`BackupContent`.
+
+    ``replace_all`` must run inside a transaction opened by the caller so that a failure
+    leaves the previous content untouched.
+    """
+
+    #: Tables in the order they can be emptied without violating foreign keys.
+    _CLEAR_ORDER = (
+        "corrections",
+        "sessions",
+        "raw_events",
+        "face_mappings",
+        "activities",
+        "projects",
+        "devices",
+        "audit_log",
+        "app_state",
+    )
+
+    def __init__(self, connection: sqlite3.Connection, repos: Repositories) -> None:
+        """Bind to a connection and the repositories on it."""
+        self._c = connection
+        self._repos = repos
+
+    def snapshot(self) -> BackupContent:
+        """Read the complete current content."""
+        r = self._repos
+        devices = r.devices.list_all()
+        return BackupContent(
+            devices=tuple(devices),
+            activities=tuple(r.activities.list_all(include_archived=True)),
+            projects=tuple(r.projects.list_all(include_archived=True)),
+            mappings=tuple(m for d in devices for m in r.mappings.list_for_device(d.id)),
+            events=tuple(r.events.list_all()),
+            sessions=tuple(r.sessions.list_all()),
+            corrections=tuple(r.sessions.list_corrections()),
+            audit=tuple(r.audit.list_all()),
+            state=r.state.items(),
+        )
+
+    def replace_all(self, content: BackupContent) -> None:
+        """Delete everything and insert ``content`` (the caller provides the transaction).
+
+        Raises:
+            ConflictError: If the data violates a database rule (overlap, reference ...).
+        """
+        r = self._repos
+        with _db_errors("clear database for restore"):
+            for table in self._CLEAR_ORDER:
+                self._c.execute(f"DELETE FROM {table}")  # noqa: S608 - fixed table names
+        for device in content.devices:
+            r.devices.add(device)
+        for activity in content.activities:
+            r.activities.add(activity)
+        for project in content.projects:
+            r.projects.add(project)
+        with _db_errors("restore face mappings"):
+            self._c.executemany(
+                "INSERT INTO face_mappings (device_id, face, activity_id, project_id, revision) "
+                "VALUES (?, ?, ?, ?, ?)",
+                [
+                    (m.device_id, m.face, m.activity_id, m.project_id, m.revision)
+                    for m in content.mappings
+                ],
+            )
+        for session in content.sessions:
+            r.sessions.add(session)
+        with _db_errors("restore corrections"):
+            self._c.executemany(
+                "INSERT INTO corrections (id, session_id, field_name, old_value, new_value, "
+                "reason, revision, corrected_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        c.id,
+                        c.session_id,
+                        c.field_name,
+                        c.old_value,
+                        c.new_value,
+                        c.reason,
+                        c.revision,
+                        to_db_time(c.corrected_at),
+                    )
+                    for c in content.corrections
+                ],
+            )
+        r.events.add_many(list(content.events))
+        with _db_errors("restore audit log"):
+            self._c.executemany(
+                "INSERT INTO audit_log (id, at, action, entity, entity_id, detail) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (a.id, to_db_time(a.at), a.action, a.entity, a.entity_id, a.detail)
+                    for a in content.audit
+                ],
+            )
+        for key, value in (content.state or {}).items():
+            r.state.set(key, value)
 
 
 # ---------------------------------------------------------------------------- facade
@@ -972,20 +1135,27 @@ class Repositories:
     sessions: SessionRepository
     audit: AuditLogRepository
     state: StateRepository
+    backup: BackupRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
         """Create the bundle for ``connection``."""
-        return cls(
-            devices=DeviceRepository(connection),
-            activities=ActivityRepository(connection),
-            projects=ProjectRepository(connection),
-            mappings=FaceMappingRepository(connection),
-            events=RawEventRepository(connection),
-            sessions=SessionRepository(connection),
-            audit=AuditLogRepository(connection),
-            state=StateRepository(connection),
-        )
+        bundle = cls.__new__(cls)
+        # BackupRepository needs the finished bundle, so the frozen slotted dataclass is
+        # filled field by field via object.__setattr__ (construction time only).
+        for name, value in (
+            ("devices", DeviceRepository(connection)),
+            ("activities", ActivityRepository(connection)),
+            ("projects", ProjectRepository(connection)),
+            ("mappings", FaceMappingRepository(connection)),
+            ("events", RawEventRepository(connection)),
+            ("sessions", SessionRepository(connection)),
+            ("audit", AuditLogRepository(connection)),
+            ("state", StateRepository(connection)),
+        ):
+            object.__setattr__(bundle, name, value)
+        object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))
+        return bundle
 
 
 class Storage:
@@ -1015,3 +1185,24 @@ class Storage:
         """Yield repositories on a read connection (no write transaction)."""
         with self._database.connect() as connection:
             yield Repositories.bind(connection)
+
+    @contextmanager
+    def snapshot(self) -> Iterator[Repositories]:
+        """Yield repositories that all see ONE consistent point in time.
+
+        A deferred read transaction (WAL snapshot isolation) keeps several ``SELECT``
+        statements consistent with each other while the agent keeps writing, which a backup
+        needs. It does not block the writer.
+        """
+        with self._database.connect() as connection:
+            try:
+                connection.execute("BEGIN")
+            except sqlite3.Error as exc:
+                raise translate_sqlite_error(exc, "begin snapshot") from exc
+            try:
+                yield Repositories.bind(connection)
+            finally:
+                try:
+                    connection.execute("ROLLBACK")  # read only: nothing to commit
+                except sqlite3.Error:
+                    logger.debug("Snapshot already closed")
