@@ -99,8 +99,29 @@ Jedes neue Feature aktualisiert die betroffenen Dateien im selben Arbeitsschritt
   vor Restore automatisches Backup. Keine Pfade/Befehle aus Importdateien ausführen.
 - CSV: UTF-8 mit BOM (Excel), Formel-Injection neutralisieren (`=`, `+`, `-`, `@`).
 
-## 8. Stand der Architektur (Kurzfassung)
+## 8. Stand der Architektur und des Projekts (Kurzfassung)
 
-Schichten: `domain` → `application` → `infrastructure` / `api` / `agent`; `dashboard`
-spricht nur über `dashboard_client` mit der API. Der Agent ist der einzige reguläre
-DB-Schreiber. Ein AsyncIO-Loop besitzt alle BLE-Clients. Details: `docs/ARCHITEKTUR.md`.
+Schichten: `domain` → `application` → `infrastructure` / `api` / `agent`; `dashboard` spricht nur über
+`dashboard_client` mit der API. Der Agent ist der einzige reguläre DB-Schreiber. **Ein** AsyncIO-Loop
+(eigener Thread) besitzt alle BLE-Clients. Details: `docs/ARCHITEKTUR.md`.
+
+**Arbeitsstand (siehe `docs/FORTSCHRITT.md`):** Alle Arbeitspakete AP-00 bis AP-20 sind umgesetzt. **Offen
+und nicht von Agenten lösbar:** Hardwaretest mit echten Trackern (Anleitung: `docs/INSTALLATION.md` §5,
+Matrix in `docs/TESTPLAN.md`), Lizenzwahl (**den Nutzer daran erinnern, bevor veröffentlicht wird**),
+Namens-/Markenprüfung, privater Sicherheits-Meldeweg, F-20 (Integrationen, „Kann“).
+
+**Gelernte Regeln für weitere Arbeit:**
+
+- Qualitäts-Gate ist `scripts\run_tests.bat` (pytest, ruff check, **ruff format --check**, mypy strict);
+  die GUI-Tests dauern einige Minuten. Nach `ruff format` erneut prüfen.
+- BLE-/Bleak-Callbacks dürfen **nicht** annehmen, auf dem Loop-Thread zu laufen: Events nur über
+  `DeviceWorker._set` (thread-sicher) setzen.
+- Streamlit: `width="stretch"` statt `use_container_width`; Benutzertexte in `unsafe_allow_html`-Blöcken
+  mit `html.escape`; Widget-`key=` eindeutig vergeben (Tests nutzen sie); `help=` an jedem Feld.
+- Fehler an Systemgrenzen in `OctaLedgerError`-Unterklassen übersetzen; neue Fehlerklasse = neuer stabiler
+  Code + Doku + HTTP-Status in `api/app.py`.
+- Tests neuer Seiten: Fixture `api_server` aus `tests/conftest.py` + `AppTest`; Beispieldaten nicht in der
+  Zukunft anlegen (siehe `tests/gui/test_gui_journal_statistics.py`).
+- Dokumentation immer im selben Arbeitsschritt aktualisieren; ehrlich bleiben (nichts als hardwaregeprüft
+  ausgeben, was nur simuliert ist).
+- Niemals `git push`; die Hash-Nachtragsregel für `docs/FORTSCHRITT.md` beachten.

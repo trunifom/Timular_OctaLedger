@@ -1,8 +1,8 @@
 # Software-Pflichtenheft: OctaLedger
 
-Version: 0.1, Planungsstand 19. November 2026.
-Status: Soll-Spezifikation. Nur die in README aufgeführten Grundfunktionen sind
-bereits implementiert. Muss/Soll/Kann bezeichnen Zielprioritäten, keine Lieferzusage.
+Version: 0.1, Planungsstand 19. November 2026; Umsetzungsstand siehe Abschnitt 11.
+Status: Soll-Spezifikation, **umgesetzt bis auf F-20** (Kann) und die Hardwareprüfung.
+Muss/Soll/Kann bezeichnen Zielprioritäten, keine Lieferzusage.
 
 ## 1. Zweck und Zielgruppe
 
@@ -131,3 +131,32 @@ CSV-Ausgabe muss Zeitzone, Encoding und sichere Textbehandlung dokumentieren.
 
 Keine erfundenen Leistungs- oder Batteriezahlen. Latenz, CPU und Langzeitstabilität
 im Hardwaretest messen. Betriebliche Rechtskonformität separat prüfen.
+
+## 11. Umsetzungsstand und Nachverfolgung
+
+✅ = umgesetzt und automatisch getestet (Simulator); ⏳ = mit echter Hardware noch nicht geprüft.
+
+| ID | Stand | Umsetzung |
+|---|---|---|
+| F-01 | ✅ ⏳ | `infrastructure/ble/scanner`, Geräte-Seite „Suche“, `octaledger scan` (nur auf Anforderung, verbindet nie) |
+| F-02 | ✅ | `DeviceService.register`, Alias eindeutig, erster Tracker wird aktiv |
+| F-03 | ✅ ⏳ | Modell/Firmware aus der Geräteinformation, „unbekannt“ erlaubt |
+| F-04 | ✅ ⏳ | `discover_capabilities`, Verbindungszustände in Übersicht/Geräte/Diagnose |
+| F-05 | ✅ ⏳ | Kalibrierung je Seite 1–8 mit „liegt oben“-Anzeige (Geräte-Seite) |
+| F-06 | ✅ | `OrientationDebouncer`: Validierung, Duplikate, Zwischenflächen |
+| F-07 | ✅ | Baseline getrennt von Seitenwechsel (`EventKind.BASELINE`, Richtlinie `baseline_policy`) |
+| F-08 | ✅ | Tätigkeit, Projekt, optionale Notiz je Sitzung |
+| F-09 | ✅ | `TrackingService.record_event` (Start/Wechsel) |
+| F-10 | ✅ | manuell Start/Stopp/Pause/Fortsetzen (Übersicht) |
+| F-11 | ✅ | alle Schreibvorgänge in atomaren Transaktionen (`Storage.transaction`) |
+| F-12 | ✅ | Verbindungsverlust → `unsicher`, nichts erfunden; Bestätigung im Journal |
+| F-13 | ✅ | Korrigieren, Teilen, Löschen mit Pflichtgrund und Auditspur |
+| F-14 | ✅ | Tages-/Wochenansicht, Filter nach Tätigkeit/Projekt/Gerät |
+| F-15 | ✅ | Verlaufs-Balken pro Tag, Ringdiagramme nach Tätigkeit/Projekt (plus Tabellen) |
+| F-16 | ✅ | CSV-Export; versioniertes JSON-Backup mit Prüfsumme; validierter Restore |
+| F-17 | ✅ ⏳ | Reconnect mit begrenztem Backoff; bewusster Stopp beendet Reconnect |
+| F-18 | ✅ ⏳ | optionaler Batteriestand; fehlender Dienst wird toleriert |
+| F-19 | ✅ | anonymisierter Diagnosebericht (Diagnose-Seite) |
+| F-20 | ⏳ nicht umgesetzt | optionale Integrationen (`infrastructure/integrations` ist ein leerer Platzhalter) |
+
+Abnahmekriterien A-01 bis A-11: Nachweisstatus in [TESTPLAN.md](TESTPLAN.md).

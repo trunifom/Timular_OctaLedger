@@ -2,8 +2,8 @@
 
 Ziel: SQLite im Benutzerprofil, nicht im Projektordner. Pfade über platformdirs
 ermitteln; Benutzer kann einen bewussten alternativen Datenpfad wählen. Geplante
-Unterordner: data/, logs/, backups/, exports/. Pfade: siehe SOFTWAREDOKUMENTATION §5;
-Datenbankschema und Migrationen: SOFTWAREDOKUMENTATION §9 (Migration 0001 umgesetzt;
+Unterordner: data/, logs/, backups/, exports/ (umgesetzt, siehe SOFTWAREDOKUMENTATION §5).
+Schema und Migrationen: SOFTWAREDOKUMENTATION §9 (Migrationen 0001 und 0002 umgesetzt;
 `integration_jobs` folgt mit F-20).
 
 | Entität | Inhalt |
@@ -14,7 +14,9 @@ Datenbankschema und Migrationen: SOFTWAREDOKUMENTATION §9 (Migration 0001 umges
 | raw_events | UUID, Empfangszeit UTC, Sequenz, Verbindungssitzung, Rohwert |
 | sessions | Tätigkeit, Beginn/Ende UTC, Quelle, Gerät, Qualitätskennzeichen |
 | corrections | Änderungsgrund, alter/neuer Wert, Zeitpunkt, Revision |
-| integration_jobs | Auftrag, Ziel, Status, Versuche, Verfallszeit |
+| integration_jobs | Auftrag, Ziel, Status, Versuche, Verfallszeit (**noch nicht umgesetzt**, F-20) |
+| audit_log | Löschungen, Bereinigungen, Restore (zusätzlich umgesetzt) |
+| app_state | aktiver Tracker, Pause (zusätzlich umgesetzt, Migration 0002) |
 
 Gerätekennung nicht mit global stabiler Bluetooth-MAC gleichsetzen. Baseline,
 Seitenwechsel und Trennung sind verschiedene Ereignisse. Ungültige Pakete als

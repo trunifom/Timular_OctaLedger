@@ -35,15 +35,21 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-18b | GUI-Seiten Geräte (Registrierung, Suche, Kalibrierung, Übergabe) und Verwaltung (Tätigkeiten/Projekte) | 2026-11-20 | 22:16 | 75df345 |
 | AP-18c | GUI-Seiten Zeitjournal (Filter, Korrigieren/Teilen/Löschen, Zu prüfen, Nachtragen) und Statistik (Kennzahlen, Diagramme mit Tabellen) | 2026-11-20 | 22:30 | b7048af |
 | AP-18d | GUI-Seiten Daten (Export/Sicherung/Restore mit Vorschau), Einstellungen, Diagnose (anonymisierter Bericht) | 2026-11-20 | 22:39 | f4ae3de |
-| AP-19 | Agent-Laufzeit (`agent.main`), erweiterte CLI, Start-Skripte, CI; End-to-End-Tests; Thread-Sicherheit im Worker | 2026-11-20 | 22:48 | folgt |
+| AP-19 | Agent-Laufzeit (`agent.main`), erweiterte CLI, Start-Skripte, CI; End-to-End-Tests; Thread-Sicherheit im Worker | 2026-11-20 | 22:48 | 78184d2 |
+| AP-20 | Abschlussdokumentation: Benutzerhandbuch neu geordnet, Installation, Softwaredoku, Testplan mit Abnahmestatus, README, Grenzen; `constraints-tested.txt` | 2026-11-20 | 22:57 | folgt |
 
-## Offen (Reihenfolge der Umsetzung)
+## Offen
 
-| AP | Beschreibung | Roadmap |
-|---|---|---|
-| AP-18 | Streamlit-GUI: Seiten, Hilfetexte, Hell/Dunkel, Schriftgröße | M4 |
-| AP-20 | Abschlussdokumentation: Benutzerhandbuch, Software, Installation | M5 |
+Alle Arbeitspakete (AP-00 bis AP-20) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
+kann** oder bewusst nicht im Umfang liegt:
 
-Hinweis: Nicht erledigt und ausdrücklich außerhalb dieses Protokolls bleibt der
-**Hardwaretest** mit echten Trackern (Abnahmekriterien A-01 bis A-07 teilweise) sowie die
-**Lizenzwahl**.
+| ID | Thema | Wer | Hinweis |
+|---|---|---|---|
+| HW-01 | **Hardwaretest** mit den echten USB-C-Trackern (Abnahmekriterien A-01, A-02–A-05, A-07 mit Hardwarebezug) | Anwender | Anleitung `docs/INSTALLATION.md` §5; Ergebnisse in die Matrix in `docs/TESTPLAN.md`; danach Entprellzeit und Neutralwert festlegen |
+| LIC-01 | **Lizenz wählen** (Projekt hat bewusst keine) und Namens-/Markenfreiheit prüfen | Projektinhaber | vor jeder Veröffentlichung; ohne Lizenz ist öffentlicher Code nicht frei nachnutzbar |
+| SEC-01 | privaten **Meldeweg** für Sicherheitsprobleme in `SECURITY.md` ergänzen | Projektinhaber | vor Veröffentlichung |
+| VIS-01 | **Visueller Browsertest** aller Dashboard-Seiten (Layout, Farben, kleine Bildschirme) | Anwender | AppTest prüft nur Logik/Elemente |
+| REL-01 | Release-Prozess, Installer, Windows-Autostart | optional | Roadmap „Später“ |
+| F-20 | Integrationen (Home Assistant, Hue, MQTT, Obsidian) | optional („Kann“) | `infrastructure/integrations` ist ein leerer Platzhalter |
+
+Veröffentlichen (`git push`) übernimmt der Projektinhaber selbst; Agenten pushen nie.

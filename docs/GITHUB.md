@@ -11,7 +11,7 @@ Kein offizielles Timeular-/EARLY-Produkt.
 
 ## Beschreibung zum Kopieren
 
-Local-first Python time tracker for Timeular/ZEI BLE cubes with a Streamlit dashboard, SQLite storage, session management, charts and exports. In development.
+Local-first Python time tracker for Timeular/ZEI BLE cubes with a Streamlit dashboard, SQLite storage, session management, charts and exports. Software complete; hardware validation pending.
 
 ## Topics
 
@@ -20,11 +20,11 @@ sqlite, windows, local-first
 
 ## Erst lokal testen
 
-Siehe README. Vor erstem Commit Lizenz bewusst auswählen. Keine echte .env,
+Siehe README und INSTALLATION.md. Vor der **Veröffentlichung** (public) Lizenz bewusst auswählen. Keine echte .env,
 Datenbank, Logs oder Tokens committen. pyproject.toml enthält absichtlich keine
 unbegründete Lizenzangabe oder erfundene Autorenidentität.
 
-## Git-Befehle: nur lokale Repositoryvorbereitung
+## Git-Befehle (Beispiel der Erstvorbereitung)
 
 ```bat
 git init -b main
@@ -49,3 +49,9 @@ git push -u origin main
 
 Alternativ GitHub CLI nach Anmeldung verwenden. Das Paket führt keine Git-, Push-
 oder GitHub-Erstellungsbefehle automatisch aus. Public/Private bewusst entscheiden.
+
+## Hinweis zur Arbeitsweise
+
+Entwicklungsagenten (Claude Code u. a.) dürfen `git add` und `git commit` ausführen, aber **niemals
+`git push`**: Das Veröffentlichen übernimmt der Projektinhaber selbst, nachdem Lizenz, Sichtbarkeit
+(public/private) und der Inhalt der Commits geprüft sind.

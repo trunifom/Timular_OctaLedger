@@ -21,3 +21,18 @@ steuerung, Firmwareupdate oder Offlinebewegungshistorie.
 
 Ausgangswert kann dieselbe Meldung wie das Abonnement liefern: Duplikate tolerieren.
 Für zwei Clients Adapterressourcen und tatsächliche Parallelität praktisch testen.
+
+## Umsetzungsstand
+
+Implementiert in `src/octaledger/infrastructure/ble/` (`protocol`, `transport`, `client`, `scanner`,
+`fake`); Details in [SOFTWAREDOKUMENTATION.md](SOFTWAREDOKUMENTATION.md) §13–14.
+
+- `discover_capabilities` prüft, was ein Gerät **wirklich** anbietet (Orientierungs-Characteristic mit
+  Notify/Indicate); fehlt sie, wird das Gerät mit der Liste der angebotenen Dienste abgelehnt.
+- Es gibt **keine Schreiboperation** in der BLE-Schicht (per Konstruktion, getestet).
+- Optional und nur lesend: Batterie (`180f/2a19`), Modell/Firmware (`180a/2a24`, `2a26`).
+- Scan nur auf Anforderung; keine Filterung, die andere Generationen ausschließen würde.
+- Der Anfangswert wird gelesen (falls lesbar) und darf die erste Benachrichtigung duplizieren.
+
+**Hardwarestatus: nicht validiert.** Die Punkte der Liste „Prüfen“ oben sind am eigenen Gerät
+abzuarbeiten (Anleitung: INSTALLATION.md Abschnitt 5, Ergebnis in die Matrix in TESTPLAN.md).

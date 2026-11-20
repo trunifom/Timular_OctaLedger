@@ -5,21 +5,72 @@ implementierten Codes. Die Zielarchitektur steht in [ARCHITEKTUR.md](ARCHITEKTUR
 die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 [CLAUDE.md](../CLAUDE.md). Jedes Arbeitspaket (AP) ergänzt hier seinen Abschnitt.
 
-## 1. Paketübersicht
+**Inhalt**
+
+1. [Überblick](#1-überblick)
+2. [Fehlerbehandlung (`octaledger.core.errors`, AP-01)](#2-fehlerbehandlung-octaledgercoreerrors-ap-01)
+3. [Logging (`octaledger.core.logging`, AP-02)](#3-logging-octaledgercorelogging-ap-02)
+4. [Dateizugriff (`octaledger.core.fileio`, AP-03a)](#4-dateizugriff-octaledgercorefileio-ap-03a)
+5. [Einstellungen und Pfade (`octaledger.core.settings`, AP-03)](#5-einstellungen-und-pfade-octaledgercoresettings-ap-03)
+6. [Domänenmodelle (`octaledger.domain.models`, AP-04)](#6-domänenmodelle-octaledgerdomainmodels-ap-04)
+7. [Zustandsautomaten (`octaledger.domain.state_machine`, AP-05)](#7-zustandsautomaten-octaledgerdomainstate_machine-ap-05)
+8. [Intervall-Algebra (`octaledger.domain.time_rules`, AP-06)](#8-intervall-algebra-octaledgerdomaintime_rules-ap-06)
+9. [Datenbank und Migrationen (`octaledger.infrastructure.storage.database`, AP-07)](#9-datenbank-und-migrationen-octaledgerinfrastructurestoragedatabase-ap-07)
+10. [Repositories (`octaledger.infrastructure.storage.repositories`, AP-08)](#10-repositories-octaledgerinfrastructurestoragerepositories-ap-08)
+11. [Tracking-Service (`octaledger.application.tracking_service`, AP-09)](#11-tracking-service-octaledgerapplicationtracking_service-ap-09)
+12. [Geräte- und Katalog-Service (`application.device_service`, `application.catalog_service`, AP-10)](#12-geräte--und-katalog-service-applicationdevice_service-applicationcatalog_service-ap-10)
+13. [BLE-Protokoll, Transport-Abstraktion, FakeTransport (`infrastructure.ble`, AP-11)](#13-ble-protokoll-transport-abstraktion-faketransport-infrastructureble-ap-11)
+14. [Bleak-Scanner und -Client (`infrastructure.ble.scanner`, `infrastructure.ble.client`, AP-12)](#14-bleak-scanner-und--client-infrastructureblescanner-infrastructurebleclient-ap-12)
+15. [Agent-Supervisor (`octaledger.agent.supervisor`, AP-13)](#15-agent-supervisor-octaledgeragentsupervisor-ap-13)
+16. [Reporting-Service (`octaledger.application.reporting_service`, AP-14)](#16-reporting-service-octaledgerapplicationreporting_service-ap-14)
+17. [Export, Backup und Restore (`octaledger.application.export_service`, AP-15)](#17-export-backup-und-restore-octaledgerapplicationexport_service-ap-15)
+18. [API-Sicherheit (`octaledger.api.security`, AP-16a)](#18-api-sicherheit-octaledgerapisecurity-ap-16a)
+19. [Lokale HTTP-API (`octaledger.api`, AP-16)](#19-lokale-http-api-octaledgerapi-ap-16)
+20. [Dashboard-Client (`octaledger.dashboard_client.client`, AP-17)](#20-dashboard-client-octaledgerdashboard_clientclient-ap-17)
+21. [Dashboard-Grundgerüst (`octaledger.dashboard`, AP-18a)](#21-dashboard-grundgerüst-octaledgerdashboard-ap-18a)
+22. [Seiten „Geräte“ und „Verwaltung“ (`dashboard.pages.devices`, `dashboard.pages.catalog`, AP-18b)](#22-seiten-geräte-und-verwaltung-dashboardpagesdevices-dashboardpagescatalog-ap-18b)
+23. [Seiten „Zeitjournal“ und „Statistik“ (`dashboard.pages.journal`, `dashboard.pages.statistics`, AP-18c)](#23-seiten-zeitjournal-und-statistik-dashboardpagesjournal-dashboardpagesstatistics-ap-18c)
+24. [Seiten „Daten“, „Einstellungen“ und „Diagnose“ (AP-18d)](#24-seiten-daten-einstellungen-und-diagnose-ap-18d)
+25. [Agent-Laufzeit und Kommandozeile (`octaledger.agent.main`, `octaledger.cli`, AP-19)](#25-agent-laufzeit-und-kommandozeile-octaledgeragentmain-octaledgercli-ap-19)
+26. [Qualitätssicherung, Teststrategie und Erweiterungspunkte (AP-20)](#26-qualitätssicherung-teststrategie-und-erweiterungspunkte-ap-20)
+
+## 1. Überblick
+
+### 1.1 Pakete und Schichten
 
 ```text
 src/octaledger/
-  core/            Querschnitt: Fehler, Logging, Einstellungen
-  domain/          reine Regeln und Modelle (kein BLE/HTTP/SQL/Streamlit)
-  application/     Anwendungsfälle
-  infrastructure/  BLE, SQLite, Integrationen
-  agent/           Hintergrundprozess
-  api/             lokale HTTP-Schnittstelle
-  dashboard_client/ HTTP-Client für das Dashboard
+  core/              Fehler (§2), Logging (§3), Dateizugriff (§4), Einstellungen/Pfade (§5)
+  domain/            Modelle (§6), Zustandsautomaten (§7), Zeit/Intervalle (§6, §8) - rein, ohne I/O
+  application/       Tracking (§11), Geräte/Katalog (§12), Berichte (§16), Export/Backup (§17)
+  infrastructure/
+    storage/         SQLite, Migrationen (§9), Repositories (§10)
+    ble/             Protokoll/Transport/Fake (§13), Bleak-Scanner und -Client (§14)
+    integrations/    leerer Platzhalter für optionale Adapter (F-20)
+  agent/             Supervisor (§15), Laufzeit und Start/Shutdown (§25)
+  api/               Sicherheit (§18), Routen/Schemas/App (§19)
+  dashboard_client/  HTTP-Client (§20)
+  dashboard/         Streamlit-Oberfläche (§21-24)
+  cli.py             Kommandozeile (§25)
 ```
 
-Abhängigkeitsrichtung: `domain` ← `application` ← `infrastructure`/`api`/`agent`.
-`core` darf von allen Schichten genutzt werden, importiert aber selbst nichts aus ihnen.
+Abhängigkeitsrichtung: `domain` ← `application` ← `infrastructure`/`api`/`agent`. `core` darf von allen
+Schichten genutzt werden, importiert selbst nichts aus ihnen. Das Dashboard kennt nur `dashboard_client`.
+
+### 1.2 Datenfluss einer Würfeldrehung
+
+```text
+Tracker --BLE notify--> BleakTransport._callback --> DeviceWorker._on_notification (kurz, thread-sicher)
+  --> begrenzter Puffer --> OrientationDebouncer (Baseline/Duplikat/Entprellung)
+  --> RawEvent --(to_thread)--> TrackingService.record_event --> Storage.transaction
+  --> sessions/raw_events in SQLite --> API (/status, /sessions, /reports) --> Dashboard
+```
+
+### 1.3 Grundregeln (vollständig in [CLAUDE.md](../CLAUDE.md))
+
+UTC intern (nie naive Zeiten), SQL nur im Storage-Paket und immer parametrisiert, stabile Fehlercodes statt
+nackter Ausnahmen, Logging nur über `logging.getLogger(__name__)` mit zentraler Redaktion, **keine
+BLE-Schreibzugriffe**, Daten atomar speichern und versioniert laden, Hilfetext an jedem GUI-Feld.
 
 ## 2. Fehlerbehandlung (`octaledger.core.errors`, AP-01)
 
@@ -111,7 +162,7 @@ Der `RedactingFormatter` maskiert den **fertig formatierten** Text inklusive Tra
 ### 3.4 Dateien
 
 Rotierende Datei `octaledger.log` (Standard 1 MB, 5 Sicherungen) im Log-Ordner des
-Benutzerprofils (Pfad kommt mit AP-03). Ist der Ordner nicht beschreibbar, läuft das
+Benutzerprofils (siehe §5.1). Ist der Ordner nicht beschreibbar, läuft das
 Programm weiter: Es gibt eine WARNING und Logging ohne Datei.
 
 ### 3.5 Beispiel
@@ -1166,3 +1217,43 @@ Fehlerdarstellung, Backup/Restore-Rundlauf mit Bestätigung, Restore-Sperre bei 
 Dashboard-Befehl (lokal, ohne Telemetrie).
 **Das beweist nicht das Verhalten mit echten Trackern** – dafür sind die manuellen Hardwaretests
 (`tests/hardware`, Testplan) vorgesehen.
+
+## 26. Qualitätssicherung, Teststrategie und Erweiterungspunkte (AP-20)
+
+### 26.1 Qualitäts-Gate
+
+`scripts\run_tests.bat` = `pytest` + `ruff check` + `ruff format --check` + `mypy` (strict); dasselbe läuft in
+der CI. Stand: 900 bestanden, 2 Hardwaretests übersprungen (805 Unit, 14 Integration, 81 GUI), rund 12 000
+Zeilen Quellcode und 8 400 Zeilen Tests. Nachweisstatus der Abnahmekriterien: [TESTPLAN.md](TESTPLAN.md).
+
+### 26.2 Teststrategie (Schichten)
+
+| Ebene | Technik | Besonderheit |
+|---|---|---|
+| Reine Regeln | direkte Unit-Tests mit injizierter Zeit (`now_ms`, `clock`) | deterministisch, ohne Sleep |
+| Persistenz | temporäre SQLite-Dateien | Constraints, Trigger, Migrationen, Backup, Korruption, Sperren |
+| Async/BLE | `asyncio.run` + `FakeTransport` | kleine echte Zeiten, beschränktes Polling, mehrfach wiederholt |
+| API | `TestClient` mit `base_url=http://127.0.0.1:<port>` | prüft Host/Origin/Token/Fehlerabbildung |
+| Integration | echter uvicorn-Server im Thread + echter Client; ganzer Agent | Fixture `api_server` in `tests/conftest.py` |
+| GUI | `AppTest` gegen den echten Server | Logik und Elemente, **nicht** das Aussehen im Browser |
+| Hardware | manuell, `OCTALEDGER_HARDWARE_TESTS=1` | nur lesen/abonnieren |
+
+Durch die Tests aufgedeckte und behobene Fehler (Auswahl): falsch gebildete Katalogrouten (`/activitys`),
+`ConfigurationError` als HTTP 500 statt 422, ein Event-Wecken aus fremden Threads (Worker), ein falsch
+HTML-escaptes Label, falsche RECONNECT-Meldung beim ersten erfolgreichen Verbinden.
+
+### 26.3 Bekannte Grenzen
+
+Siehe [QUELLEN_UND_GRENZEN.md](QUELLEN_UND_GRENZEN.md): keine Hardwareprüfung, Protokoll nur aus
+Community-Quellen, kein visueller Browsertest, keine Leistungsmessung, keine Rechtsprüfung, Lizenz offen,
+F-20 (Integrationen) nicht umgesetzt.
+
+### 26.4 Erweiterungspunkte
+
+| Ziel | Wo ansetzen |
+|---|---|
+| Neue Integration (MQTT, Home Assistant, Obsidian) | `infrastructure/integrations/` + Tabelle `integration_jobs` (neue Migration), idempotente, begrenzte Aufträge |
+| Parallele Gerätezeitachsen | neue Migration (Überschneidungs-Trigger anpassen), `TrackingService` pro Gerät; Berichte unterscheiden Gerätezeit/persönliche Zeit bereits |
+| Weitere Sprachen | `SUPPORTED_LANGUAGES` und GUI-Texte (derzeit nur Deutsch) |
+| Anderer Transport (z. B. andere Plattform) | `DeviceTransport` implementieren (ohne Schreibzugriff), Fabrik in `run_agent` austauschen |
+| Neuer Fehlercode / Migration / Endpunkt / Seite | Kurzanleitungen in [CONTRIBUTING.md](../CONTRIBUTING.md) |
