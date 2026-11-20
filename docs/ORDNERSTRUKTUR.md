@@ -24,7 +24,6 @@ octaledger/
   docs/QUELLEN_UND_GRENZEN.md
   docs/ROADMAP.md
   docs/TESTPLAN.md
-  migrations/.gitkeep
   pyproject.toml
   scripts/run_tests.bat
   scripts/start_dashboard.bat
@@ -63,6 +62,7 @@ octaledger/
   src/octaledger/infrastructure/integrations/base.py
   src/octaledger/infrastructure/storage/__init__.py
   src/octaledger/infrastructure/storage/database.py
+  src/octaledger/infrastructure/storage/migrations/0001_initial.sql
   src/octaledger/infrastructure/storage/repositories.py
   tests/fixtures/.gitkeep
   tests/hardware/.gitkeep
@@ -76,6 +76,7 @@ octaledger/
 src enthält das installierbare Paket. dashboard ist der Streamlit-Einstieg.
 tests trennt reine Regeln, spätere Integration und manuelle Hardwaretests.
 config enthält nur Beispiele. Nutzerdaten landen später im Benutzerprofil.
-migrations ist reserviert; es existiert noch keine SQL-Migration.
+SQL-Migrationen liegen im Paket unter src/octaledger/infrastructure/storage/migrations
+(`NNNN_name.sql`, lückenlos ab 0001) und werden als Package-Data ausgeliefert.
 Leere .gitkeep-Dateien sind nur Git-Ordnermarker. Python-Stubs sind keine
 funktionsfähigen Implementierungen.

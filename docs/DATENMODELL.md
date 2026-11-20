@@ -2,7 +2,9 @@
 
 Ziel: SQLite im Benutzerprofil, nicht im Projektordner. Pfade über platformdirs
 ermitteln; Benutzer kann einen bewussten alternativen Datenpfad wählen. Geplante
-Unterordner: data/, logs/, backups/, exports/. Noch nicht implementiert.
+Unterordner: data/, logs/, backups/, exports/. Pfade: siehe SOFTWAREDOKUMENTATION §5;
+Datenbankschema und Migrationen: SOFTWAREDOKUMENTATION §9 (Migration 0001 umgesetzt;
+`integration_jobs` folgt mit F-20).
 
 | Entität | Inhalt |
 |---|---|

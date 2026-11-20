@@ -29,6 +29,10 @@ octaledger = "octaledger.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# SQL migrations are shipped inside the package.
+[tool.setuptools.package-data]
+"octaledger.infrastructure.storage" = ["migrations/*.sql"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # The pytest cache directory is not writable in some Windows setups and is not needed.

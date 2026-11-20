@@ -147,3 +147,25 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 
   Für Abrechnung und Auswertung Ihrer Arbeitszeit ist die *persönliche Arbeitszeit* maßgeblich.
 - **Wochen** beginnen standardmäßig am Montag.
+
+## 9. Datenbank, Updates und Sicherheit Ihrer Daten
+
+- Ihre Daten liegen in **einer Datei** (`data\octaledger.sqlite3`). Sie wird beim Start
+  automatisch angelegt bzw. auf die aktuelle Programmversion gebracht.
+- **Automatische Sicherung vor Updates:** Bevor OctaLedger die Datenbank einer neuen Version
+  anpasst, wird eine geprüfte Kopie im Ordner `backups\` abgelegt
+  (`octaledger-pre-migration-…`). Schlägt das Update fehl, bleibt Ihre Datenbank unverändert.
+- **Neuere Datenbank, älteres Programm:** Stammt die Datenbank von einer neueren Version,
+  startet das Programm nicht und verändert nichts. Bitte aktualisieren Sie OctaLedger.
+- **Keine Überschneidungen:** Sie können nicht zwei Zeitabschnitte buchen, die sich zeitlich
+  überlappen, und es läuft immer höchstens eine Sitzung. Aneinander grenzende Abschnitte
+  (Ende = nächster Beginn) sind erlaubt.
+- **Namen sind eindeutig:** Tätigkeiten, Projekte und Geräte dürfen nicht doppelt heißen
+  (Groß-/Kleinschreibung zählt nicht). Archivierte Einträge geben ihren Namen wieder frei.
+- **Verwendete Einträge löschen:** Eine Tätigkeit oder ein Projekt, das schon in gebuchten
+  Zeiten vorkommt, kann nicht gelöscht werden – **archivieren** Sie es stattdessen.
+- **Fehlermeldung „Die Änderung widerspricht bestehenden Daten“** (`OL-STATE-002`) bedeutet:
+  doppelter Name, Überschneidung oder noch verwendeter Eintrag.
+- **Fehlermeldung „Datenbank belegt“** ist vorübergehend; einen Moment warten und wiederholen.
+- **Beschädigte Datei** (`OL-STORAGE-003`): Stellen Sie eine Sicherung aus `backups\` wieder
+  her (siehe Abschnitt Backup/Restore).

@@ -78,6 +78,22 @@ Logfiles liegen im Ordner `logs` der Datenablage (siehe Abschnitt 5). Die
 Protokollstufe (`DEBUG`, `INFO`, `WARNING`, `ERROR`) wird in den Einstellungen gesetzt.
 Geheimnisse werden vor dem Schreiben maskiert; siehe SOFTWAREDOKUMENTATION.md §3.
 
+## Datenbank und Backups
+
+- Die Datenbank wird beim ersten Start automatisch erzeugt; spätere Programmversionen
+  migrieren sie selbstständig (Backup vorher in `backups\`).
+- Manuelle Sicherung der laufenden Datenbank (konsistent, auch während der Agent läuft):
+
+  ```bat
+  .venv\Scripts\python.exe -c "from pathlib import Path; from octaledger.infrastructure.storage.database import Database; Database(Path(r'%LOCALAPPDATA%\OctaLedger\data\octaledger.sqlite3')).backup_to(Path(r'D:\Sicherung\octaledger.sqlite3'))"
+  ```
+
+  (Eine komfortable Oberfläche dafür folgt mit dem Export-/Backup-Dienst, AP-15.)
+- Zusatzdateien `*.sqlite3-wal` und `*.sqlite3-shm` neben der Datenbank sind normal (WAL-Modus)
+  und dürfen nicht einzeln gelöscht werden.
+- Beim Paket-Build werden die SQL-Migrationen als Package-Data mitgeliefert
+  (`pyproject.toml`, Abschnitt `[tool.setuptools.package-data]`).
+
 ## 7. Fehlersuche
 
 | Symptom | Ursache / Abhilfe |

@@ -308,3 +308,71 @@ Summen dürfen nie einfach addiert werden.
 von 24 Stunden. Beispiele (Europe/Zurich, Jahr 2026): Der 29.03. hat 23 Stunden, der 25.10.
 hat 25 Stunden; die Woche vom 23.–29.03. ist eine Stunde kürzer. Die Tests decken beides ab.
 Existiert Mitternacht wegen einer Zeitlücke nicht, beginnt der Tag am ersten gültigen Moment.
+
+## 9. Datenbank und Migrationen (`octaledger.infrastructure.storage.database`, AP-07)
+
+### 9.1 Verbindungen und Transaktionen
+
+- **Eine kurzlebige Verbindung pro Vorgang** (`Database.connect()`): SQLite-Verbindungen sind
+  billig und nicht thread-sicher. Dank WAL blockieren Leser (API-Threads) den einzigen
+  Schreiber (Agent) nicht.
+- Pragmas je Verbindung: `foreign_keys=ON`, `journal_mode=WAL`, `synchronous=NORMAL`,
+  `busy_timeout=5000`.
+- **Explizite Transaktionen** (`Database.transaction()`): Verbindungen laufen im Autocommit
+  (`isolation_level=None`); der Kontextmanager führt `BEGIN IMMEDIATE` (Schreibsperre sofort),
+  bei Erfolg `COMMIT`, bei jeder Ausnahme `ROLLBACK` aus. `sqlite3`-Fehler werden übersetzt,
+  andere Ausnahmen unverändert weitergereicht.
+
+### 9.2 Fehlerübersetzung (`translate_sqlite_error`)
+
+| sqlite3 | OctaLedger-Fehler | Beispiel |
+|---|---|---|
+| `IntegrityError` | `ConflictError` (OL-STATE-002) | doppelter Name, Überschneidung, noch verwendeter Eintrag |
+| „not a database“, „malformed“, „corrupt“ | `DataIntegrityError` (OL-STORAGE-003) | beschädigte Datei |
+| „locked“, „busy“ | `StorageError` (OL-STORAGE-001) mit Hinweis „Datenbank belegt“ | gleichzeitiger Schreiber |
+| sonstige | `StorageError` | I/O-Fehler |
+
+### 9.3 Schema (Migration `0001_initial.sql`)
+
+| Tabelle | Inhalt | Wichtige Garantien |
+|---|---|---|
+| `devices` | Tracker | Alias eindeutig (ohne Groß-/Kleinschreibung) |
+| `activities`, `projects` | Tätigkeiten, Projekte | Name unter **nicht archivierten** eindeutig; Farbe `#RRGGBB` per CHECK |
+| `face_mappings` | Seite 1–8 → Tätigkeit/Projekt | PK (Gerät, Seite); wird mit dem Gerät gelöscht |
+| `raw_events` | Beobachtungen | Art und Wert per CHECK; Gerät kann nicht gelöscht werden, solange Ereignisse existieren |
+| `sessions` | Zeitabschnitte | Ende ≥ Start; Geräte-Sitzung braucht Gerät; **höchstens eine laufende Sitzung** (Unique-Index); **keine Überschneidungen** (Trigger bei INSERT/UPDATE; Berührung erlaubt) |
+| `corrections` | Änderungsprotokoll | Grund Pflicht; wird mit der Sitzung gelöscht |
+| `audit_log` | Löschungen/Restore | nachvollziehbare destruktive Aktionen |
+| `schema_migrations` | angewendete Migrationen | Version, Name, **SHA-256-Prüfsumme**, Zeitpunkt |
+
+Konventionen: UUID-Strings als Schlüssel; Zeitstempel als UTC-Text mit **fester Breite**
+`YYYY-MM-DDTHH:MM:SS.ffffffZ` (Textvergleich = zeitlicher Vergleich); Booleans 0/1 mit CHECK.
+Aufbewahrung: referenzierte Tätigkeiten/Projekte/Geräte sind per `ON DELETE RESTRICT`
+geschützt – stattdessen archivieren. Der Ausbau auf parallele Gerätezeitachsen (Roadmap
+„Später“) erfordert eine neue Migration, die den Überschneidungs-Trigger anpasst.
+
+### 9.4 Migrationen
+
+SQL-Dateien `NNNN_name.sql` im Paket (`storage/migrations/`, als Package-Data ausgeliefert),
+lückenlos ab `0001`. `Database.initialize()`:
+
+1. lädt und validiert die Migrationen (Dateiname, lückenlose Versionen),
+2. prüft die **Prüfsumme** bereits angewendeter Migrationen (nachträgliche Änderung →
+   `MigrationError`),
+3. verweigert eine Datenbank, die **neuer** ist als das Programm (unverändert, mit
+   Update-Hinweis),
+4. legt vor jeder Migration einer **bestehenden** Datenbank ein **verifiziertes Backup**
+   `backups/octaledger-pre-migration-vA-to-vB-<UTC>.sqlite3` an,
+5. wendet jede ausstehende Migration in **einer Transaktion** an (alles oder nichts);
+   schlägt eine fehl, bleibt sie ohne Spuren zurückgerollt, frühere bleiben bestehen.
+
+Migrationsdateien enthalten kein `BEGIN`/`COMMIT`. `split_statements` zerlegt Skripte
+korrekt, auch Trigger-Rümpfe mit inneren Semikolons.
+
+### 9.5 Backup und Diagnose
+
+- `Database.backup_to(ziel)`: konsistente Kopie der **laufenden** Datenbank über die
+  SQLite-Backup-API; die Kopie wird mit `PRAGMA integrity_check` geprüft und erst dann
+  atomar unter dem Zielnamen abgelegt (kein halbes Backup).
+- `Database.integrity_check()`: SQLite-Integritätsprüfung plus `foreign_key_check`; leere
+  Liste = gesund.
