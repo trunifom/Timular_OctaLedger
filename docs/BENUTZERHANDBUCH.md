@@ -47,3 +47,13 @@ Ordner `logs` Ihres Benutzerprofils. Sie hilft bei der Fehlersuche.
   aufgezeichnet. Für den Alltag genügt `INFO`.
 - Wenn Sie ein Problem melden: Prüfen Sie die Datei vor dem Versenden trotzdem kurz auf
   persönliche Angaben (z. B. Projektnamen).
+
+## 4. Wie OctaLedger Dateien schützt
+
+- **Speichern ist atomar:** Einstellungen, Exporte und Backups werden zuerst in eine
+  temporäre Datei geschrieben und erst danach an den Zielort verschoben. Bricht der
+  Rechner mittendrin ab, bleibt Ihre vorherige Datei vollständig erhalten.
+- **Importieren ist vorsichtig:** Dateien über 50 MB oder mit ungültigem Textformat werden
+  abgelehnt, bevor irgendetwas verändert wird.
+- Meldungen nennen immer den Dateinamen, z. B. „Die Datei ‚export.csv‘ konnte nicht
+  gespeichert werden (Rechte, Speicherplatz oder Pfad prüfen)“.

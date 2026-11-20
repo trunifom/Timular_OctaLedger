@@ -126,3 +126,19 @@ configure_logging(level="DEBUG", log_dir=log_directory)
 with log_step(logger, "open database", path=str(db_path)):
     connection = open_database(db_path)
 ```
+
+## 4. Dateizugriff (`octaledger.core.fileio`, AP-03a)
+
+Jede Stelle, die eine Datei schreibt (Einstellungen, CSV, JSON-Backup) oder eine fremde
+Datei liest (Import, Restore), nutzt dieses Modul. So gelten überall dieselben Garantien.
+
+| Funktion | Garantie |
+|---|---|
+| `atomic_write_bytes(path, data, error_cls=…)` | Schreibt in eine temporäre Datei im **selben Ordner**, `flush` + `fsync`, dann `os.replace` (atomar). Absturz/volle Platte lassen nie eine halbe Zieldatei zurück; die alte Version bleibt erhalten. Temp-Datei wird bei Fehlern entfernt. |
+| `atomic_write_text(path, text, encoding="utf-8", error_cls=…)` | Wie oben für Text. Zeilenumbrüche werden **nicht** übersetzt (der CSV-Writer steuert sie selbst). `utf-8-sig` erzeugt das Excel-BOM. |
+| `read_bytes_limited(path, max_bytes=50 MiB, error_cls=ImportDataError)` | Prüft Existenz, „reguläre Datei" und Größe **vor** dem Lesen; erkennt auch Dateien, die während des Lesens wachsen. |
+| `read_text_limited(...)` | Wie oben, plus strikte Dekodierung (ungültige Bytes → Fehler statt Ersatzzeichen). |
+
+`OSError` verlässt das Modul nie: Er wird in die vom Aufrufer gewählte Klasse
+(`ExportError`, `StorageError`, `ImportDataError` …) übersetzt, die Ursache bleibt als
+`__cause__` erhalten, die Benutzermeldung nennt den Dateinamen.
