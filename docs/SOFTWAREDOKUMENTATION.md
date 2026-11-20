@@ -74,3 +74,55 @@ except sqlite3.Error as exc:
 
 `error.to_dict()` liefert `code`, `message` (Deutsch), `technical_message` und `details`
 für API-Antworten und die GUI. `details` darf niemals Geheimnisse enthalten.
+
+## 3. Logging (`octaledger.core.logging`, AP-02)
+
+### 3.1 Regeln
+
+- Bibliotheksmodule verwenden nur `logging.getLogger(__name__)` und konfigurieren nie
+  Handler. Nur Einstiegspunkte (CLI, Agent, Dashboard) rufen `configure_logging()` auf.
+- Stufen: **DEBUG** Programmschritte, **INFO** Zustandswechsel, **WARNING** tolerierte
+  Abweichung, **ERROR** fehlgeschlagene Operation, **CRITICAL** Prozess unbrauchbar.
+- Zeitstempel sind UTC (`2026-11-20T19:52:01.123Z`).
+
+### 3.2 Bausteine
+
+| Name | Zweck |
+|---|---|
+| `configure_logging(level, log_dir, console, memory_capacity, max_bytes, backup_count)` | Richtet den Logger `octaledger` ein; mehrfach aufrufbar (ersetzt nur eigene Handler, keine Duplikate bei Streamlit-Reruns) |
+| `shutdown_logging()` | Schließt eigene Handler (gibt die Logdatei frei) |
+| `log_step(logger, "Beschreibung", **kontext)` | Context-Manager: DEBUG bei Start/Ende mit Dauer, ERROR mit Traceback bei Fehler, Ausnahme wird unverändert weitergereicht |
+| `register_secret(wert)` | Registriert einen exakten Geheimwert (z. B. API-Token), der überall maskiert wird |
+| `redact(text)` | Maskiert Geheimnisse; wird vom Formatter automatisch angewendet |
+| `recent_log_lines()` | Ringpuffer der letzten Zeilen für die Diagnose-Seite |
+| `parse_level(wert)` | Wandelt Stufenname in Zahl; `ConfigurationError` bei ungültigem Wert |
+
+### 3.3 Redaktion (Datenschutz)
+
+Der `RedactingFormatter` maskiert den **fertig formatierten** Text inklusive Traceback:
+
+- `token=…`, `"password": "…"`, `Authorization: Bearer …`, `api_key=…`, `secret=…` → `***`
+  (ein `:` oder `=` ist nötig, damit normale Sätze wie „invalid token provided"
+  unverändert bleiben),
+- registrierte Geheimwerte (`register_secret`) → `***`,
+- Bluetooth-Adressen → `**:**:**:**:EE:FF` (nur die letzten zwei Bytes),
+- UUIDs bleiben lesbar (Dienst-UUIDs sind kein Geheimnis).
+
+### 3.4 Dateien
+
+Rotierende Datei `octaledger.log` (Standard 1 MB, 5 Sicherungen) im Log-Ordner des
+Benutzerprofils (Pfad kommt mit AP-03). Ist der Ordner nicht beschreibbar, läuft das
+Programm weiter: Es gibt eine WARNING und Logging ohne Datei.
+
+### 3.5 Beispiel
+
+```python
+import logging
+from octaledger.core.logging import configure_logging, log_step
+
+logger = logging.getLogger(__name__)
+configure_logging(level="DEBUG", log_dir=log_directory)
+
+with log_step(logger, "open database", path=str(db_path)):
+    connection = open_database(db_path)
+```

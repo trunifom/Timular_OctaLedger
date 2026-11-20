@@ -54,7 +54,13 @@ Das Dashboard bindet ausschließlich an `127.0.0.1` und ist nur lokal erreichbar
 Nutzerdaten liegen **nicht** im Projektordner, sondern im Benutzerprofil (Pfade über
 `platformdirs`). Details folgen mit AP-03 (Einstellungen und Pfade).
 
-## 6. Fehlersuche
+## 6. Logfiles
+
+Logfiles liegen im Ordner `logs` des Benutzerprofils (genauer Pfad nach AP-03). Die
+Protokollstufe (`DEBUG`, `INFO`, `WARNING`, `ERROR`) wird in den Einstellungen gesetzt.
+Geheimnisse werden vor dem Schreiben maskiert; siehe SOFTWAREDOKUMENTATION.md §3.
+
+## 7. Fehlersuche
 
 | Symptom | Ursache / Abhilfe |
 |---|---|

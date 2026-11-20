@@ -33,3 +33,17 @@ wenn Sie Hilfe suchen. Die Bedeutung aller Codes steht in der Tabelle unten.
 | OL-API-001 | Anmeldung an Schnittstelle fehlgeschlagen | Agent und Dashboard mit demselben Token starten |
 | OL-API-002 | Agent nicht erreichbar | Agent starten |
 | OL-API-003 | Anfrage abgelehnt | Dashboard nur lokal im Browser öffnen |
+
+## 3. Protokolldatei (Logfile)
+
+OctaLedger schreibt wichtige Ereignisse in eine Protokolldatei (`octaledger.log`) im
+Ordner `logs` Ihres Benutzerprofils. Sie hilft bei der Fehlersuche.
+
+- Passwörter, Tokens und die ersten Teile von Bluetooth-Adressen werden **automatisch
+  unkenntlich gemacht** (`***`), bevor etwas gespeichert wird.
+- Die Datei wird automatisch rotiert (ca. 1 MB je Datei, 5 alte Dateien); sie wächst
+  nicht unbegrenzt.
+- Mit der Protokollstufe `DEBUG` (Einstellung) werden zusätzlich alle Programmschritte
+  aufgezeichnet. Für den Alltag genügt `INFO`.
+- Wenn Sie ein Problem melden: Prüfen Sie die Datei vor dem Versenden trotzdem kurz auf
+  persönliche Angaben (z. B. Projektnamen).
