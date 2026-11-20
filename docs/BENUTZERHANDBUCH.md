@@ -250,3 +250,26 @@ damit Sie die Zuordnung später im Alltag wiederfinden.
   den Auswahllisten verschwunden, aber alte Zeiten und Auswertungen bleiben korrekt. Sie
   können sie jederzeit wiederherstellen.
 - Ein **Gerät** löschen ist nur möglich, solange es keine aufgezeichneten Daten hat.
+
+## 13. Verbindungsverhalten im Alltag
+
+- **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,
+  Tracker schläft, Bluetooth kurz aus), versucht OctaLedger es selbstständig erneut – zuerst nach
+  1 Sekunde, dann mit wachsenden Pausen (2, 4, 8 … höchstens 60 Sekunden), damit nichts blockiert.
+- **Zeit ohne Verbindung** wird nicht erfunden: Die laufende Zeit wird als **unsicher**
+  gekennzeichnet (oder beendet, je nach Einstellung). Nach der Rückkehr läuft sie auf derselben Seite
+  einfach weiter; Sie bestätigen oder korrigieren den unklaren Abschnitt im Zeitjournal.
+- **Bewusst stoppen:** Wenn Sie ein Gerät selbst stoppen, gibt es **keine** weiteren
+  Verbindungsversuche. Auch dieser Zeitpunkt wird als Lücke gekennzeichnet.
+- **Nicht unterstütztes Gerät:** Bietet ein Gerät den erwarteten Dienst nicht an, versucht
+  OctaLedger es nicht endlos erneut, sondern zeigt eine verständliche Meldung (Fehlercode
+  `OL-BLE-003`). Wählen Sie dann ein anderes Gerät.
+- **Kein Anfangswert:** Sendet der Tracker nach dem Verbinden keine Seite, bricht OctaLedger nach
+  ein paar Sekunden ab und versucht es erneut. Drehen Sie den Würfel einmal.
+- **Dashboard schließen oder neu laden** beendet die Erfassung **nicht**: Der Agent läuft im
+  Hintergrund weiter.
+- **Zwei Tracker:** Beide dürfen registriert sein; ob zwei Verbindungen gleichzeitig am eigenen
+  Bluetooth-Adapter zuverlässig laufen, muss praktisch geprüft werden. Bei Problemen genügt der
+  aktive Tracker.
+- Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
+  Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.

@@ -195,6 +195,13 @@ class FakeTransportFactory:
         self.created: list[FakeTransport] = []
         self.pending_failures = 0
 
+    def update_defaults(self, **transport_kwargs: object) -> None:
+        """Change the keyword arguments used for transports created from now on.
+
+        Lets a test script "the tracker reports another face after the reconnect".
+        """
+        self._kwargs = {**self._kwargs, **transport_kwargs}
+
     def create(self, address: str) -> DeviceTransport:
         """Create a fresh fake; scripted failures are applied to the new instance."""
         transport = FakeTransport(**self._kwargs)  # type: ignore[arg-type]

@@ -613,3 +613,58 @@ Fehlerabbildung, Loss-Callback). **Das Verhalten mit echten Trackern ist damit n
 `tests/hardware/test_hardware_smoke.py`: standardmäßig übersprungen, nur mit
 `OCTALEDGER_HARDWARE_TESTS=1` (Scan) bzw. zusätzlich `OCTALEDGER_HARDWARE_ADDRESS` (Verbinden,
 Dienste, Anfangswert lesen). Ergebnisse gehören in die Kompatibilitätsmatrix des Testplans.
+
+## 15. Agent-Supervisor (`octaledger.agent.supervisor`, AP-13)
+
+Besitzt die dauerhafte Verbindung jedes Trackers in **einem** AsyncIO-Loop und macht aus dem
+Funkstrom saubere Ereignisse für den `TrackingService`.
+
+### 15.1 Verbindungszyklus eines `DeviceWorker`
+
+```text
+connecting → discovering → subscribing → baseline → ready
+                 (Verlust)  ↓
+            disconnected → reconnect_wait (Backoff 1,1,2,4,… ≤ 60 s) → connecting
+```
+
+1. `transport.connect()` (mit Zeitlimit), `discover_capabilities()`, Abo auf die
+   Orientierungs-Characteristic, `debouncer.reset()`.
+2. Ab dem **zweiten erfolgreichen** Verbinden wird zuerst ein `RECONNECT`-Ereignis gespeichert
+   (fehlgeschlagene Versuche melden nichts; der erste Erfolg ist kein Reconnect).
+3. Optional und fehlertolerant: Batterie, Modell, Firmware lesen (`on_hardware_info`); Anfangswert
+   lesen, falls lesbar (darf die erste Benachrichtigung duplizieren – wird toleriert).
+4. Werte laufen durch den `OrientationDebouncer` (AP-05); erst der erste Wert (Baseline) schaltet
+   auf `READY`. Kommt in `baseline_timeout` kein Wert, gilt der Zyklus als fehlgeschlagen.
+5. Verbindungsverlust nach erfolgter Verbindung → `DISCONNECT`-Ereignis; der Tracking-Service
+   entscheidet (unsicher markieren / beenden). Danach Backoff und neuer Zyklus.
+
+### 15.2 Regeln
+
+| Regel | Umsetzung |
+|---|---|
+| Ein Besitzer pro Gerät | Nur der `DeviceWorker` berührt „seinen“ Transport; jeder Zyklus bekommt eine neue Verbindungskennung und einen **neuen** Transport |
+| Kurze Callbacks | Bleak-Callbacks dekodieren/validieren, hängen an einen **begrenzten** Puffer an und wecken den Worker; ungültige Pakete werden als `INVALID`-Ereignis gespeichert |
+| Begrenzte Queue, Überlaufregel | `buffer_size` (Standard 100): bei Überlauf wird der **älteste** Wert verworfen und gezählt (`dropped_values`, WARNING) |
+| Nichts blockiert den Loop | `record_event` und Hardware-Info laufen in `asyncio.to_thread`, strikt in Reihenfolge |
+| Keine erfundene Historie | Verlust → `DISCONNECT`; bewusstes Stoppen → ebenfalls `DISCONNECT` (die Lücke ist unbekannt), danach `STOPPED` ohne Reconnect |
+| Nicht unterstützte Geräte | `UnsupportedDeviceError` → Worker endet in `STOPPED` mit lesbarem Fehler, **kein** endloser Reconnect |
+| Speicherfehler | Ein `OctaLedgerError` beim Verarbeiten beendet die Verbindung nicht; Fehler wird protokolliert und in `DeviceStatus.last_error` gezeigt |
+| Zeit | Beobachtungen tragen monotone Millisekunden; `_wall_time` rechnet sie in Wanduhrzeit (UTC) um, damit Sitzungen zum tatsächlichen Moment beginnen |
+| Stoppen ist prompt | Backoff-Wartezeit und Warten auf Werte sind per Stop-Ereignis unterbrechbar |
+
+`SupervisorTuning` bündelt alle Zeit-/Größenwerte (Standard für den Betrieb; Tests nutzen
+Millisekunden-Werte).
+
+### 15.3 `AgentSupervisor`
+
+`start_device(id, adresse)` (idempotent; fehlende Adresse → `ValidationError`), `stop_device(id)`,
+`shutdown()` (alle Worker bitten zu stoppen, `shutdown_grace` abwarten, Reste abbrechen),
+`statuses()`, `status_of(id)`. `DeviceStatus` zeigt Zustand, Verbindungskennung, Fehlversuche,
+letzten Fehler/Wert/Zeitpunkt, Batterie, verworfene und doppelte Werte.
+
+Hinweis (Pflichtenheft §1): Zwei registrierte Geräte bedeuten **nicht automatisch**, dass zwei
+gleichzeitige Verbindungen am verwendeten Adapter zuverlässig sind – das muss praktisch getestet
+werden. Der Supervisor startet nur Geräte, die ausdrücklich gestartet werden.
+
+Abnahme A-04 (Reconnect erzeugt keine neue Sitzung) ist über die komplette Pipeline
+(Fake-Transport → Debouncer → Tracking-Service → Datenbank) getestet; A-02/A-03 ebenfalls.
