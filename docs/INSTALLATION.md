@@ -1,0 +1,63 @@
+# Installation und Ausführung
+
+Stand: Entwicklungsversion. Der BLE-Agent, die API und das vollständige Dashboard sind
+noch nicht fertig; der jeweils aktuelle Stand steht in [FORTSCHRITT.md](FORTSCHRITT.md).
+
+## 1. Voraussetzungen
+
+| Komponente | Anforderung |
+|---|---|
+| Betriebssystem | Windows 11 (erstes Testziel) |
+| Python | 3.12 oder neuer |
+| Bluetooth | Bluetooth-LE-Adapter mit aktivem Treiber (erst für den Agenten nötig) |
+| Browser | Aktueller Browser für das lokale Dashboard |
+| Internet | Nur für Installation und Updates; die Erfassung läuft offline |
+
+## 2. Installation
+
+Im Projektordner in einer Eingabeaufforderung (`cmd`) oder PowerShell:
+
+```bat
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install --upgrade pip
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+Prüfen:
+
+```bat
+.venv\Scripts\python.exe -m octaledger --version
+.venv\Scripts\python.exe -m octaledger --help
+```
+
+## 3. Qualitätsprüfung (Entwickler)
+
+```bat
+.venv\Scripts\python.exe -m pytest
+.venv\Scripts\python.exe -m ruff check .
+.venv\Scripts\python.exe -m mypy
+```
+
+Alle drei Befehle müssen ohne Fehler enden. Dasselbe führt die CI aus
+(`.github/workflows/ci.yml`). Alternativ: `scripts\run_tests.bat`.
+
+## 4. Dashboard starten
+
+```bat
+scripts\start_dashboard.bat
+```
+
+Das Dashboard bindet ausschließlich an `127.0.0.1` und ist nur lokal erreichbar.
+
+## 5. Datenablage
+
+Nutzerdaten liegen **nicht** im Projektordner, sondern im Benutzerprofil (Pfade über
+`platformdirs`). Details folgen mit AP-03 (Einstellungen und Pfade).
+
+## 6. Fehlersuche
+
+| Symptom | Ursache / Abhilfe |
+|---|---|
+| `Zugriff verweigert` beim Anlegen von Cache-Ordnern | Wird durch `-p no:cacheprovider` in `pyproject.toml` vermieden |
+| `ModuleNotFoundError: octaledger` | Paket nicht installiert: `pip install -e ".[dev]"` im aktiven venv |
+| Ausgabe enthält `[OL-…-nnn]` | Stabiler Fehlercode, Bedeutung siehe [SOFTWAREDOKUMENTATION.md](SOFTWAREDOKUMENTATION.md) §2.2 |

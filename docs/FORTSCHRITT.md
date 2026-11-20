@@ -11,13 +11,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 
 | AP | Beschreibung | Datum | Uhrzeit | Commit |
 |---|---|---|---|---|
-| AP-00 | Projektregeln (`CLAUDE.md`, `AGENTS.md`) und dieses Fortschrittsprotokoll | 2026-11-20 | 20:52 | folgt |
+| AP-00 | Projektregeln (`CLAUDE.md`, `AGENTS.md`) und dieses Fortschrittsprotokoll | 2026-11-20 | 20:52 | 0ba9ca3 |
+| AP-01 | Fehlerhierarchie mit stabilen Fehlercodes (`core.errors`), Umstellung von Decoder und Zeitregeln, Doku-Grundgerüst (Software/Installation/Benutzer) | 2026-11-20 | 20:52 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
 | AP | Beschreibung | Roadmap |
 |---|---|---|
-| AP-01 | Fehlerhierarchie mit stabilen Fehlercodes (`core.errors`) | M2 |
 | AP-02 | Zentrales Logging mit Redaktion und rotierenden Dateien (`core.logging`) | M2 |
 | AP-03 | Einstellungen und Benutzerprofil-Pfade (`core.settings`) | M2 |
 | AP-04 | Domänenmodelle (Gerät, Aktivität, Projekt, Ereignis, Sitzung, Korrektur) | M3 |
