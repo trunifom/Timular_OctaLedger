@@ -3,6 +3,7 @@
 [server]
 address = "127.0.0.1"      # local only
 headless = false
+enableStaticServing = true   # self-hosted font (no Google Fonts CDN, GDPR)
 
 [browser]
 gatherUsageStats = false   # no hidden telemetry

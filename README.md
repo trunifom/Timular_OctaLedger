@@ -11,7 +11,7 @@ Das Projekt ist unabhängig von Timeular und EARLY und nicht mit deren Herstelle
 | Bereich | Stand |
 |---|---|
 | Software (Agent, Datenbank, API, Dashboard, Export/Backup, CLI) | **vollständig umgesetzt** |
-| Automatische Tests | **900 bestanden, 2 Hardwaretests bewusst übersprungen** (Windows 11, Python 3.12); `ruff` und `mypy --strict` sauber |
+| Automatische Tests | **923 bestanden, 2 Hardwaretests bewusst übersprungen** (Windows 11, Python 3.12); `ruff` und `mypy --strict` sauber |
 | Echte Tracker-Hardware | **noch nicht geprüft** – bisher nur mit einem Simulator (FakeTransport) getestet |
 | Bluetooth-Protokoll | Community-Referenz, **nicht** hardwarevalidiert (Kompatibilität pro Exemplar/Firmware prüfen) |
 | Lizenz | **noch nicht gewählt** – ohne Lizenz ist veröffentlichter Code nicht frei nachnutzbar |
@@ -27,10 +27,11 @@ Details und Nachweise: [docs/FORTSCHRITT.md](docs/FORTSCHRITT.md), [docs/TESTPLA
   *unsicher* markiert und nach Rückkehr von Ihnen bestätigt – es wird keine Historie erfunden.
 - **Zwei Tracker:** beide registrierbar, nur der aktive erzeugt Zeiten; ausdrückliche Übergabe ohne
   doppelte Zeit.
-- **Dashboard (Streamlit, 8 Bereiche):** Übersicht, Geräte (Suche, Kalibrierung der 8 Seiten),
-  Verwaltung, Zeitjournal (korrigieren/teilen/löschen mit Grund und Auditspur), Statistik (Tag/Woche,
-  Diagramme **und** Tabellen), Daten, Einstellungen, Diagnose. **Hilfetext an jedem Eingabefeld**,
-  Hell-/Dunkel-Umschalter und zwei Schriftgrößen (WCAG-AA-Kontrast).
+- **Dashboard (Streamlit, 8 Bereiche in 3 Menügruppen):** *Alltag* (Übersicht, Zeitjournal, Statistik), *Einrichten*
+  (Geräte, Verwaltung), *System* (Daten, Einstellungen, Diagnose). **Statusleiste auf jeder Seite** (läuft
+  etwas? Tracker verbunden? etwas zu tun?), *Erste Schritte*-Checkliste, Schnellstart-Kacheln, Hilfetext an
+  jedem Feld, Hell-/Dunkel-Umschalter, zwei Schriftgrößen, lokale Schrift Inter (WCAG-AA-Kontrast). Konzept
+  und Recherche: [docs/GUI_KONZEPT.md](docs/GUI_KONZEPT.md).
 - **Daten sicher im Griff:** atomares Speichern, versionierte Migrationen mit automatischer Sicherung,
   CSV-Export (Excel-tauglich, Formel-Injection-Schutz), JSON-Backup mit Prüfsumme, **validierter**
   Restore mit Vorschau und Rollback.
@@ -71,6 +72,7 @@ Schichten: `domain` → `application` → `infrastructure` / `api` / `agent`; da
 |---|---|
 | **Anwender** | [Benutzerhandbuch](docs/BENUTZERHANDBUCH.md) |
 | **Installation / Betrieb** | [Installation und Ausführung](docs/INSTALLATION.md) |
+| **Gestaltung** | [GUI-Konzept (Recherche, Design-System)](docs/GUI_KONZEPT.md) |
 | **Entwickler** | [Softwaredokumentation](docs/SOFTWAREDOKUMENTATION.md), [Architektur](docs/ARCHITEKTUR.md), [Datenmodell](docs/DATENMODELL.md), [BLE-Protokoll](docs/BLE_PROTOCOL.md), [Ordnerstruktur](docs/ORDNERSTRUKTUR.md) |
 | **Anforderungen & Planung** | [Pflichtenheft](docs/PFLICHTENHEFT.md), [Roadmap](docs/ROADMAP.md), [Tests](docs/TESTPLAN.md), [Fortschritt](docs/FORTSCHRITT.md) |
 | **Grenzen & Quellen** | [Quellen und Grenzen](docs/QUELLEN_UND_GRENZEN.md), [Sicherheit](SECURITY.md) |

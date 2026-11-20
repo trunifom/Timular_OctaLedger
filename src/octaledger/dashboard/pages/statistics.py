@@ -72,28 +72,29 @@ def render(client: ApiClient, tz: str) -> None:
             format="DD.MM.YYYY",
             help="Der Tag, oder ein beliebiger Tag der gewünschten Woche.",
         )
-    c1, c2, c3 = st.columns(3)
-    activity = c1.selectbox(
-        "Tätigkeit",
-        [None, *activities],
-        key="stat_activity",
-        format_func=lambda x: ALL if x is None else x["name"],
-        help="Nur diese Tätigkeit auswerten.",
-    )
-    project = c2.selectbox(
-        "Projekt",
-        [None, *projects],
-        key="stat_project",
-        format_func=lambda x: ALL if x is None else x["name"],
-        help="Nur dieses Projekt auswerten.",
-    )
-    device = c3.selectbox(
-        "Gerät",
-        [None, *devices],
-        key="stat_device",
-        format_func=lambda x: ALL if x is None else x["alias"],
-        help="Nur Zeiten dieses Trackers auswerten.",
-    )
+    with st.expander("Filter (Tätigkeit, Projekt, Gerät)"):
+        c1, c2, c3 = st.columns(3)
+        activity = c1.selectbox(
+            "Tätigkeit",
+            [None, *activities],
+            key="stat_activity",
+            format_func=lambda x: ALL if x is None else x["name"],
+            help="Nur diese Tätigkeit auswerten.",
+        )
+        project = c2.selectbox(
+            "Projekt",
+            [None, *projects],
+            key="stat_project",
+            format_func=lambda x: ALL if x is None else x["name"],
+            help="Nur dieses Projekt auswerten.",
+        )
+        device = c3.selectbox(
+            "Gerät",
+            [None, *devices],
+            key="stat_device",
+            format_func=lambda x: ALL if x is None else x["alias"],
+            help="Nur Zeiten dieses Trackers auswerten.",
+        )
     filters = {
         "tz": tz,
         "activity_id": activity["id"] if activity else None,
@@ -145,7 +146,7 @@ def _show(report: dict[str, Any]) -> None:
         help="Zeit, die mehrere Tracker gleichzeitig gezählt haben.",
     )
     if report["includes_running"]:
-        st.caption("Eine laufende Sitzung ist bis zum aktuellen Moment eingerechnet.")
+        st.caption("Ein laufender Eintrag ist bis zum aktuellen Moment eingerechnet.")
     if report["uncertain_seconds"]:
         st.warning(
             f"{format_hm(report['uncertain_seconds'])} sind **unsicher** und noch nicht bestätigt. "

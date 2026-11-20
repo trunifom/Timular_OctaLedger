@@ -10,9 +10,9 @@ from tests.conftest import FakeAgent, RunningApi
 from tests.gui.test_gui_core import button, open_app, texts
 from tests.gui.test_gui_devices_catalog import all_help, open_page
 
-DATA = "💾 Daten"
-SETTINGS = "⚙️ Einstellungen"
-DIAG = "🩺 Diagnose"
+DATA = "data"
+SETTINGS = "settings"
+DIAG = "diagnostics"
 UTC = timezone.utc
 
 
@@ -82,7 +82,7 @@ def test_restore_preview_requires_confirmation_then_restores(api_server: Running
     at.text_area(key="restore_text").input(backup).run()
     assert any("noch nichts verändert" in s.value for s in at.success)
     counts = {m.label: m.value for m in at.metric}
-    assert counts["Tätigkeiten"] == "1" and counts["Sitzungen"] == "0"
+    assert counts["Tätigkeiten"] == "1" and counts["Einträge"] == "0"
     assert at.button(key="btn_restore").disabled  # not before the explicit confirmation
     assert len(client.list_items("activities")) == 2  # preview changed nothing
 
@@ -234,7 +234,7 @@ def test_navigation_now_lists_all_eight_pages(api_server: RunningApi) -> None:
     from octaledger.dashboard.pages import PAGES
 
     at = open_app(api_server.client)
-    assert at.sidebar.radio(key="nav").options == list(PAGES) and len(PAGES) == 8
-    for label in PAGES:  # every page renders without an exception
-        at.sidebar.radio(key="nav").set_value(label).run()
-        assert not at.exception, label
+    assert len(PAGES) == 8
+    for slug in PAGES:  # every page renders without an exception
+        at.sidebar.button(key=f"nav_{slug}").click().run()
+        assert not at.exception, slug

@@ -1,14 +1,14 @@
 """Dashboard pages: one module per area, each exposing ``render(client, timezone_name)``.
 
-The navigation order below is the order in the sidebar. Every page follows the same rules
-(``CLAUDE.md`` section 6): a short "ℹ️ So funktioniert diese Seite" explanation, a help tooltip
-on every input and understandable German error messages.
+``PAGES`` maps a page slug to its :class:`~octaledger.dashboard.nav.PageDef`; the order of the
+dict is the order inside each menu group. Every page follows the same rules (``CLAUDE.md``
+section 6): a title identical to the menu label, a short "ℹ️ So funktioniert diese Seite"
+explanation, a help tooltip on every input and understandable German error messages.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
+from octaledger.dashboard.nav import PageDef
 from octaledger.dashboard.pages import (
     catalog,
     data,
@@ -19,16 +19,73 @@ from octaledger.dashboard.pages import (
     settings,
     statistics,
 )
-from octaledger.dashboard_client.client import ApiClient
 
-#: ``label -> render function``; the dict order is the navigation order.
-PAGES: dict[str, Callable[[ApiClient, str], None]] = {
-    "🏠 Übersicht": overview.render,
-    "🔌 Geräte": devices.render,
-    "🗂 Verwaltung": catalog.render,
-    "📒 Zeitjournal": journal.render,
-    "📊 Statistik": statistics.render,
-    "💾 Daten": data.render,
-    "⚙️ Einstellungen": settings.render,
-    "🩺 Diagnose": diagnostics.render,
-}
+_DEFINITIONS = (
+    PageDef(
+        "overview",
+        "Übersicht",
+        "dashboard",
+        "Alltag",
+        "Was läuft gerade? Start, Pause, Stopp, heutige Einträge",
+        overview.render,
+    ),
+    PageDef(
+        "journal",
+        "Zeitjournal",
+        "calendar_month",
+        "Alltag",
+        "Einträge ansehen, korrigieren, teilen, bestätigen, nachtragen",
+        journal.render,
+    ),
+    PageDef(
+        "statistics",
+        "Statistik",
+        "bar_chart",
+        "Alltag",
+        "Auswertung nach Tag, Woche oder Zeitraum mit Diagrammen",
+        statistics.render,
+    ),
+    PageDef(
+        "devices",
+        "Geräte",
+        "bluetooth",
+        "Einrichten",
+        "Würfel registrieren, verbinden und die acht Seiten zuordnen",
+        devices.render,
+    ),
+    PageDef(
+        "catalog",
+        "Verwaltung",
+        "category",
+        "Einrichten",
+        "Tätigkeiten und Projekte anlegen und pflegen",
+        catalog.render,
+    ),
+    PageDef(
+        "data",
+        "Daten",
+        "database",
+        "System",
+        "CSV-Export, Sicherung und Wiederherstellung",
+        data.render,
+    ),
+    PageDef(
+        "settings",
+        "Einstellungen",
+        "settings",
+        "System",
+        "Zeitzone, Erkennung der Würfelbewegung, Protokoll",
+        settings.render,
+    ),
+    PageDef(
+        "diagnostics",
+        "Diagnose",
+        "monitor_heart",
+        "System",
+        "Verbindungs- und Datenbankstatus, Protokoll, Diagnosebericht",
+        diagnostics.render,
+    ),
+)
+
+#: ``slug -> page``; the dict order is the menu order.
+PAGES: dict[str, PageDef] = {page.slug: page for page in _DEFINITIONS}

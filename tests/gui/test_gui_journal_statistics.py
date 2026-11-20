@@ -10,8 +10,8 @@ from tests.conftest import RunningApi
 from tests.gui.test_gui_core import button, open_app, texts
 from tests.gui.test_gui_devices_catalog import all_help, open_page
 
-JOURNAL = "📒 Zeitjournal"
-STATS = "📊 Statistik"
+JOURNAL = "journal"
+STATS = "statistics"
 UTC = timezone.utc
 
 
@@ -234,7 +234,7 @@ def test_statistics_charts_follow_the_dark_theme(api_server: RunningApi) -> None
     seed(api_server)
     at = open_app(api_server.client)
     at.sidebar.button(key="btn_theme").click().run()
-    at.sidebar.radio(key="nav").set_value(STATS).run()
+    at.sidebar.button(key=f"nav_{STATS}").click().run()
     assert not at.exception and len(at.get("plotly_chart")) == 2
     assert "rgb(17,17,17)" in str(at.get("plotly_chart")[0].proto.spec)  # dark template colours
     at.sidebar.button(key="btn_theme").click().run()  # back to light
@@ -254,9 +254,11 @@ def test_navigation_contains_all_pages_in_order(api_server: RunningApi) -> None:
     from octaledger.dashboard.pages import PAGES
 
     at = open_app(api_server.client)
-    labels = list(PAGES)
-    assert at.sidebar.radio(key="nav").options == labels
-    assert labels.index(JOURNAL) < labels.index(STATS)
+    slugs = list(PAGES)
+    assert slugs.index(JOURNAL) < slugs.index(STATS)
+    assert [b.key for b in at.sidebar.button if str(b.key).startswith("nav_")] == [
+        f"nav_{slug}" for slug in slugs
+    ]  # the buttons appear in menu order
     assert texts(at)  # renders
 
 

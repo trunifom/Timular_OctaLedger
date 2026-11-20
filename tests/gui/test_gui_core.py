@@ -70,8 +70,8 @@ def test_app_renders_without_exceptions(client: ApiClient) -> None:
     assert not at.exception
     assert at.header[0].value == "Übersicht"
     assert "Keine Zeiterfassung läuft" in texts(at)
-    assert at.sidebar.radio(key="nav").options == list(PAGES)  # navigation shows every page
-    assert at.sidebar.radio(key="nav").options[0] == "🏠 Übersicht"
+    for slug in PAGES:  # the menu shows every page as a button
+        assert at.sidebar.button(key=f"nav_{slug}") is not None
     assert any("Agent läuft" in c.value for c in at.sidebar.caption)
 
 
@@ -141,6 +141,8 @@ def test_palettes_meet_wcag_aa_contrast() -> None:
         assert contrast_ratio(palette.text, palette.surface) >= 7, theme
         assert contrast_ratio(palette.muted, palette.background) >= 4.5, theme
         assert contrast_ratio(palette.on_primary, palette.primary) >= 4.5, theme
+        assert contrast_ratio(palette.input_border, palette.surface) >= 3, theme  # WCAG 1.4.11
+        assert contrast_ratio(palette.muted, palette.surface) >= 4.5, theme
         assert contrast_ratio(palette.primary, palette.background) >= 4.5, theme
         for status in (palette.success, palette.warning, palette.danger):
             assert contrast_ratio(status, palette.background) >= 4.5, (theme, status)
@@ -163,7 +165,7 @@ def test_unreachable_agent_shows_a_helpful_page_not_a_crash() -> None:
     assert any("nicht erreichbar" in e.value for e in at.error)
     assert "OL-API-002" in texts(at) and "octaledger agent" in texts(at)
     assert button(at, "Neu laden")
-    assert at.sidebar.radio(key="nav") is not None  # the shell still works
+    assert at.sidebar.button(key="nav_overview") is not None  # the shell still works
 
 
 def test_missing_token_shows_setup_help(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

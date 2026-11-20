@@ -25,6 +25,12 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Geändert (GUI-Überarbeitung)
+- Neues Design-System (ruhige Neutralflächen, eine Primärfarbe, Karten statt Schatten, WCAG-AA, Inter lokal),
+  gruppiertes Menü *Alltag / Einrichten / System* mit Symbolen und markierter aktiver Seite, globale
+  Statusleiste mit Verbindungswarnung, neue Übersicht (Erste Schritte, Schnellstart, Heute), Schnellzeiträume im
+  Journal, Filter der Statistik eingeklappt, Diagnose-Ampel, Begriff „Eintrag“. Siehe `docs/GUI_KONZEPT.md`.
+
 ### Bekannt / offen
 - Verhalten mit echten Trackern **nicht geprüft** (nur Simulator); Protokoll aus Community-Quellen.
 - Keine Lizenz gewählt; kein Release-/Installationsprozess; F-20 (Integrationen) nicht umgesetzt.

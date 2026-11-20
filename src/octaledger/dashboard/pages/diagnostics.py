@@ -8,6 +8,7 @@ from typing import Any
 import streamlit as st
 
 from octaledger import __version__
+from octaledger.core.errors import OctaLedgerError
 from octaledger.dashboard.ui import STATE_LABELS, call, format_local, page_help
 from octaledger.dashboard_client.client import ApiClient
 
@@ -49,6 +50,45 @@ def _or(value: Any, fallback: str) -> Any:
     return fallback if value is None else value
 
 
+def _check_integrity(client: ApiClient) -> None:
+    """Button callback: runs before the next rerun, so the summary on top is up to date."""
+    st.session_state.pop("_integrity_error", None)
+    try:
+        st.session_state["_integrity"] = client.integrity()
+    except OctaLedgerError as exc:
+        st.session_state["_integrity_error"] = f"{exc.user_message} (Fehlercode {exc.error_code})"
+
+
+def _summary(devices: list[dict[str, Any]]) -> None:
+    """Traffic-light overview: agent, trackers, database (status always as icon + text)."""
+    integrity = st.session_state.get("_integrity")
+    connected = [d for d in devices if d["status"] and d["status"]["state"] == "ready"]
+    if not devices:
+        tracker = ("warn", "Kein Tracker eingerichtet")
+    elif len(connected) == len(devices):
+        tracker = ("ok", f"{len(connected)} von {len(devices)} Tracker bereit")
+    else:
+        tracker = ("bad", f"{len(connected)} von {len(devices)} Tracker bereit")
+    database = (
+        ("warn", "noch nicht geprüft")
+        if integrity is None
+        else ("ok", "in Ordnung")
+        if integrity["ok"]
+        else ("bad", "Probleme gefunden")
+    )
+    icons = {"ok": ("✔", "ol-ok"), "warn": ("▲", "ol-warn"), "bad": ("✖", "ol-bad")}
+    columns = st.columns(3)
+    for column, (title, (level, text)) in zip(
+        columns,
+        (("Agent", ("ok", "läuft")), ("Tracker", tracker), ("Datenbank", database)),
+        strict=True,
+    ):
+        symbol, css_class = icons[level]
+        with column.container(border=True):
+            st.markdown(f"**{title}**")
+            st.markdown(f'<span class="{css_class}">{symbol}</span> {text}', unsafe_allow_html=True)
+
+
 def render(client: ApiClient, tz: str) -> None:
     """Render the diagnostics page."""
     st.header("Diagnose")
@@ -66,6 +106,7 @@ def render(client: ApiClient, tz: str) -> None:
     if not ok or devices is None:
         return
 
+    _summary(devices)
     st.subheader("Geräte")
     if not devices:
         st.info("Noch kein Tracker registriert.")
@@ -91,15 +132,17 @@ def render(client: ApiClient, tz: str) -> None:
 
     st.subheader("Datenbank")
     integrity: dict[str, Any] = st.session_state.get("_integrity") or {"ok": True, "problems": []}
-    if st.button(
-        "🔎 Datenbank prüfen",
+    st.button(
+        "Datenbank prüfen",
         key="btn_integrity",
+        icon=":material/health_and_safety:",
+        on_click=_check_integrity,
+        args=(client,),
         help="Führt die Integritätsprüfung der SQLite-Datenbank aus (dauert Sekunden).",
-    ):
-        done, result = call(client.integrity)
-        if done and result:
-            integrity = st.session_state["_integrity"] = result
-    if "_integrity" in st.session_state:
+    )
+    if st.session_state.get("_integrity_error"):
+        st.error(st.session_state["_integrity_error"])
+    elif "_integrity" in st.session_state:
         if integrity["ok"]:
             st.success("Die Datenbank ist in Ordnung.")
         else:

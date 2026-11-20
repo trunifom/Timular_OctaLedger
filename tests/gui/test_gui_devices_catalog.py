@@ -9,13 +9,13 @@ from octaledger.dashboard_client.client import ApiClient
 from tests.conftest import FakeAgent, RunningApi
 from tests.gui.test_gui_core import button, open_app, texts
 
-DEVICES = "🔌 Geräte"
-CATALOG = "🗂 Verwaltung"
+DEVICES = "devices"
+CATALOG = "catalog"
 
 
 def open_page(api: RunningApi, page: str) -> AppTest:
     at = open_app(api.client)
-    at.sidebar.radio(key="nav").set_value(page).run()
+    at.sidebar.button(key=f"nav_{page}").click().run()
     assert not at.exception
     return at
 

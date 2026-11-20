@@ -29,8 +29,8 @@ def render(client: ApiClient, tz: str) -> None:
     page_help(
         "So funktioniert das Zeitjournal",
         "Hier sehen und korrigieren Sie Ihre erfassten Zeiten.\n\n"
-        "- **Journal:** Filtern Sie nach Zeitraum, Tätigkeit, Projekt oder Gerät, wählen Sie eine "
-        "Sitzung und **korrigieren**, **teilen** oder **löschen** Sie sie.\n"
+        "- **Journal:** Filtern Sie nach Zeitraum, Tätigkeit, Projekt oder Gerät, wählen Sie einen "
+        "Eintrag und **korrigieren**, **teilen** oder **löschen** Sie ihn.\n"
         "- **Zu prüfen:** Zeiten mit *unsicherer* Qualität (z. B. nach einem "
         "Verbindungsabbruch). Bestätigen Sie sie, wenn der Zeitraum stimmt.\n"
         "- **Nachtragen:** Eine vergangene Zeit von Hand eintragen.\n\n"
@@ -56,10 +56,41 @@ def render(client: ApiClient, tz: str) -> None:
         )
 
 
+def _set_range(days_back_start: int, days_back_end: int) -> None:
+    """Callback of the quick-range buttons: set both date inputs before the next rerun."""
+    today = date.today()
+    st.session_state["journal_from"] = today - timedelta(days=days_back_start)
+    st.session_state["journal_to"] = today - timedelta(days=days_back_end)
+
+
+def _quick_ranges() -> None:
+    """Buttons for the ranges people look at most often (Heute, Gestern, 7/30 Tage)."""
+    columns = st.columns(4)
+    for column, (label, start, end, key) in zip(
+        columns,
+        (
+            ("Heute", 0, 0, "range_today"),
+            ("Gestern", 1, 1, "range_yesterday"),
+            ("Letzte 7 Tage", 6, 0, "range_week"),
+            ("Letzte 30 Tage", 29, 0, "range_month"),
+        ),
+        strict=True,
+    ):
+        column.button(
+            label,
+            key=key,
+            on_click=_set_range,
+            args=(start, end),
+            width="stretch",
+            help=f"Zeigt die Einträge für „{label}“.",
+        )
+
+
 def _filters(
     activities: list[dict[str, Any]], projects: list[dict[str, Any]], devices: list[dict[str, Any]]
 ) -> tuple[date, date, dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
     today = date.today()
+    _quick_ranges()
     first, second = st.columns(2)
     start = first.date_input(
         "Von",
@@ -125,7 +156,7 @@ def _journal(
         st.info("Im gewählten Zeitraum gibt es keine Zeiten.")
         return
     total = sum(e["duration_seconds"] for e in entries)
-    st.caption(f"{len(entries)} Sitzung(en), zusammen {format_hm(total)} (Gerätezeit)")
+    st.caption(f"{len(entries)} Eintrag/Einträge, zusammen {format_hm(total)} (Gerätezeit)")
     st.dataframe(
         pd.DataFrame(
             [
@@ -168,13 +199,13 @@ def _edit(
     activities: list[dict[str, Any]],
     projects: list[dict[str, Any]],
 ) -> None:
-    st.subheader("Sitzung bearbeiten")
+    st.subheader("Eintrag bearbeiten")
     entry = st.selectbox(
-        "Sitzung wählen",
+        "Eintrag wählen",
         entries,
         key="edit_pick",
         format_func=lambda e: _label(e, tz),
-        help="Die Sitzung, die Sie korrigieren, teilen oder löschen möchten.",
+        help="Der Eintrag, den Sie korrigieren, teilen oder löschen möchten.",
     )
     if entry is None:
         return
@@ -199,7 +230,7 @@ def _edit(
             help="Pflichtangabe. Wird im Protokoll festgehalten.",
         )
         sure = st.checkbox(
-            "Ja, diese Sitzung löschen",
+            "Ja, diesen Eintrag löschen",
             key=f"del_confirm_{sid}",
             help="Das Löschen kann nicht rückgängig gemacht werden.",
         )
@@ -207,7 +238,7 @@ def _edit(
             "🗑 Löschen",
             key=f"del_{sid}",
             disabled=not sure,
-            help="Löscht die Sitzung endgültig (mit Protokolleintrag).",
+            help="Löscht den Eintrag endgültig (mit Protokolleintrag).",
         ):
             if call(client.delete_session, sid, reason)[0]:
                 st.rerun()
@@ -272,7 +303,7 @@ def _correct_form(
         )
         end_day, end_time = _datetime_inputs(f"c_end_{sid}", tz, entry["ended_at"], "Ende")
         if entry["running"]:
-            st.caption("Die Sitzung läuft noch; das Ende wird nicht geändert.")
+            st.caption("Der Eintrag läuft noch; das Ende wird nicht geändert.")
         note = st.text_input(
             "Notiz",
             value=entry["note"] or "",
@@ -302,13 +333,13 @@ def _correct_form(
 def _split_form(client: ApiClient, tz: str, entry: dict[str, Any]) -> None:
     sid = entry["id"]
     with st.form(f"split_{sid}"):
-        st.caption("Teilt die Sitzung in zwei Teile (z. B. eine vergessene Pause).")
+        st.caption("Teilt den Eintrag in zwei Teile (z. B. eine vergessene Pause).")
         day, clock = _datetime_inputs(f"s_at_{sid}", tz, entry["started_at"], "Teilen um")
         reason = st.text_input(
             "Grund (Pflicht)",
             key=f"s_reason_{sid}",
             max_chars=500,
-            help="Warum wird die Sitzung geteilt?",
+            help="Warum wird der Eintrag geteilt?",
         )
         if st.form_submit_button("✂️ Teilen"):
             if call(client.split_session, sid, from_local(day, clock, tz), reason)[0]:
@@ -323,7 +354,8 @@ def _review(client: ApiClient, tz: str) -> None:
         st.success("Alles bestätigt – es gibt nichts zu prüfen. 🎉")
         return
     st.warning(
-        f"{len(uncertain)} Sitzung(en) sind **unsicher** (z. B. Verbindungsabbruch). Prüfen Sie "
+        f"{len(uncertain)} Eintrag/Einträge sind **unsicher** (z. B. Verbindungsabbruch). "
+        "Prüfen Sie "
         "den Zeitraum und bestätigen Sie ihn; falls er nicht stimmt, korrigieren Sie ihn im Reiter "
         "*Journal*."
     )

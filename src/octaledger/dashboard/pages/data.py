@@ -17,7 +17,7 @@ COUNT_LABELS = {
     "projects": "Projekte",
     "face_mappings": "Seitenzuordnungen",
     "raw_events": "Rohereignisse",
-    "sessions": "Sitzungen",
+    "sessions": "Einträge",
     "corrections": "Korrekturen",
     "audit_log": "Protokolleinträge",
 }
@@ -28,7 +28,7 @@ def render(client: ApiClient, tz: str) -> None:
     st.header("Daten")
     page_help(
         "So funktionieren Export, Sicherung und Wiederherstellung",
-        "- **CSV-Export** für Excel/LibreOffice: Ihre Sitzungen so, wie sie nach Korrekturen "
+        "- **CSV-Export** für Excel/LibreOffice: Ihre Einträge so, wie sie nach Korrekturen "
         "gelten.\n"
         "- **Sicherung (JSON):** Alles in einer Datei mit Prüfsumme. Erstellen Sie regelmäßig "
         "eine und kopieren Sie sie auf einen **anderen Datenträger**.\n"
@@ -109,7 +109,7 @@ def _export(client: ApiClient, tz: str) -> None:
 def _backup(client: ApiClient) -> None:
     st.markdown(
         "Eine Sicherung enthält **alle** Daten: Geräte, Seitenzuordnungen, Tätigkeiten, Projekte, "
-        "Sitzungen, Korrekturen, Rohereignisse und das Protokoll."
+        "Einträge, Korrekturen, Rohereignisse und das Protokoll."
     )
     if st.button(
         "💾 Sicherung erstellen",

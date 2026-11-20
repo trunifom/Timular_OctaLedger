@@ -26,6 +26,7 @@ octaledger/
   docs/DATENMODELL.md
   docs/FORTSCHRITT.md
   docs/GITHUB.md
+  docs/GUI_KONZEPT.md
   docs/INSTALLATION.md
   docs/ORDNERSTRUKTUR.md
   docs/PFLICHTENHEFT.md
@@ -63,6 +64,7 @@ octaledger/
   src/octaledger/core/settings.py
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/main.py
+  src/octaledger/dashboard/nav.py
   src/octaledger/dashboard/pages/__init__.py
   src/octaledger/dashboard/pages/catalog.py
   src/octaledger/dashboard/pages/data.py
@@ -72,6 +74,9 @@ octaledger/
   src/octaledger/dashboard/pages/overview.py
   src/octaledger/dashboard/pages/settings.py
   src/octaledger/dashboard/pages/statistics.py
+  src/octaledger/dashboard/shell.py
+  src/octaledger/dashboard/static/Inter-Variable.woff2
+  src/octaledger/dashboard/static/OFL.txt
   src/octaledger/dashboard/streamlit_app.py
   src/octaledger/dashboard/theme.py
   src/octaledger/dashboard/ui.py
@@ -104,6 +109,7 @@ octaledger/
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_devices_catalog.py
   tests/gui/test_gui_journal_statistics.py
+  tests/gui/test_gui_redesign.py
   tests/hardware/.gitkeep
   tests/hardware/test_hardware_smoke.py
   tests/integration/.gitkeep

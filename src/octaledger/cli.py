@@ -113,6 +113,8 @@ def _cmd_dashboard(args: argparse.Namespace) -> int:
         "127.0.0.1",  # the dashboard itself is local-only as well
         "--browser.gatherUsageStats",
         "false",  # no hidden telemetry (Pflichtenheft section 8)
+        "--server.enableStaticServing",
+        "true",  # serves the self-hosted Inter font from dashboard/static
     ]
     print(f"Dashboard startet auf http://127.0.0.1:8501 (Datenordner: {paths.root})")
     return subprocess.call(command)

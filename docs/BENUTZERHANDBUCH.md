@@ -47,7 +47,7 @@ Herstellerkonto und keine Cloud benötigt.
 | **Seite** | Eine der acht Flächen des Würfels, technisch 1 bis 8. Neutral (0) bedeutet: keine stabile Seite. |
 | **Tätigkeit (Aktivität)** | Was Sie tun, z. B. „Meeting“. Jeder Seite wird eine Tätigkeit zugeordnet. |
 | **Projekt** | Optional: wofür Sie die Zeit buchen. |
-| **Sitzung (Zeitabschnitt)** | Ein Zeitraum mit Beginn und Ende für eine Tätigkeit. Läuft die Sitzung noch, hat sie kein Ende. |
+| **Eintrag (Zeitabschnitt, früher „Sitzung“)** | Ein Zeitraum mit Beginn und Ende für eine Tätigkeit. Läuft die Sitzung noch, hat sie kein Ende. |
 | **Qualität** | *bestätigt* oder *unsicher*. Unsicher heißt: ein Teil des Zeitraums ist nicht sicher (z. B. Verbindung abgebrochen). Sie sollten solche Sitzungen prüfen. |
 | **Korrektur** | Jede nachträgliche Änderung einer Sitzung wird mit Grund protokolliert; das Original bleibt nachvollziehbar. |
 
@@ -113,24 +113,44 @@ Meldungen erscheinen als eine verständliche Zeile mit Fehlercode, z. B.
 
 ## 5. Das Dashboard bedienen
 
-### Die Seitenleiste
-- **Bereich** wählen: links in der Liste. Jeder Bereich beginnt mit **„ℹ️ So funktioniert diese
-  Seite“** – klicken Sie darauf, wenn Sie nicht weiterwissen.
-- **🌙 Dunkel / ☀️ Hell:** wechselt die Darstellung. Ihre Wahl wird gespeichert.
-- **Aa+ Größer / Aa− Kleiner:** wechselt zwischen normaler und größerer Schrift (für entspanntes
-  Lesen oder kleine Bildschirme). Ihre Wahl wird gespeichert.
-- Unten sehen Sie, ob der **Agent läuft** (🟢) oder nicht erreichbar ist (🔴).
-- Fahren Sie mit der Maus über einen Knopf oder ein Eingabefeld: ein kleiner **Hilfetext** erklärt,
-  wozu es dient.
+### Die Seitenleiste (Menü)
+Das Menü ist nach Ihren Aufgaben in **drei Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
+Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entspricht immer dem Menütext.
+
+| Gruppe | Einträge | Wofür |
+|---|---|---|
+| **Alltag** | Übersicht · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, Einträge prüfen, auswerten |
+| **Einrichten** | Geräte · Verwaltung | einmal einrichten: Würfel verbinden, Tätigkeiten und Projekte anlegen |
+| **System** | Daten · Einstellungen · Diagnose | Sicherung/Export, persönliche Einstellungen, Fehlersuche |
+
+- **Dunkel / Hell:** wechselt die Darstellung. **Größer / Kleiner:** wechselt zwischen normaler und
+  größerer Schrift. Beides gilt sofort und wird gespeichert (beide Knöpfe unten im Menü).
+- Unten steht, ob der **Agent läuft** (🟢) oder nicht erreichbar ist (🔴).
+- Jeder Bereich beginnt mit **„ℹ️ So funktioniert diese Seite“**. Fahren Sie mit der Maus über einen
+  Knopf oder ein Eingabefeld: ein **Hilfetext** erklärt, wozu es dient.
+
+### Die Statusleiste (oben auf jeder Seite)
+Sie beantwortet drei Fragen, egal wo Sie gerade sind:
+1. **Was läuft?** Tätigkeit mit laufender Zeit und ein **Stopp**-Knopf.
+2. **Ist der Tracker verbunden?** Zustand als Text mit Symbol (✔ bereit, ▲ Hinweis, ✖ Problem).
+3. **Muss ich etwas tun?** Eine Warnung erscheint, wenn der Tracker **keine Werte liefert** (dann wird die
+   Würfelbewegung nicht erfasst) oder wenn Einträge **unsicher** sind; **Jetzt prüfen** springt zum
+   Zeitjournal.
 
 ### Bereich „Übersicht“
-- Großer Kasten: **was gerade läuft** (Tätigkeit, Dauer, Beginn). Mit **⏸ Pause** und **⏹ Stopp**
-  steuern Sie die laufende Zeit; nach einer Pause geht es mit **▶ Fortsetzen** weiter.
-- **Tracker:** zeigt, ob Ihr Würfel verbunden ist (Bereit), Batteriestand und die letzte Meldung.
-- **Gelbe Warnung „unsicher“:** Eine Zeit ist nicht sicher (z. B. Verbindung unterbrochen). Öffnen
-  Sie das Zeitjournal und bestätigen oder korrigieren Sie sie.
-- **Von Hand starten:** Tätigkeit wählen (und optional Projekt und Notiz), **▶ Start**.
-- Die Anzeige aktualisiert sich alle 5 Sekunden; **🔄 Neu laden** sofort.
+Von oben nach unten:
+- **Erste Schritte** (nur solange die Einrichtung unvollständig ist): fünf Punkte mit Fortschritt – Tätigkeiten
+  anlegen, Tracker registrieren, Bluetooth-Gerät zuordnen, Würfelseiten zuordnen, ersten Eintrag erfassen. Der
+  nächste offene Schritt hat einen Knopf, der direkt zum richtigen Bereich führt. **Ausblenden** schließt die
+  Liste für diese Sitzung; sie verschwindet von selbst, wenn alles erledigt ist.
+- **Großer Kasten:** was gerade läuft (Tätigkeit, Dauer, Beginn, Quelle) mit **Pause** und **Stopp**; nach
+  einer Pause **Fortsetzen**. Darunter der **Tracker** mit Zustand, Batterie und letzter Meldung.
+- **Schnellstart:** bis zu vier Kacheln mit Ihren **meistgenutzten Tätigkeiten** der letzten 30 Tage – ein
+  Klick startet sie (eine laufende Zeit wird beendet).
+- **Heute:** Ihre Arbeitszeit **heute** und **diese Woche**, der unbestätigte Anteil und die **Einträge des
+  Tages** als Tabelle.
+- **Mit Projekt oder Notiz starten** (eingeklappt): beliebige Tätigkeit, optionales Projekt, optionale Notiz.
+- Die Anzeige aktualisiert sich alle 5 Sekunden; **Neu laden** sofort.
 
 ### Wenn „Agent nicht erreichbar“ erscheint
 Der Agent läuft nicht (Fehlercode `OL-API-002`). Starten Sie ihn mit `octaledger agent` und klicken
@@ -163,7 +183,8 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
   archivierte Einträge zum **♻️ Wiederherstellen**.
 
 ### Bereich „Zeitjournal“
-- **Journal:** Zeitraum und Filter wählen; die Tabelle zeigt Ihre Sitzungen (neueste zuerst). Darunter
+- **Journal:** Mit den Knöpfen **Heute**, **Gestern**, **Letzte 7 Tage** und **Letzte 30 Tage** wählen Sie
+  den Zeitraum mit einem Klick (oder tragen Datumsfelder ein), dazu Filter; die Tabelle zeigt Ihre Sitzungen (neueste zuerst). Darunter
   wählen Sie eine **Sitzung** und dann:
   - **Korrigieren:** Tätigkeit, Projekt, Beginn, Ende oder Notiz ändern – und einen **Grund** angeben
     (Pflicht). Bei *unsicheren* Zeiten gibt es zusätzlich **✅ Als bestätigt markieren**.
@@ -177,7 +198,7 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
 - Datum und Uhrzeit geben Sie immer in **Ihrer Zeitzone** ein (Einstellungen).
 
 ### Bereich „Statistik“
-1. **Zeitraum** wählen: *Tag*, *Woche* (Montag bis Sonntag) oder *Eigener Zeitraum*, dazu das Datum.
+1. **Zeitraum** wählen (die Filter für Tätigkeit, Projekt und Gerät sind im eingeklappten Bereich **Filter**): *Tag*, *Woche* (Montag bis Sonntag) oder *Eigener Zeitraum*, dazu das Datum.
 2. Optional nach **Tätigkeit**, **Projekt** oder **Gerät** filtern.
 3. Oben stehen die **Kennzahlen**:
    *Persönliche Arbeitszeit* (ohne Doppelzählung – die Zahl für Ihre Arbeitszeit), *Gerätezeit*,
@@ -209,6 +230,7 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
 - Adresse und Port der lokalen Schnittstelle können Sie hier bewusst **nicht** ändern (Sicherheit).
 
 ### Bereich „Diagnose“
+- Ganz oben eine **Ampel** mit drei Karten: **Agent**, **Tracker**, **Datenbank** (jeweils Symbol und Text).
 - **Geräte:** Verbindungszustand, Fehlversuche, letzter Wert, Batterie, verworfene Werte.
 - **🔎 Datenbank prüfen:** Prüft die Datei auf Beschädigungen.
 - **Protokoll:** die letzten Ereignisse des Agenten (Geheimnisse sind automatisch unkenntlich gemacht).

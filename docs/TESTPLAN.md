@@ -1,6 +1,6 @@
 # Testplan und Teststand
 
-## 1. Automatische Tests (Stand: Abschluss AP-19)
+## 1. Automatische Tests (Stand: nach der GUI-Überarbeitung, AP-21)
 
 `scripts\run_tests.bat` führt aus: `pytest`, `ruff check .`, `ruff format --check .`, `mypy` (strict).
 
@@ -8,9 +8,9 @@
 |---|---|---|---|
 | Unit | `tests/unit` | 805 | Fehler, Logging, Dateizugriff, Einstellungen, Domäne, Zustandsautomaten, Zeitalgebra, Datenbank/Migrationen, Repositories, Services, BLE-Protokoll, Fake-Transport, Bleak-Schicht (Stubs), Supervisor, Reporting, Export/Restore, API-Sicherheit, API, Dashboard-Client, CLI |
 | Integration | `tests/integration` | 14 | echter Server + echter Client über HTTP; **ganzer Agent** (BLE-Thread + API-Thread) mit synthetischem Tracker |
-| GUI | `tests/gui` | 81 | alle 8 Dashboard-Seiten mit `streamlit.testing.v1.AppTest` gegen den **echten** API-Server: Bedienabläufe, Hilfetexte, Fehlermeldungen, Hell/Dunkel, Schriftgröße, HTML-Escaping |
+| GUI | `tests/gui` | 104 | alle 8 Dashboard-Seiten mit `streamlit.testing.v1.AppTest` gegen den **echten** API-Server: Bedienabläufe, Hilfetexte, Fehlermeldungen, Hell/Dunkel, Schriftgröße, HTML-Escaping |
 | Hardware | `tests/hardware` | 2 | **manuell**, standardmäßig übersprungen (`OCTALEDGER_HARDWARE_TESTS=1`) |
-| **Summe** | | **902** | **900 bestanden, 2 übersprungen** |
+| **Summe** | | **925** | **923 bestanden, 2 übersprungen** |
 
 Grenzen der automatischen Tests (ehrlich):
 

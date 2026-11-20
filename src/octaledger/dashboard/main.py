@@ -24,7 +24,9 @@ from octaledger import __version__
 from octaledger.core.errors import ConfigurationError, OctaLedgerError
 from octaledger.core.logging import configure_logging
 from octaledger.core.settings import FontSize, Theme, load_settings, resolve_paths
+from octaledger.dashboard.nav import DEFAULT_PAGE, GROUPS, NAV_STATE_KEY, go
 from octaledger.dashboard.pages import PAGES
+from octaledger.dashboard.shell import status_bar
 from octaledger.dashboard.theme import css
 from octaledger.dashboard.ui import display_settings, page_help, show_error
 from octaledger.dashboard_client.client import ApiClient
@@ -132,15 +134,33 @@ def _toggle_font(client: ApiClient) -> None:
 
 
 def _sidebar(client: ApiClient, display: dict[str, str], agent_up: bool) -> str:
-    """Draw the sidebar and return the selected page label."""
+    """Draw the grouped sidebar menu and return the slug of the selected page."""
+    current = st.session_state.get(NAV_STATE_KEY, DEFAULT_PAGE)
+    if current not in PAGES:
+        current = DEFAULT_PAGE
+    st.session_state[NAV_STATE_KEY] = current
     with st.sidebar:
-        st.title("⏱️ OctaLedger")
+        st.markdown("### :material/schedule: OctaLedger")
         st.caption("Lokale Zeiterfassung für Ihren Würfel")
+        for group in GROUPS:
+            st.markdown(f'<div class="ol-nav-group">{group}</div>', unsafe_allow_html=True)
+            for page in (p for p in PAGES.values() if p.group == group):
+                st.button(
+                    page.label,
+                    key=f"nav_{page.slug}",
+                    type="primary" if page.slug == current else "secondary",
+                    on_click=go,
+                    args=(page.slug,),
+                    width="stretch",
+                    help=page.description,
+                )
+        st.divider()
         dark = display["theme"] == Theme.DARK.value
         large = display["font_size"] == FontSize.LARGE.value
         theme_col, font_col = st.columns(2)
         theme_col.button(
-            "☀️ Hell" if dark else "🌙 Dunkel",
+            ("Hell" if dark else "Dunkel"),
+            icon=":material/light_mode:" if dark else ":material/dark_mode:",
             key="btn_theme",
             on_click=_toggle_theme,
             args=(client,),
@@ -148,7 +168,8 @@ def _sidebar(client: ApiClient, display: dict[str, str], agent_up: bool) -> str:
             help="Wechselt zwischen heller und dunkler Darstellung.",
         )
         font_col.button(
-            "Aa− Kleiner" if large else "Aa+ Größer",
+            "Kleiner" if large else "Größer",
+            icon=":material/text_decrease:" if large else ":material/text_increase:",
             key="btn_font",
             on_click=_toggle_font,
             args=(client,),
@@ -157,17 +178,10 @@ def _sidebar(client: ApiClient, display: dict[str, str], agent_up: bool) -> str:
         )
         if st.session_state.get("_persist_failed"):
             st.caption("⚠️ Einstellung gilt nur für diese Sitzung (Agent nicht erreichbar).")
-        page = st.radio(
-            "Bereich",
-            list(PAGES),
-            key="nav",
-            help="Wählen Sie, was Sie tun möchten.",
-        )
-        st.divider()
         st.caption(
             ("🟢 Agent läuft" if agent_up else "🔴 Agent nicht erreichbar") + f" · v{__version__}"
         )
-    return str(page)
+    return str(current)
 
 
 def _agent_down(client: ApiClient) -> None:
@@ -206,5 +220,6 @@ def run() -> None:
     if not agent_up:
         _agent_down(client)
         return
-    renderer: Any = PAGES[page]
+    status_bar(client)
+    renderer: Any = PAGES[page].render
     renderer(client, display["timezone"])

@@ -33,6 +33,7 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 24. [Seiten „Daten“, „Einstellungen“ und „Diagnose“ (AP-18d)](#24-seiten-daten-einstellungen-und-diagnose-ap-18d)
 25. [Agent-Laufzeit und Kommandozeile (`octaledger.agent.main`, `octaledger.cli`, AP-19)](#25-agent-laufzeit-und-kommandozeile-octaledgeragentmain-octaledgercli-ap-19)
 26. [Qualitätssicherung, Teststrategie und Erweiterungspunkte (AP-20)](#26-qualitätssicherung-teststrategie-und-erweiterungspunkte-ap-20)
+27. [GUI-Überarbeitung: Design-System, Navigation, Statusleiste (AP-21)](#27-gui-überarbeitung-design-system-navigation-statusleiste-ap-21)
 
 ## 1. Überblick
 
@@ -1257,3 +1258,53 @@ F-20 (Integrationen) nicht umgesetzt.
 | Weitere Sprachen | `SUPPORTED_LANGUAGES` und GUI-Texte (derzeit nur Deutsch) |
 | Anderer Transport (z. B. andere Plattform) | `DeviceTransport` implementieren (ohne Schreibzugriff), Fabrik in `run_agent` austauschen |
 | Neuer Fehlercode / Migration / Endpunkt / Seite | Kurzanleitungen in [CONTRIBUTING.md](../CONTRIBUTING.md) |
+
+## 27. GUI-Überarbeitung: Design-System, Navigation, Statusleiste (AP-21)
+
+Konzept, Recherche, Quellen und Begründungen: [GUI_KONZEPT.md](GUI_KONZEPT.md). Hier die technische Umsetzung.
+
+### 27.1 Module
+
+| Modul | Aufgabe |
+|---|---|
+| `dashboard/theme.py` | Design-System: `PALETTES` (hell/dunkel, inkl. `input_border`), `css()` (Inter per `@font-face`, `tabular-nums`, Radien 8/12 px, Fokusring, Karten, Menü-Stile, **keine Schatten**), WCAG-Hilfen |
+| `dashboard/nav.py` | `PageDef(slug, title, icon, group, description, render)`, `GROUPS = (Alltag, Einrichten, System)`, `go(slug)` als `on_click`-Callback |
+| `dashboard/pages/__init__.py` | `PAGES: dict[slug, PageDef]` – die Reihenfolge ist die Menüreihenfolge je Gruppe |
+| `dashboard/shell.py` | `status_bar(client)` (Fragment, alle 5 s): laufender Eintrag, `tracker_summary`, Warnungen, Stopp-/Prüfen-Knopf |
+| `dashboard/main.py` | gruppiertes Menü (Buttons `nav_<slug>`, aktiver Eintrag `type="primary"`), Darstellungsschalter, Statusleiste, dann die Seite |
+| `dashboard/static/` | `Inter-Variable.woff2` (SIL OFL, `OFL.txt`), per Streamlit-Static-Serving unter `/app/static/…` |
+
+### 27.2 Wichtige Entscheidungen im Code
+
+- **Menü als Buttons statt `st.radio`/`st.navigation`:** Gruppenüberschriften, Icons, gefüllte aktive Markierung
+  und AppTest-Testbarkeit; Zustand in `st.session_state["nav"]`, Wechsel per `on_click`-Callback (greift vor
+  dem nächsten Durchlauf, daher kein Flackern). Eine Seite hinzufügen = ein `PageDef` in `pages/__init__.py`.
+- **Lokale Schrift:** `enableStaticServing` ist in `.streamlit/config.toml` **und** per CLI-Flag
+  (`octaledger dashboard`) gesetzt; der Ordner `static/` liegt neben dem Einstiegsskript im Paket
+  (`[tool.setuptools.package-data]`). Fehlt die Datei, greifen die System-Schriften. Es werden **keine**
+  externen Hosts kontaktiert (Test prüft, dass das CSS keine `http(s)://`-Adressen enthält).
+- **Statusleiste** zeigt „Tracker liefert keine Werte“ für die Zustände `disconnected`, `reconnect_wait`,
+  `stopped`, `idle` oder keinen Live-Status; ohne registrierten Tracker nur ein neutraler Hinweis.
+- **Übersicht:** `_first_steps` (5 Schritte, Fortschritt, nächster Schritt als primärer Knopf, ausblendbar),
+  `_quick_start` (Rang nach Nutzung der letzten 30 Tage, höchstens vier), `_today` (Tages-/Wochensumme,
+  Einträge), Formular im Expander. Fehler der Checkliste brechen die Seite nie (`OctaLedgerError` wird
+  verschluckt, echte Fehler zeigt der Rest der Seite).
+- **Journal:** Schnellzeiträume setzen per Callback die Datums-Widgets (`journal_from/_to`); **Statistik:**
+  Filter im Expander; **Diagnose:** Ampel (`_summary`), die Datenbankprüfung läuft als Callback, damit die Ampel
+  sofort den neuen Stand zeigt.
+- **Begriff „Eintrag“** ersetzt „Sitzung“ in allen Texten (ein Test verhindert Rückfälle; „Sitzung“ bedeutet
+  nur noch die Browser-Sitzung). Das Datenmodell behält den Namen `Session`.
+- Streamlit-APIs: `width="stretch"`, `icon=":material/…:"`, `st.container(border=True, key=…)`; Selektoren im CSS
+  über `data-testid` und `st-key-*`.
+
+### 27.3 Tests
+
+`tests/gui/test_gui_redesign.py` (23): Menügruppen und Reihenfolge, aktive Seite gefüllt, Icon+Text+Tooltip je
+Eintrag, **Seitentitel = Menütext**, Statusleiste auf jeder Seite, Warnung bei fehlender Verbindung (und neutral
+ohne Tracker), Stopp aus der Leiste, Sprung zum Prüfen, Checkliste (Fortschritt, Navigation, Ausblenden,
+Abschluss), Schnellstart (Klick, Rangfolge, Limit 4), Heute-Block, Schnellzeiträume, Statistik-Filter im
+Expander, Diagnose-Ampel, Schrift-Assets (Datei, Lizenz, Referenz, Package-Data, CLI-Flag), **keine externen
+Hosts**, Lesbarkeits-CSS (Tabellenziffern, Fokusring, Radien, keine Schatten), Begriffsregel. Die Farbtests
+prüfen zusätzlich Rand ≥ 3:1 und gedämpften Text auf der Karte ≥ 4,5:1. Real geprüft: `octaledger dashboard`
+liefert `/app/static/Inter-Variable.woff2` mit 200 und `wOF2`-Kopf aus.
+**Nicht** geprüft: das visuelle Erscheinungsbild im Browser.

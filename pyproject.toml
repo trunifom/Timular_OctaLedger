@@ -41,6 +41,7 @@ where = ["src"]
 # SQL migrations are shipped inside the package.
 [tool.setuptools.package-data]
 "octaledger.infrastructure.storage" = ["migrations/*.sql"]
+"octaledger.dashboard" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

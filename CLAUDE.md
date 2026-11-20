@@ -116,6 +116,9 @@ Namens-/Markenprüfung, privater Sicherheits-Meldeweg, F-20 (Integrationen, „K
   die GUI-Tests dauern einige Minuten. Nach `ruff format` erneut prüfen.
 - BLE-/Bleak-Callbacks dürfen **nicht** annehmen, auf dem Loop-Thread zu laufen: Events nur über
   `DeviceWorker._set` (thread-sicher) setzen.
+- GUI-Konzept und Design-System: `docs/GUI_KONZEPT.md`. Seiten werden als `PageDef` in `dashboard/pages/__init__.py`
+  registriert (Gruppe, Icon, Tooltip); das Menü besteht aus Buttons `nav_<slug>`; **Seitentitel = Menütext**;
+  Begriff „Eintrag“ statt „Sitzung"; Schrift/Farben nur über `dashboard/theme.py`, keine externen CDNs.
 - Streamlit: `width="stretch"` statt `use_container_width`; Benutzertexte in `unsafe_allow_html`-Blöcken
   mit `html.escape`; Widget-`key=` eindeutig vergeben (Tests nutzen sie); `help=` an jedem Feld.
 - Fehler an Systemgrenzen in `OctaLedgerError`-Unterklassen übersetzen; neue Fehlerklasse = neuer stabiler
