@@ -282,3 +282,29 @@ ready → disconnected → reconnect_wait → connecting          (jeder Zustand
 `reconnect_delay_seconds(attempt, base=1, factor=2, cap=60)` liefert die begrenzte
 exponentielle Wartezeit (1, 1, 2, 4, 8, … höchstens 60 s); der Supervisor (AP-13) kann
 Jitter ergänzen.
+
+## 8. Intervall-Algebra (`octaledger.domain.time_rules`, AP-06)
+
+Reine Funktionen für Berichte. Ein `Interval` ist ein halboffenes Paar `[start, ende)` in UTC.
+Alle Funktionen lehnen naive oder umgekehrte Zeiten mit `ValidationError` ab.
+
+| Funktion | Zweck |
+|---|---|
+| `parse_timezone(name)` | IANA-Zeitzone laden; unbekannt → `ValidationError` mit deutscher Meldung |
+| `local_day_bounds(tag, tz)` | `[Start, Ende)` des lokalen Kalendertags in UTC (23, 24 oder 25 Stunden bei Sommerzeitwechsel) |
+| `local_week_bounds(tag, tz, week_starts_on=0)` | Lokale Woche (0 = Montag, ISO; 6 = Sonntag) |
+| `split_at_day_boundaries(start, ende, tz)` | Teilt an lokalen Mitternächten in `(Datum, Intervall)`; Teile sind lückenlos, ihre Summe ist die Gesamtdauer; endet ein Intervall genau um Mitternacht, entsteht kein leerer Teil |
+| `clip_interval(intervall, fenster)` | Teil innerhalb eines Zeitfensters oder `None` |
+| `merge_intervals(liste)` | Vereinigung als sortierte, überschneidungsfreie Spannen (berührende werden verbunden, leere entfallen) |
+| `union_duration(liste)` | **Persönliche Arbeitszeit**: überlappende Zeit wird nur einmal gezählt |
+| `sum_durations(liste)` | **Gerätezeit**: einfache Summe (Überlappungen je Gerät gezählt) |
+| `find_overlaps(paare)` | Paare `(id_a, id_b)` überlappender Intervalle; Berührung ist keine Überlappung |
+
+Pflichtenheft §6: Berichte müssen zwischen *Summe der Gerätezeiten* (`sum_durations`) und
+*überschneidungsfreier persönlicher Arbeitszeit* (`union_duration`) unterscheiden – beide
+Summen dürfen nie einfach addiert werden.
+
+**Sommerzeit:** Tagesgrenzen werden aus dem lokalen Kalender berechnet, nicht durch Addieren
+von 24 Stunden. Beispiele (Europe/Zurich, Jahr 2026): Der 29.03. hat 23 Stunden, der 25.10.
+hat 25 Stunden; die Woche vom 23.–29.03. ist eine Stunde kürzer. Die Tests decken beides ab.
+Existiert Mitternacht wegen einer Zeitlücke nicht, beginnt der Tag am ersten gültigen Moment.

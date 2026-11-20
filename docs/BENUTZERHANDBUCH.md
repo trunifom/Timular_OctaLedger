@@ -131,3 +131,19 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 | Gestoppt | Sie haben das Gerät bewusst gestoppt; es gibt **keinen** automatischen Neuversuch |
 
 „Verbunden“ heißt noch nicht „bereit“: Erfasst wird erst im Status **Bereit**.
+
+## 8. Zeiten, Mitternacht und Sommerzeit
+
+- **Über Mitternacht:** Eine Sitzung, die z. B. von 22:00 bis 03:00 läuft, wird in Berichten
+  automatisch auf beide Tage aufgeteilt (2 Stunden am ersten, 3 Stunden am zweiten Tag).
+  Die Gesamtzeit bleibt unverändert.
+- **Sommer-/Winterzeit:** Der Tag der Umstellung hat 23 bzw. 25 Stunden. OctaLedger rechnet
+  das korrekt; gespeichert wird intern immer in UTC, deshalb gibt es keine doppelten oder
+  fehlenden Stunden.
+- **Überschneidungen:** Mit zwei Trackern kann es Zeiträume geben, in denen beide Geräte
+  zählen. OctaLedger unterscheidet deshalb
+  - **Gerätezeit** (Summe aller Geräte) und
+  - **Persönliche Arbeitszeit** (Zeit, in der überhaupt gearbeitet wurde, ohne Doppelzählung).
+
+  Für Abrechnung und Auswertung Ihrer Arbeitszeit ist die *persönliche Arbeitszeit* maßgeblich.
+- **Wochen** beginnen standardmäßig am Montag.
