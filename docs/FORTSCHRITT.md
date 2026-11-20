@@ -28,13 +28,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-13 | Agent-Supervisor (`agent.supervisor`): DeviceWorker, Reconnect/Backoff, begrenzter Puffer, Shutdown, Statusanzeige | 2026-11-20 | 21:28 | b3b4476 |
 | AP-14 | Reporting-Service (`application.reporting_service`): Tages-/Wochenberichte, Filter, Gerätezeit vs. persönliche Zeit, Unsicherheit, Journal | 2026-11-20 | 21:30 | 1257bb0 |
 | AP-15 | Export-Service (`application.export_service`): CSV mit Injection-Schutz, JSON-Backup mit Prüfsumme, validierter atomarer Restore | 2026-11-20 | 21:37 | 90f814a |
-| AP-16a | API-Sicherheit (`api.security`): Token (Env/Datei/Erzeugung), Bearer-Prüfung, Host-/Origin-Validierung, Log-Redaktion | 2026-11-20 | 21:39 | folgt |
+| AP-16a | API-Sicherheit (`api.security`): Token (Env/Datei/Erzeugung), Bearer-Prüfung, Host-/Origin-Validierung, Log-Redaktion | 2026-11-20 | 21:39 | 54e58e9 |
+| AP-16 | Lokale HTTP-API (`api`): Routen, Schemas, Fehlerabbildung, Middleware, SettingsStore; deckte 2 echte Fehler auf (behoben) | 2026-11-20 | 21:46 | folgt |
 
 ## Offen (Reihenfolge der Umsetzung)
 
 | AP | Beschreibung | Roadmap |
 |---|---|---|
-| AP-16 | API: Security, Schemas, Routen, App | M4 |
 | AP-17 | Dashboard-Client (HTTP) | M4 |
 | AP-18 | Streamlit-GUI: Seiten, Hilfetexte, Hell/Dunkel, Schriftgröße | M4 |
 | AP-19 | CLI-Erweiterung und CI-Anpassung | M4 |

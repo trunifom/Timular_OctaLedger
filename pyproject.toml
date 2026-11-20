@@ -21,7 +21,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "ruff>=0.9,<1", "mypy>=1.14,<2", "types-requests>=2.32"]
+dev = [
+  "pytest>=8,<10",
+  "ruff>=0.9,<1",
+  "mypy>=1.14,<2",
+  "types-requests>=2.32",
+  # Required by the FastAPI/Starlette TestClient used in the API tests.
+  "httpx>=0.27,<1",
+]
 
 [project.scripts]
 octaledger = "octaledger.cli:main"
@@ -37,6 +44,8 @@ where = ["src"]
 testpaths = ["tests"]
 # The pytest cache directory is not writable in some Windows setups and is not needed.
 addopts = "-p no:cacheprovider"
+# Starlette announces a future replacement of httpx in its TestClient; harmless for now.
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
 
 [tool.ruff]
 target-version = "py312"

@@ -1,4 +1,462 @@
 """Validated device, session and reporting endpoints.
 
-Planned module boundary. Implementation is intentionally absent.
+Conventions
+-----------
+* Every path lives under ``/api/v1``. Only ``/health`` is public (it reveals nothing but that
+  the agent runs); **everything else requires the bearer token**.
+* **No state change through ``GET``**: reads are ``GET``, every change is ``POST``/``PUT``/
+  ``PATCH``/``DELETE`` (also the actions that look read-only but have effects, such as scanning
+  or exporting a file).
+* Handlers are plain ``def`` functions: FastAPI runs them in a thread pool, which is what we
+  want for blocking SQLite work. They contain **no business logic** - they call a service,
+  convert the result with a function from :mod:`octaledger.api.schemas` and let errors bubble
+  up to the central mapping in :mod:`octaledger.api.app`.
 """
+
+from __future__ import annotations
+
+import logging
+from datetime import date, datetime
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, Header, Query
+
+from octaledger import __version__
+from octaledger.api.context import AppContext
+from octaledger.api.schemas import (
+    API_VERSION,
+    AddressBody,
+    ArchiveBody,
+    CatalogCreate,
+    CatalogUpdate,
+    CorrectBody,
+    DeviceCreate,
+    DeviceRename,
+    ExportCsvBody,
+    FaceAssign,
+    ManualSession,
+    ReasonBody,
+    RestoreBody,
+    RestoreInspectBody,
+    ScanBody,
+    SettingsBody,
+    SplitBody,
+    StartBody,
+    activity_out,
+    device_out,
+    iso,
+    journal_out,
+    report_out,
+    scan_out,
+    session_out,
+    tracking_status_out,
+)
+from octaledger.api.security import parse_bearer, verify_token
+from octaledger.application.reporting_service import ReportFilter
+from octaledger.core.errors import ApiUnavailableError, InvalidStateError, ValidationError
+from octaledger.core.settings import settings_from_mapping, settings_to_mapping
+from octaledger.domain.time_rules import ensure_utc, utc_now
+
+logger = logging.getLogger(__name__)
+
+
+def build_router(ctx: AppContext) -> APIRouter:
+    """Create the router with all endpoints bound to ``ctx``."""
+
+    def require_auth(authorization: Annotated[str | None, Header()] = None) -> None:
+        """Dependency: the request must carry the correct bearer token."""
+        verify_token(parse_bearer(authorization), ctx.token)
+
+    public = APIRouter()
+    router = APIRouter(dependencies=[Depends(require_auth)])
+
+    def now() -> datetime:
+        return utc_now()
+
+    def device_statuses() -> dict[str, Any]:
+        return {s.device_id: s for s in (ctx.agent.device_statuses() if ctx.agent else [])}
+
+    def require_agent() -> Any:
+        if ctx.agent is None:
+            raise ApiUnavailableError("The BLE agent is not running in this process")
+        return ctx.agent
+
+    # ----------------------------------------------------------------------- health
+    @public.get("/health")
+    def health() -> dict[str, Any]:
+        """Public liveness check (reveals nothing but the versions)."""
+        return {"status": "ok", "api_version": API_VERSION, "version": __version__}
+
+    # ------------------------------------------------------------------- overview
+    @router.get("/status")
+    def status() -> dict[str, Any]:
+        """Overview: running session, active tracker, live device states."""
+        moment = now()
+        live = device_statuses()
+        return {
+            "tracking": tracking_status_out(ctx.tracking.status(), moment),
+            "devices": [
+                {
+                    "id": info.device.id,
+                    "alias": info.device.alias,
+                    "is_active": info.is_active,
+                    "live": device_out(info, live.get(info.device.id))["status"],
+                }
+                for info in ctx.devices.list_devices()
+            ],
+            "agent_running": ctx.agent is not None,
+            "server_time": iso(moment),
+        }
+
+    # --------------------------------------------------------------------- devices
+    @router.get("/devices")
+    def list_devices() -> list[dict[str, Any]]:
+        """All devices with calibration and live status."""
+        live = device_statuses()
+        return [device_out(i, live.get(i.device.id)) for i in ctx.devices.list_devices()]
+
+    @router.post("/devices", status_code=201)
+    def register_device(body: DeviceCreate) -> dict[str, Any]:
+        """Register a tracker (the first one becomes the active tracker)."""
+        device = ctx.devices.register(body.alias, platform_address=body.platform_address)
+        return device_out(ctx.devices.get(device.id))
+
+    @router.patch("/devices/{device_id}")
+    def rename_device(device_id: str, body: DeviceRename) -> dict[str, Any]:
+        """Change a tracker's alias."""
+        ctx.devices.rename(device_id, body.alias)
+        return device_out(ctx.devices.get(device_id))
+
+    @router.delete("/devices/{device_id}", status_code=204)
+    def remove_device(device_id: str) -> None:
+        """Remove a device without recorded data."""
+        ctx.devices.remove(device_id)
+
+    @router.put("/devices/{device_id}/faces/{face}")
+    def assign_face(device_id: str, face: int, body: FaceAssign) -> dict[str, Any]:
+        """Assign an activity (and project) to a face 1..8."""
+        ctx.devices.assign_face(device_id, face, body.activity_id, body.project_id)
+        return device_out(ctx.devices.get(device_id))
+
+    @router.delete("/devices/{device_id}/faces/{face}")
+    def clear_face(device_id: str, face: int) -> dict[str, Any]:
+        """Remove the assignment of a face."""
+        ctx.devices.clear_face(device_id, face)
+        return device_out(ctx.devices.get(device_id))
+
+    @router.get("/devices/{device_id}/observed-face")
+    def observed_face(device_id: str) -> dict[str, Any]:
+        """The face most recently seen from the device (guided calibration)."""
+        seen = ctx.devices.last_observed_face(device_id)
+        if seen is None:
+            return {"face": None}
+        return {"face": seen.face, "received_at": iso(seen.received_at), "kind": seen.kind.value}
+
+    @router.post("/devices/{device_id}/activate")
+    def activate_device(device_id: str) -> dict[str, Any]:
+        """Explicit hand-over: make this tracker the active one."""
+        ended = ctx.tracking.handover(device_id)
+        return {"ended_session": session_out(ended) if ended else None}
+
+    @router.post("/devices/{device_id}/connect")
+    def connect_device(device_id: str) -> dict[str, Any]:
+        """Start the Bluetooth connection of a device (needs a stored address)."""
+        agent = require_agent()
+        info = ctx.devices.get(device_id)
+        if info.device.platform_address is None:
+            raise ValidationError(
+                "Device has no Bluetooth address",
+                user_message="Für dieses Gerät ist keine Bluetooth-Adresse gespeichert. "
+                "Bitte zuerst per Suche zuordnen.",
+            )
+        agent.start_device(device_id)
+        return {"started": True}
+
+    @router.post("/devices/{device_id}/disconnect")
+    def disconnect_device(device_id: str) -> dict[str, Any]:
+        """Stop a device on purpose (no reconnect)."""
+        ctx.devices.get(device_id)  # 404 for unknown devices
+        require_agent().stop_device(device_id)
+        return {"stopped": True}
+
+    @router.post("/devices/{device_id}/address")
+    def set_device_address(device_id: str, body: AddressBody) -> dict[str, Any]:
+        """Store the Bluetooth address found by a scan for a device."""
+        ctx.devices.update_hardware_info(device_id, platform_address=body.platform_address)
+        return device_out(ctx.devices.get(device_id))
+
+    @router.post("/scan")
+    def scan(body: ScanBody) -> list[dict[str, Any]]:
+        """Scan for BLE devices (explicit user action; never connects by itself)."""
+        return [scan_out(r) for r in require_agent().scan(body.seconds)]
+
+    # ------------------------------------------------------------ activities/projects
+    def catalog_routes(kind: str, plural_name: str) -> None:
+        plural = f"/{plural_name}"
+        create = ctx.catalog.create_activity if kind == "activity" else ctx.catalog.create_project
+        listing = ctx.catalog.list_activities if kind == "activity" else ctx.catalog.list_projects
+        update = ctx.catalog.update_activity if kind == "activity" else ctx.catalog.update_project
+        archive = (
+            ctx.catalog.archive_activity if kind == "activity" else ctx.catalog.archive_project
+        )
+        delete = ctx.catalog.delete_activity if kind == "activity" else ctx.catalog.delete_project
+
+        @router.get(plural, name=f"list_{kind}s")
+        def list_items(include_archived: bool = False) -> list[dict[str, Any]]:
+            return [activity_out(i) for i in listing(include_archived=include_archived)]
+
+        @router.post(plural, status_code=201, name=f"create_{kind}")
+        def create_item(body: CatalogCreate) -> dict[str, Any]:
+            return activity_out(create(body.name, body.color))
+
+        @router.patch(plural + "/{item_id}", name=f"update_{kind}")
+        def update_item(item_id: str, body: CatalogUpdate) -> dict[str, Any]:
+            return activity_out(update(item_id, name=body.name, color=body.color))
+
+        @router.post(plural + "/{item_id}/archive", name=f"archive_{kind}")
+        def archive_item(item_id: str, body: ArchiveBody) -> dict[str, Any]:
+            return activity_out(archive(item_id, body.archived))
+
+        @router.delete(plural + "/{item_id}", status_code=204, name=f"delete_{kind}")
+        def delete_item(item_id: str) -> None:
+            delete(item_id)
+
+    catalog_routes("activity", "activities")
+    catalog_routes("project", "projects")
+
+    # --------------------------------------------------------------------- tracking
+    @router.post("/tracking/start")
+    def start_tracking(body: StartBody) -> dict[str, Any]:
+        """Start a manual session now."""
+        return session_out(ctx.tracking.start_manual(body.activity_id, body.project_id, body.note))
+
+    @router.post("/tracking/stop")
+    def stop_tracking() -> dict[str, Any]:
+        """End the running session."""
+        return session_out(ctx.tracking.stop())
+
+    @router.post("/tracking/pause")
+    def pause_tracking() -> dict[str, Any]:
+        """Pause: end the session and remember its activity."""
+        return session_out(ctx.tracking.pause())
+
+    @router.post("/tracking/resume")
+    def resume_tracking() -> dict[str, Any]:
+        """Resume the paused activity."""
+        return session_out(ctx.tracking.resume())
+
+    # ---------------------------------------------------------------------- sessions
+    @router.get("/sessions")
+    def journal(
+        start: datetime,
+        end: datetime,
+        device_id: str | None = None,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Journal: whole sessions overlapping the window, newest first."""
+        moment = now()
+        flt = ReportFilter(start, end, device_id, activity_id, project_id)
+        return [journal_out(e, moment) for e in ctx.reports.journal(flt)]
+
+    @router.get("/sessions/uncertain")
+    def uncertain() -> list[dict[str, Any]]:
+        """Sessions waiting for the user's confirmation."""
+        moment = now()
+        return [session_out(s, moment) for s in ctx.tracking.list_uncertain()]
+
+    @router.post("/sessions", status_code=201)
+    def add_session(body: ManualSession) -> dict[str, Any]:
+        """Add a finished, back-dated session."""
+        return session_out(
+            ctx.tracking.add_manual_session(
+                body.activity_id, body.start, body.end, body.project_id, body.note
+            )
+        )
+
+    @router.post("/sessions/{session_id}/correct")
+    def correct_session(session_id: str, body: CorrectBody) -> dict[str, Any]:
+        """Correct a session with an audit trail."""
+        changes = {
+            key: _parse_time(value) if key in ("started_at", "ended_at") else value
+            for key, value in body.changes.items()
+        }
+        return session_out(ctx.tracking.correct_session(session_id, changes, body.reason))
+
+    @router.post("/sessions/{session_id}/split")
+    def split_session(session_id: str, body: SplitBody) -> list[dict[str, Any]]:
+        """Split a session in two."""
+        first, second = ctx.tracking.split_session(session_id, body.at, body.reason)
+        return [session_out(first), session_out(second)]
+
+    @router.post("/sessions/{session_id}/confirm")
+    def confirm_session(session_id: str) -> dict[str, Any]:
+        """Mark an uncertain session as confirmed."""
+        return session_out(ctx.tracking.confirm_session(session_id))
+
+    @router.post("/sessions/{session_id}/delete", status_code=204)
+    def delete_session(session_id: str, body: ReasonBody) -> None:
+        """Delete a session (reason required, audited)."""
+        ctx.tracking.delete_session(session_id, body.reason)
+
+    # ----------------------------------------------------------------------- reports
+    def display_tz() -> str:
+        return ctx.settings.settings.display.timezone
+
+    @router.get("/reports")
+    def report(
+        start: datetime,
+        end: datetime,
+        tz: str | None = None,
+        device_id: str | None = None,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Report for a window and filters."""
+        flt = ReportFilter(start, end, device_id, activity_id, project_id)
+        return report_out(ctx.reports.report(flt, tz or display_tz()))
+
+    @router.get("/reports/day")
+    def day_report(
+        day: date,
+        tz: str | None = None,
+        device_id: str | None = None,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Report for one local calendar day."""
+        return report_out(
+            ctx.reports.day_report(
+                day,
+                tz or display_tz(),
+                device_id=device_id,
+                activity_id=activity_id,
+                project_id=project_id,
+            )
+        )
+
+    @router.get("/reports/week")
+    def week_report(
+        day: date,
+        tz: str | None = None,
+        week_starts_on: Annotated[int, Query(ge=0, le=6)] = 0,
+        device_id: str | None = None,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Report for the local week containing ``day``."""
+        return report_out(
+            ctx.reports.week_report(
+                day,
+                tz or display_tz(),
+                week_starts_on=week_starts_on,
+                device_id=device_id,
+                activity_id=activity_id,
+                project_id=project_id,
+            )
+        )
+
+    # ------------------------------------------------------------------- data/backup
+    @router.post("/export/csv")
+    def export_csv(body: ExportCsvBody) -> dict[str, Any]:
+        """Write a CSV file into the export folder and return its content for download."""
+        result = ctx.exports.export_sessions_csv(
+            timezone_name=body.tz, delimiter=body.delimiter, start=body.start, end=body.end
+        )
+        content = result.path.read_text(encoding="utf-8-sig")
+        return {
+            "filename": result.path.name,
+            "rows": result.rows,
+            "size": result.size_bytes,
+            "content": content,
+        }
+
+    @router.post("/backup")
+    def create_backup() -> dict[str, Any]:
+        """Write a JSON backup into the backup folder and return its content for download."""
+        result = ctx.exports.export_backup()
+        return {
+            "filename": result.path.name,
+            "records": result.rows,
+            "size": result.size_bytes,
+            "content": result.path.read_text(encoding="utf-8"),
+        }
+
+    @router.post("/restore/inspect")
+    def inspect_restore(body: RestoreInspectBody) -> dict[str, Any]:
+        """Validate a backup completely WITHOUT changing anything (preview)."""
+        summary = ctx.exports.inspect_backup_text(body.content)
+        return {
+            "schema_version": summary.schema_version,
+            "app_version": summary.app_version,
+            "exported_at": iso(summary.exported_at),
+            "counts": dict(summary.counts),
+        }
+
+    @router.post("/restore")
+    def restore(body: RestoreBody) -> dict[str, Any]:
+        """Replace all data with a validated backup (requires ``confirm: true``)."""
+        if not body.confirm:
+            raise InvalidStateError(
+                "Restore requires explicit confirmation",
+                user_message="Bitte bestätigen Sie die Wiederherstellung ausdrücklich.",
+            )
+        result = ctx.exports.restore_backup_text(body.content)
+        return {
+            "restored": dict(result.summary.counts),
+            "pre_restore_backup": result.pre_restore_backup.name,
+        }
+
+    # ----------------------------------------------------------------------- settings
+    @router.get("/settings")
+    def get_settings() -> dict[str, Any]:
+        """Current settings as nested sections."""
+        return settings_to_mapping(ctx.settings.settings)
+
+    @router.put("/settings")
+    def put_settings(body: SettingsBody) -> dict[str, Any]:
+        """Validate and persist settings (partial sections keep the other values)."""
+        merged = settings_to_mapping(ctx.settings.settings)
+        for section, values in body.settings.items():
+            if section not in merged:
+                raise ValidationError(
+                    f"Unknown settings section {section!r}",
+                    user_message=f"Unbekannter Einstellungsbereich: {section}.",
+                )
+            merged[section].update(values)
+        new = settings_from_mapping(merged)  # validates everything, rejects unknown keys
+        ctx.settings.update(new)
+        return settings_to_mapping(new)
+
+    # ---------------------------------------------------------------------- diagnostics
+    @router.get("/diagnostics/logs")
+    def logs(limit: Annotated[int, Query(ge=1, le=1000)] = 200) -> dict[str, Any]:
+        """The most recent (already redacted) log lines."""
+        return {"lines": ctx.log_lines()[-limit:]}
+
+    @router.get("/diagnostics/integrity")
+    def integrity() -> dict[str, Any]:
+        """Run the database integrity check."""
+        problems = ctx.storage.database.integrity_check()
+        return {"ok": not problems, "problems": problems}
+
+    wrapper = APIRouter()
+    wrapper.include_router(public)  # /health: no authentication
+    wrapper.include_router(router)  # everything else: bearer token required
+    return wrapper
+
+
+def _parse_time(value: object) -> datetime:
+    """Parse an ISO timestamp from a correction request into an aware UTC datetime."""
+    if isinstance(value, datetime):
+        return ensure_utc(value)
+    if not isinstance(value, str):
+        raise ValidationError(f"Invalid timestamp {value!r}")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValidationError(
+            f"Invalid timestamp {value!r}",
+            user_message="Die Zeitangabe ist ungültig (erwartet: ISO-Format mit Zeitzone).",
+        ) from exc
+    return ensure_utc(parsed)

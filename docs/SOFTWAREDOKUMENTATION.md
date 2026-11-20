@@ -798,3 +798,67 @@ Rebinding“). Deshalb gilt:
 
 Nicht umgesetzt (bewusst): Ratenbegrenzung für Fehlversuche – bei 256 Bit Zufall ist Raten
 aussichtslos; Netzwerkfreigabe (nur Loopback im MVP, siehe `SECURITY.md`).
+
+## 19. Lokale HTTP-API (`octaledger.api`, AP-16)
+
+FastAPI-Anwendung, die der Agent auf Loopback startet. Das Dashboard spricht **ausschließlich**
+über diese API mit dem Agenten (kein eigener BLE-Client, kein SQL im GUI).
+
+### 19.1 Aufbau
+
+| Modul | Aufgabe |
+|---|---|
+| `context.py` | `AppContext` (Services, `SettingsStore`, Token, Port, Log-Zeilen) und `AgentControl` (Protocol: `start_device`, `stop_device`, `device_statuses`, `scan`) – so ist die API ohne Funk testbar |
+| `app.py` | `create_app(context)`: Middleware, Fehlerabbildung; Doku-Endpunkte (`/docs`, `/redoc`, `/openapi.json`) sind **abgeschaltet** |
+| `routes.py` | Endpunkte; Handler sind einfache `def`-Funktionen (Threadpool, blockierendes SQLite), enthalten **keine** Geschäftslogik |
+| `schemas.py` | Strikte Request-Modelle (`extra="forbid"`) und Antwortfunktionen; Zeiten ISO-8601 UTC, Dauern in ganzen Sekunden |
+| `security.py` | siehe Abschnitt 18 |
+
+### 19.2 Querschnittsregeln
+
+- **Authentifizierung:** `Authorization: Bearer <token>` für alles außer `GET /api/v1/health`.
+  Token nie in URLs (`?token=` wird nicht akzeptiert).
+- **Middleware** (vor jeder Route): Host-/Origin-Prüfung (`403`, OL-API-003, auch für `/health`),
+  Body-Limit 64 MB (`413`); alle Antworten tragen `Cache-Control: no-store` und
+  `X-Content-Type-Options: nosniff`.
+- **Kein Zustandswechsel über GET** (Test prüft alle GET-Routen); auch scheinbar lesende Aktionen
+  (Scan, Export, Backup) sind `POST`.
+- **Fehlerabbildung** (`{"error": {"code", "message", "technical_message", "details"}}`):
+
+| Fehlerklasse | HTTP |
+|---|---|
+| `AuthenticationError` | 401 |
+| `ForbiddenOriginError` | 403 |
+| `NotFoundError` | 404 |
+| `ConflictError`, `InvalidStateError` | 409 |
+| `ValidationError`, `ConfigurationError`, `UnsupportedDeviceError`, `ImportDataError`, Pydantic-Validierung | 422 |
+| `BleConnectionError` | 502 |
+| `ApiUnavailableError` (kein Agent im Prozess) | 503 |
+| `DataIntegrityError`, `StorageError`, Rest | 500 |
+| Unerwartete Ausnahme | 500, generisch (`OL-GENERIC-000`), **ohne** Stacktrace/Interna; Details nur im Log |
+
+### 19.3 Endpunkte (alle unter `/api/v1`)
+
+| Methode + Pfad | Zweck |
+|---|---|
+| `GET /health` | öffentlich: `status`, `api_version`, `version` |
+| `GET /status` | Übersicht: laufende Sitzung, aktiver Tracker, Live-Status je Gerät, `agent_running` |
+| `GET/POST /devices`, `PATCH/DELETE /devices/{id}` | Geräte auflisten (mit Kalibrierung und Live-Status), registrieren, umbenennen, löschen |
+| `PUT/DELETE /devices/{id}/faces/{1..8}` | Seite kalibrieren / Zuordnung entfernen |
+| `GET /devices/{id}/observed-face` | zuletzt gesehene Seite (geführte Kalibrierung) |
+| `POST /devices/{id}/activate` | ausdrückliche Übergabe an diesen Tracker |
+| `POST /devices/{id}/connect`, `/disconnect`, `/address` | Verbindung starten/stoppen, gefundene Adresse speichern (Adresse wird **nie** zurückgegeben, nur `has_address`) |
+| `POST /scan` | BLE-Suche (nur auf Anforderung) |
+| `GET/POST /activities`, `/projects`; `PATCH/DELETE …/{id}`; `POST …/{id}/archive` | Katalog |
+| `POST /tracking/start`, `/stop`, `/pause`, `/resume` | manuelle Steuerung |
+| `GET /sessions?start&end&…`, `GET /sessions/uncertain` | Journal / zu prüfende Sitzungen |
+| `POST /sessions` | Nachtrag |
+| `POST /sessions/{id}/correct`, `/split`, `/confirm`, `/delete` | Korrigieren, Teilen, Bestätigen, Löschen (Grund Pflicht) |
+| `GET /reports`, `/reports/day`, `/reports/week` | Berichte (Zeitzone Standard aus den Einstellungen) |
+| `POST /export/csv`, `POST /backup` | Datei erzeugen (Export-/Backup-Ordner) und Inhalt zum Download liefern |
+| `POST /restore/inspect` | Backup prüfen, **ohne** zu ändern (Vorschau) |
+| `POST /restore` | Wiederherstellen; verlangt `"confirm": true`, sonst `409` |
+| `GET/PUT /settings` | Einstellungen lesen / validiert speichern (Teilabschnitte; ungültig → 422, nichts übernommen) |
+| `GET /diagnostics/logs?limit`, `GET /diagnostics/integrity` | Log-Ausschnitt (redigiert), Datenbank-Integritätsprüfung |
+
+Der API-Vertrag ist über das Präfix `/api/v1` versioniert; Brüche erfordern `/api/v2`.

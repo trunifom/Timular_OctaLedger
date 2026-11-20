@@ -26,6 +26,7 @@ import dataclasses
 import json
 import logging
 import os
+import threading
 import tomllib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -528,3 +529,48 @@ def save_settings(settings: Settings, settings_file: Path) -> None:
     """
     atomic_write_text(settings_file, settings_to_toml(settings))
     logger.info("Saved settings to %s", settings_file)
+
+
+class SettingsStore:
+    """Thread-safe holder of the current settings, persisted in ``settings.toml``.
+
+    The API threads and the dashboard-facing code read the settings while the user may change
+    them at the same time, so access goes through a lock. ``update`` validates (settings are
+    self-validating), writes the file atomically **first** and only then replaces the in-memory
+    value, so a failed save never leaves memory and file disagreeing.
+    """
+
+    def __init__(self, settings_file: Path, initial: Settings | None = None) -> None:
+        """Create the store.
+
+        Args:
+            settings_file: Path of ``settings.toml``.
+            initial: Starting value; default is loaded from the file (defaults if missing).
+        """
+        self._file = settings_file
+        self._lock = threading.Lock()
+        self._settings = initial if initial is not None else load_settings(settings_file)
+
+    @property
+    def settings(self) -> Settings:
+        """The current settings (immutable snapshot)."""
+        with self._lock:
+            return self._settings
+
+    def update(self, new: Settings) -> Settings:
+        """Persist and activate ``new``.
+
+        Raises:
+            StorageError: If the file cannot be written (the old settings stay active).
+        """
+        with self._lock:
+            save_settings(new, self._file)
+            self._settings = new
+        return new
+
+    def reload(self) -> Settings:
+        """Re-read the file (e.g. after manual editing)."""
+        loaded = load_settings(self._file)
+        with self._lock:
+            self._settings = loaded
+        return loaded

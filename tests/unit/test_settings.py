@@ -326,3 +326,43 @@ def test_toml_text_is_stable(tmp_path: Path) -> None:
 def test_non_string_enum_value_rejected(value: object) -> None:
     with pytest.raises(ConfigurationError):
         TrackingSettings(baseline_policy=value)  # type: ignore[arg-type]
+
+
+# ------------------------------------------------------------------------ SettingsStore
+
+
+def test_store_loads_updates_and_persists(tmp_path: Path) -> None:
+    from octaledger.core.settings import SettingsStore
+
+    target = tmp_path / "settings.toml"
+    store = SettingsStore(target)
+    assert store.settings == Settings()
+    changed = dataclasses.replace(
+        store.settings, display=DisplaySettings(timezone="Europe/Zurich", theme=Theme.DARK)
+    )
+    assert store.update(changed) == changed
+    assert SettingsStore(target).settings == changed  # survives a restart
+
+
+def test_store_failed_save_keeps_old_value(tmp_path: Path) -> None:
+    from octaledger.core.settings import SettingsStore
+
+    directory = tmp_path / "dir"
+    directory.mkdir()
+    store = SettingsStore(directory, Settings())  # a directory cannot be written as a file
+    with pytest.raises(StorageError):
+        store.update(dataclasses.replace(Settings(), display=DisplaySettings(theme=Theme.DARK)))
+    assert store.settings == Settings()
+
+
+def test_store_reload_picks_up_manual_edit(tmp_path: Path) -> None:
+    from octaledger.core.settings import SettingsStore
+
+    target = tmp_path / "settings.toml"
+    store = SettingsStore(target)
+    target.write_text('[display]\ntheme = "dark"\n', encoding="utf-8")
+    assert store.reload().display.theme is Theme.DARK and store.settings.display.theme is Theme.DARK
+    target.write_text("[display\n", encoding="utf-8")
+    with pytest.raises(ConfigurationError):
+        store.reload()
+    assert store.settings.display.theme is Theme.DARK  # a broken file does not replace memory
