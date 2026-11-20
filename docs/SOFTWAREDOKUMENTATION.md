@@ -915,3 +915,62 @@ uvicorn-Server in einem Thread auf freiem Loopback-Port, echter Client über ech
 kompletter Arbeitsablauf (Geräte, Katalog, Tracking, Korrektur, Teilen, Berichte, Export, Backup,
 Restore, Einstellungen), die Überschneidungsregel quer durch den Stack, Fehlertypen und ein
 gestoppter Server.
+
+## 21. Dashboard-Grundgerüst (`octaledger.dashboard`, AP-18a)
+
+Die gesamte Oberfläche liegt im installierbaren Paket `octaledger.dashboard` (typgeprüft,
+importierbar, automatisch getestet); `dashboard/app.py` startet sie nur. Das Dashboard besitzt
+**keinen** BLE-Client und **kein** SQL – alle Daten kommen über den `ApiClient` (Abschnitt 20).
+
+### 21.1 Module
+
+| Modul | Aufgabe |
+|---|---|
+| `main.py` | `run()` wird bei **jeder** Interaktion ausgeführt (Streamlit-Rerun): Seiteneinstellungen, Logging (einmal je Prozess), Client holen, Theme anwenden, Seitenleiste, Seite zeichnen. Keine langsame Arbeit, keine Schleifen. Zustand in `st.session_state`: `_client`, `_display`, `nav` |
+| `theme.py` | helle/dunkle Farbschemata als eingefügtes CSS, genau zwei Schriftstufen (16 px / 20 px), WCAG-Kontrastberechnung |
+| `ui.py` | Formatierung (`format_hms`, `format_hm`, `format_local`), `page_help`, `help_popover`, `show_error`, `call` (API-Aufruf, der Fehler anzeigt statt zu werfen), Zustandsbezeichnungen |
+| `pages/__init__.py` | `PAGES`: Beschriftung → `render(client, timezone)`; die Reihenfolge ist die Navigationsreihenfolge |
+| `pages/overview.py` | Übersicht: laufende Zeit, Start/Pause/Fortsetzen/Stopp, Tracker-Status, Qualitätshinweis |
+
+### 21.2 Hell/Dunkel und Schriftgröße (Pflicht)
+
+- **Zwei Schalter** in der Seitenleiste: „🌙 Dunkel“ ↔ „☀️ Hell“ und „Aa+ Größer“ ↔ „Aa− Kleiner“
+  (der Knopf zeigt jeweils das Ziel). Wirkung sofort, ohne Neuladen.
+- **Persistenz:** Die Wahl wird über `PUT /settings` in `settings.toml` gespeichert und beim
+  nächsten Öffnen angewendet. Ist der Agent nicht erreichbar, gilt sie für die laufende Sitzung
+  und die Seitenleiste weist darauf hin.
+- Streamlit kann sein natives Theme nicht zur Laufzeit wechseln; deshalb wird CSS eingefügt
+  (Hintergrund, Seitenleiste, Eingaben, Knöpfe, Tabellen, `color-scheme`). Die Farbpaare erfüllen
+  **WCAG AA** (Text/Hintergrund ≥ 7:1, Primärfarbe und Statusfarben ≥ 4,5:1); ein Test berechnet die
+  Verhältnisse, damit eine spätere Farbänderung die Lesbarkeit nicht unbemerkt verschlechtert.
+- Farbe ist nie das einzige Signal: Status-Punkte haben immer einen Text.
+
+### 21.3 UX-Regeln, die alle Seiten einhalten
+
+1. **Jedes** Eingabefeld und jeder Knopf hat einen `help=`-Tooltip (ein Test prüft das für die
+   Übersicht), jede Seite beginnt mit „ℹ️ So funktioniert diese Seite“.
+2. Fehler: verständlicher deutscher Text **plus Fehlercode**, technische Details nur eingeklappt, nie
+   ein Stacktrace (`show_error`). Fehlschlagende Aufrufe machen die Seite nie leer (`call`).
+3. Leere Zustände erklären den nächsten Schritt („Legen Sie zuerst … eine Tätigkeit an“).
+4. **Benutzertexte werden HTML-escaped**, wenn sie in `unsafe_allow_html`-Blöcken erscheinen
+   (Test mit `<img onerror=…>`).
+5. Agent nicht erreichbar → erklärende Seite mit Fehlercode OL-API-002, Startbefehl und „Neu
+   laden“; kein Absturz. Fehlt das Token (Agent lief nie) → Einrichtungshilfe.
+6. Dashboard schließen oder neu laden beendet die Erfassung **nicht** (Agent ist ein eigener Prozess).
+
+### 21.4 Übersichtsseite
+
+Laufende Tätigkeit (Farbpunkt, Name, Dauer `h:mm:ss`, Beginn in Ihrer Zeitzone, Projekt, Quelle),
+`⏸ Pause`, `⏹ Stopp`, `▶ Fortsetzen`; Hinweis bei *unsicherer* laufender Zeit; Tracker-Box mit
+Zustand (`STATE_LABELS`), Batterie und letzter Meldung; Warnung mit Anzahl unsicherer Sitzungen;
+Formular „Von Hand starten“ (Tätigkeit, optionales Projekt, Notiz). Der Statusbereich ist ein
+`st.fragment(run_every="5s")` und aktualisiert sich selbst.
+
+### 21.5 Tests
+
+`tests/gui/` nutzt `streamlit.testing.v1.AppTest` gegen den **echten** API-Server der gemeinsamen
+Fixture `api_server` (`tests/conftest.py`): Rendern ohne Ausnahme, Hilfetexte, Theme-/Schriftumschalter
+inkl. Persistenz und Wiederöffnen, Ausfall beim Speichern, Kontrastverhältnisse, Agent weg / Token
+fehlt, kompletter Start→Pause→Fortsetzen→Stopp-Ablauf, Projekt und Notiz, HTML-Escaping, Hinweis auf
+unsichere Sitzungen, Tracker-Box und die Formatierungshilfen.
+Hinweis: AppTest prüft Logik und Elemente, **nicht** das visuelle Erscheinungsbild im Browser.

@@ -329,3 +329,33 @@ damit Sie die Zuordnung später im Alltag wiederfinden.
   aktualisieren“).
 - **Wichtig:** Testen Sie das Wiederherstellen einmal in Ruhe, bevor Sie sich auf eine Sicherung
   verlassen. Erst ein erfolgreich getestetes Backup ist ein belastbares Backup.
+
+## 16. Das Dashboard bedienen
+
+### Starten
+1. Agent starten: `octaledger agent` (läuft im Hintergrund und erfasst die Zeit).
+2. Dashboard starten: `scripts\start_dashboard.bat` – der Browser öffnet `http://127.0.0.1:8501`.
+3. Das Schließen des Browsers **beendet die Zeiterfassung nicht**.
+
+### Die Seitenleiste
+- **Bereich** wählen: links in der Liste. Jeder Bereich beginnt mit **„ℹ️ So funktioniert diese
+  Seite“** – klicken Sie darauf, wenn Sie nicht weiterwissen.
+- **🌙 Dunkel / ☀️ Hell:** wechselt die Darstellung. Ihre Wahl wird gespeichert.
+- **Aa+ Größer / Aa− Kleiner:** wechselt zwischen normaler und größerer Schrift (für entspanntes
+  Lesen oder kleine Bildschirme). Ihre Wahl wird gespeichert.
+- Unten sehen Sie, ob der **Agent läuft** (🟢) oder nicht erreichbar ist (🔴).
+- Fahren Sie mit der Maus über einen Knopf oder ein Eingabefeld: ein kleiner **Hilfetext** erklärt,
+  wozu es dient.
+
+### Bereich „Übersicht“
+- Großer Kasten: **was gerade läuft** (Tätigkeit, Dauer, Beginn). Mit **⏸ Pause** und **⏹ Stopp**
+  steuern Sie die laufende Zeit; nach einer Pause geht es mit **▶ Fortsetzen** weiter.
+- **Tracker:** zeigt, ob Ihr Würfel verbunden ist (Bereit), Batteriestand und die letzte Meldung.
+- **Gelbe Warnung „unsicher“:** Eine Zeit ist nicht sicher (z. B. Verbindung unterbrochen). Öffnen
+  Sie das Zeitjournal und bestätigen oder korrigieren Sie sie.
+- **Von Hand starten:** Tätigkeit wählen (und optional Projekt und Notiz), **▶ Start**.
+- Die Anzeige aktualisiert sich alle 5 Sekunden; **🔄 Neu laden** sofort.
+
+### Wenn „Agent nicht erreichbar“ erscheint
+Der Agent läuft nicht (Fehlercode `OL-API-002`). Starten Sie ihn mit `octaledger agent` und klicken
+Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solange der Agent fehlt.

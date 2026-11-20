@@ -5,78 +5,25 @@ mocked unit tests cannot: that ``requests`` (with its real ``Host`` header), the
 authentication and the services work together end to end.
 """
 
-import socket
-import threading
-import time
-from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 import pytest
-import uvicorn
 
-from octaledger.api.app import create_app
-from octaledger.api.context import AppContext
-from octaledger.application.catalog_service import CatalogService
-from octaledger.application.device_service import DeviceService
-from octaledger.application.export_service import ExportService
-from octaledger.application.reporting_service import ReportService
-from octaledger.application.tracking_service import TrackingService
 from octaledger.core.errors import (
     ApiUnavailableError,
     AuthenticationError,
     ConflictError,
     NotFoundError,
 )
-from octaledger.core.settings import Settings, SettingsStore
 from octaledger.dashboard_client.client import ApiClient
-from octaledger.infrastructure.storage.database import Database
-from octaledger.infrastructure.storage.repositories import Storage
+from tests.conftest import RunningApi, free_port
 
-TOKEN = "i" * 43
+TOKEN = "i" * 43  # same value as tests.conftest.API_TOKEN
 NOW = datetime.now(timezone.utc).replace(microsecond=0)
 
 
-def free_port() -> int:
-    with socket.socket() as probe:
-        probe.bind(("127.0.0.1", 0))
-        return int(probe.getsockname()[1])
-
-
-@pytest.fixture
-def server(tmp_path: Path) -> Iterator[tuple[ApiClient, int]]:
-    database = Database(tmp_path / "t.sqlite3", backup_dir=tmp_path / "bk")
-    database.initialize()
-    storage = Storage(database)
-    port = free_port()
-    context = AppContext(
-        storage=storage,
-        tracking=TrackingService(storage),
-        devices=DeviceService(storage),
-        catalog=CatalogService(storage),
-        reports=ReportService(storage),
-        exports=ExportService(storage, exports_dir=tmp_path / "ex", backup_dir=tmp_path / "bk2"),
-        settings=SettingsStore(tmp_path / "settings.toml", Settings()),
-        token=TOKEN,
-        port=port,
-    )
-    config = uvicorn.Config(create_app(context), host="127.0.0.1", port=port, log_level="warning")
-    uv = uvicorn.Server(config)
-    thread = threading.Thread(target=uv.run, daemon=True)
-    thread.start()
-    deadline = time.monotonic() + 10
-    while not uv.started:
-        assert time.monotonic() < deadline, "server did not start"
-        time.sleep(0.02)
-    try:
-        yield ApiClient(f"http://127.0.0.1:{port}", TOKEN), port
-    finally:
-        uv.should_exit = True
-        thread.join(timeout=10)
-
-
-def test_full_workflow_over_real_http(server: tuple[ApiClient, int]) -> None:
-    client, _ = server
+def test_full_workflow_over_real_http(api_server: RunningApi) -> None:
+    client = api_server.client
     assert client.is_agent_running() and client.health()["api_version"] == 1
 
     device = client.register_device("Büro")
@@ -131,8 +78,8 @@ def test_full_workflow_over_real_http(server: tuple[ApiClient, int]) -> None:
     assert client.logs(5) == []  # no agent log provider configured in this test
 
 
-def test_errors_arrive_as_the_right_exception_types(server: tuple[ApiClient, int]) -> None:
-    client, port = server
+def test_errors_arrive_as_the_right_exception_types(api_server: RunningApi) -> None:
+    client, port = api_server.client, api_server.port
     with pytest.raises(NotFoundError):
         client.observed_face("ghost")
     with pytest.raises(ConflictError):
@@ -142,8 +89,8 @@ def test_errors_arrive_as_the_right_exception_types(server: tuple[ApiClient, int
         ApiClient(f"http://127.0.0.1:{port}", "w" * 43).status()
 
 
-def test_stopped_server_is_reported_as_agent_unavailable(server: tuple[ApiClient, int]) -> None:
-    _, port = server
+def test_stopped_server_is_reported_as_agent_unavailable(api_server: RunningApi) -> None:
+    port = api_server.port
     dead = ApiClient(f"http://127.0.0.1:{free_port()}", TOKEN, timeout=(0.5, 1.0))
     with pytest.raises(ApiUnavailableError):
         dead.status()
