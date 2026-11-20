@@ -188,3 +188,35 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
   Sie verschwinden aus den Auswahllisten, alte Auswertungen bleiben korrekt.
 - **Zuordnung einer Würfelseite ändern:** Die Zuordnung bekommt eine neue Revision; bereits
   gebuchte Zeiten bleiben unverändert.
+
+## 11. Zeiterfassung im Alltag
+
+### Automatisch mit dem Würfel
+- **Seite drehen** → die bisherige Tätigkeit endet, die neue beginnt (zu dem Zeitpunkt, an dem
+  die Seite oben lag). Dreht man auf dieselbe Tätigkeit, läuft die Zeit einfach weiter.
+- **Seite ohne Tätigkeit:** Nichts wird gebucht, die laufende Zeit bleibt unverändert.
+  Weisen Sie der Seite im Bereich *Geräte* eine Tätigkeit zu.
+- **Zwei Tracker:** Nur der **aktive Tracker** erzeugt Zeiten. Der zweite Tracker bleibt
+  registriert, seine Bewegungen werden nur protokolliert. Mit **Übergabe** wechseln Sie
+  ausdrücklich den aktiven Tracker; die Zeit des alten Trackers endet dabei, es entsteht keine
+  doppelte Arbeitszeit.
+
+### Verbindung weg und wieder da
+- Bricht die Verbindung ab, wird die laufende Zeit **nicht erfunden oder gelöscht**, sondern
+  als **unsicher** markiert (oder beendet, je nach Einstellung).
+- Nach dem Wiederverbinden läuft die Zeit auf derselben Seite **ohne neue Sitzung** weiter.
+- Unsichere Zeiten finden Sie unter *Zeitjournal → Zu prüfen*. **Bestätigen** Sie sie, wenn der
+  Zeitraum stimmt, oder **korrigieren** Sie Beginn/Ende.
+
+### Von Hand
+| Aktion | Bedeutung |
+|---|---|
+| **Starten** | Beginnt eine Tätigkeit sofort; eine laufende wird vorher beendet |
+| **Stoppen** | Beendet die laufende Zeit |
+| **Pause / Fortsetzen** | Pause beendet die Zeit und merkt sich die Tätigkeit; *Fortsetzen* startet sie wieder |
+| **Nachtragen** | Eine vergangene Zeit eintragen (Ende darf nicht in der Zukunft liegen, keine Überschneidung) |
+| **Teilen** | Eine Sitzung an einem Zeitpunkt in zwei Teile trennen (z. B. vergessene Pause) |
+| **Korrigieren / Löschen** | Immer mit Begründung, nachvollziehbar protokolliert |
+
+Nach einem **Neustart** von Programm oder Rechner bleiben alle bestätigten Daten erhalten; ein
+Zeitraum mit unklarer Verbindung bleibt als *unsicher* gekennzeichnet.

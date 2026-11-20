@@ -444,3 +444,60 @@ repos.sessions.correct(
 - Der Grund ist Pflicht. Die gesamte Änderung wird revalidiert (Intervall, Enums, IDs) und ist
   atomar; entsteht dadurch eine Überschneidung, wird alles zurückgerollt (`ConflictError`).
 - `delete(session_id, reason, audit)` verlangt ebenfalls einen Grund und schreibt in `audit_log`.
+
+## 11. Tracking-Service (`octaledger.application.tracking_service`, AP-09)
+
+Wandelt Tracker-Ereignisse und Benutzeraktionen in **Sitzungen** um, jeweils in einer
+atomaren Datenbanktransaktion. Keine BLE-/HTTP-Kenntnis; der Agent liefert `RawEvent`-Objekte,
+die API ruft die Benutzeroperationen. Die Zeit kommt aus einer injizierbaren Uhr
+(`clock`), alle Tests laufen deterministisch.
+
+Ergänzend (AP-09): Migration `0002_app_state.sql` (Tabelle `app_state`: aktiver Tracker, Pause),
+`StateRepository`, `SessionRepository.set_quality/last_ended/list_by_quality`.
+
+### 11.1 Ereignisregeln (`record_event`)
+
+Jedes Ereignis wird **immer gespeichert** (Diagnose, Audit). Danach gilt:
+
+| Ereignis | Wirkung (Standardrichtlinien) | `Outcome` |
+|---|---|---|
+| beliebig, Gerät **nicht** aktiv | nur gespeichert, nie eine Sitzung (A-07) | `STORED` |
+| `FACE_CHANGE` mit Zuordnung | laufende Sitzung beenden, neue starten; gleiche Tätigkeit+Projekt → weiterlaufen | `STARTED` / `SWITCHED` / `CONTINUED` |
+| `FACE_CHANGE` ohne Zuordnung | nichts buchen, WARNING | `UNMAPPED` |
+| `BASELINE` | `observe_only`: nur speichern. Läuft eine Sitzung dieses Geräts auf derselben Seite → **fortsetzen** (A-04). `adopt_current`: abweichende Seite übernehmen | `STORED` / `CONTINUED` / `SWITCHED` |
+| `NEUTRAL` | `observe_only`: nur speichern; `pause`: Sitzung beenden, Pause merken | `STORED` / `ENDED` |
+| `DISCONNECT` | `mark_uncertain`: laufende Geräte-Sitzung als *unsicher* markieren; `stop_session`: zum Zeitpunkt des Verlusts beenden (unsicher) | `MARKED_UNCERTAIN` / `ENDED` |
+| `RECONNECT`, `INVALID` | nur gespeichert | `STORED` |
+
+**Zeitschutz:** Der Beginn einer neuen Sitzung wird nie vor den Beginn der laufenden bzw. das
+Ende der letzten Sitzung gelegt (`_effective`). Uhrsprünge und verspätete Ereignisse erzeugen
+höchstens eine Sitzung der Länge 0, aber nie eine Überschneidung (WARNING im Log).
+
+### 11.2 Aktiver Tracker und Übergabe
+
+- `set_active_device(id|None)`, `get_active_device_id()`: Auswahl wird in `app_state`
+  gespeichert und überlebt Neustarts; verweist sie auf ein gelöschtes Gerät → `None`.
+- `handover(neuer_tracker, at)`: beendet eine laufende **Geräte**-Sitzung des alten Trackers
+  und aktiviert den neuen; manuelle Sitzungen laufen weiter. Der neue Tracker startet mit
+  seinem nächsten Ereignis → keine unbemerkte doppelte Zeit (A-07).
+
+### 11.3 Manuelle Bedienung
+
+| Methode | Verhalten |
+|---|---|
+| `start_manual(aktivität, projekt, notiz, at)` | beendet eine laufende Sitzung zuerst; unbekannte Referenzen → `NotFoundError` |
+| `stop(at)` | beendet; nichts läuft → `InvalidStateError` |
+| `pause()` / `resume()` | Pause beendet die Sitzung und merkt die Tätigkeit; `resume` startet sie neu; jeder Start/Stop löscht die Pause |
+| `add_manual_session(...)` | Nachtrag; Ende in der Zukunft (> 1 min) → `ValidationError`; Überschneidung → `ConflictError` |
+| `split_session(id, at, grund)` | teilt in zwei Teile (Teil 2 erbt alles; läuft die Sitzung, läuft Teil 2 weiter); `at` muss strikt innerhalb liegen |
+| `correct_session(id, änderungen, grund)` | prüft Referenzen, dann auditierte Korrektur (AP-08) |
+| `confirm_session(id)` | *unsicher* → *bestätigt* (idempotent, mit Auditeintrag) |
+| `delete_session(id, grund)` | Löschen mit Grund und Audit-Log |
+| `list_uncertain()` | Sitzungen, die auf Bestätigung warten |
+| `status()` | `TrackingStatus`: laufende Sitzung, Tätigkeit, Projekt, Dauer, Pause, aktiver Tracker, Anzahl unsicherer Sitzungen |
+
+### 11.4 Abnahmekriterien mit Testabdeckung
+
+A-04 (Reconnect erzeugt keine neue Sitzung), A-06 (Neustart erhält Daten und markiert den
+unklaren Abschnitt), A-07 (Übergabe ohne doppelte Zeit) und A-08 (Korrektur nachvollziehbar)
+sind durch Unit-Tests belegt (`tests/unit/test_tracking_service.py`).

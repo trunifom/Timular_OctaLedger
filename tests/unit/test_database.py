@@ -20,6 +20,8 @@ from octaledger.infrastructure.storage.database import (
     translate_sqlite_error,
 )
 
+LATEST = len(load_migrations())  # number of packaged migrations
+
 T1 = "2026-01-05T08:00:00.000000Z"
 T2 = "2026-01-05T09:00:00.000000Z"
 T3 = "2026-01-05T10:00:00.000000Z"
@@ -51,7 +53,7 @@ def add_session(
 
 
 def test_initialize_creates_schema(db: Database) -> None:
-    assert db.schema_version() == 1
+    assert db.schema_version() == LATEST
     with db.connect() as conn:
         tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {
@@ -69,11 +71,11 @@ def test_initialize_creates_schema(db: Database) -> None:
 
 def test_initialize_is_idempotent(db: Database) -> None:
     assert db.initialize() == []
-    assert db.schema_version() == 1
+    assert db.schema_version() == LATEST
 
 
 def test_initialize_returns_applied_versions(tmp_path: Path) -> None:
-    assert Database(tmp_path / "x.sqlite3").initialize() == [1]
+    assert Database(tmp_path / "x.sqlite3").initialize() == list(range(1, LATEST + 1))
 
 
 def test_connection_pragmas(db: Database) -> None:
@@ -288,7 +290,7 @@ def test_locked_database_reports_storage_error(
 
 def test_load_migrations_real() -> None:
     migrations = load_migrations()
-    assert [m.version for m in migrations] == [1]
+    assert [m.version for m in migrations] == list(range(1, LATEST + 1))
     assert migrations[0].name == "initial"
     assert len(migrations[0].checksum) == 64
 
@@ -306,11 +308,13 @@ def test_second_migration_is_applied_after_backup(
     database.initialize()
     with database.transaction() as conn:
         add_activity(conn)
-    extra = Migration(2, "add_table", "CREATE TABLE extra (id INTEGER PRIMARY KEY);")
+    extra = Migration(LATEST + 1, "add_table", "CREATE TABLE extra (id INTEGER PRIMARY KEY);")
     _fake_migrations(monkeypatch, [*real, extra])
-    assert database.initialize() == [2]
-    assert database.schema_version() == 2
-    backups = list((tmp_path / "bk").glob("octaledger-pre-migration-v1-to-v2-*.sqlite3"))
+    assert database.initialize() == [LATEST + 1]
+    assert database.schema_version() == LATEST + 1
+    backups = list(
+        (tmp_path / "bk").glob(f"octaledger-pre-migration-v{LATEST}-to-v{LATEST + 1}-*.sqlite3")
+    )
     assert len(backups) == 1
     # The backup holds the pre-migration state: data present, new table absent.
     with sqlite3.connect(backups[0]) as copy:
@@ -326,13 +330,13 @@ def test_failing_migration_rolls_back_and_keeps_earlier(
     _fake_migrations(monkeypatch, real)
     database.initialize()
     bad = Migration(
-        2, "bad", "CREATE TABLE half (id INTEGER);\nINSERT INTO missing_table VALUES (1);"
+        LATEST + 1, "bad", "CREATE TABLE half (id INTEGER);\nINSERT INTO missing_table VALUES (1);"
     )
     _fake_migrations(monkeypatch, [*real, bad])
     with pytest.raises(MigrationError) as info:
         database.initialize()
-    assert info.value.details == {"version": 2}
-    assert database.schema_version() == 1  # failed migration not recorded
+    assert info.value.details == {"version": LATEST + 1}
+    assert database.schema_version() == LATEST  # failed migration not recorded
     with database.connect() as conn:  # and its partial work was rolled back
         assert conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'half'").fetchone() is None
 
@@ -342,12 +346,14 @@ def test_newer_database_is_refused_untouched(
 ) -> None:
     database = Database(tmp_path / "d.sqlite3")
     real = load_migrations()
-    _fake_migrations(monkeypatch, [*real, Migration(2, "future", "CREATE TABLE f (id INTEGER);")])
+    _fake_migrations(
+        monkeypatch, [*real, Migration(LATEST + 1, "future", "CREATE TABLE f (id INTEGER);")]
+    )
     database.initialize()
     _fake_migrations(monkeypatch, real)  # "older program" opens the newer database
     with pytest.raises(MigrationError) as info:
         database.initialize()
-    assert info.value.details == {"database": 2, "program": 1}
+    assert info.value.details == {"database": LATEST + 1, "program": LATEST}
     assert "neueren" in info.value.user_message
 
 
@@ -358,7 +364,7 @@ def test_modified_applied_migration_detected(
     real = load_migrations()
     _fake_migrations(monkeypatch, real)
     database.initialize()
-    tampered = [Migration(1, real[0].name, real[0].sql + "\n-- changed\n")]
+    tampered = [Migration(1, real[0].name, real[0].sql + "\n-- changed\n"), *real[1:]]
     _fake_migrations(monkeypatch, tampered)
     with pytest.raises(MigrationError, match="modified"):
         database.initialize()
@@ -371,8 +377,10 @@ def test_missing_backup_dir_still_migrates_with_warning(
     real = load_migrations()
     _fake_migrations(monkeypatch, real)
     database.initialize()
-    _fake_migrations(monkeypatch, [*real, Migration(2, "x", "CREATE TABLE x (id INTEGER);")])
-    assert database.initialize() == [2]
+    _fake_migrations(
+        monkeypatch, [*real, Migration(LATEST + 1, "x", "CREATE TABLE x (id INTEGER);")]
+    )
+    assert database.initialize() == [LATEST + 1]
 
 
 def test_load_migrations_validates_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

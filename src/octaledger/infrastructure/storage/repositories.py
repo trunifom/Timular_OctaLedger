@@ -666,6 +666,36 @@ class SessionRepository:
         logger.info("Session ended: %s", session_id[:8])
         return updated
 
+    def set_quality(self, session_id: str, quality: Quality) -> Session:
+        """Set the quality flag as a **system** action (e.g. mark uncertain after a loss).
+
+        User-initiated changes go through :meth:`correct`, which records the reason.
+        """
+        session = self.require(session_id)
+        if session.quality is quality:
+            return session
+        with _db_errors("set session quality"):
+            self._c.execute(
+                "UPDATE sessions SET quality = ? WHERE id = ?", (quality.value, session_id)
+            )
+        logger.info("Session %s marked %s", session_id[:8], quality.value)
+        return dataclasses.replace(session, quality=quality)
+
+    def last_ended(self) -> datetime | None:
+        """Return the latest end time of any finished session, or ``None``."""
+        with _db_errors("read last session end"):
+            row = self._c.execute("SELECT MAX(ended_at) FROM sessions").fetchone()
+        return None if row[0] is None else from_db_time(row[0])
+
+    def list_by_quality(self, quality: Quality) -> list[Session]:
+        """Return sessions with the given quality, oldest first (e.g. the uncertain ones)."""
+        with _db_errors("list sessions by quality"):
+            rows = self._c.execute(
+                "SELECT * FROM sessions WHERE quality = ? ORDER BY started_at, id",
+                (quality.value,),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
     def correct(
         self,
         session_id: str,
@@ -895,6 +925,38 @@ class AuditLogRepository:
         ]
 
 
+# --------------------------------------------------------------------------- app state
+
+
+class StateRepository:
+    """Tiny persistent key/value store for application state (active tracker, pause)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    def get(self, key: str) -> str | None:
+        """Return the stored value or ``None``."""
+        with _db_errors("read state"):
+            row = self._c.execute("SELECT value FROM app_state WHERE key = ?", (key,)).fetchone()
+        return None if row is None else str(row["value"])
+
+    def set(self, key: str, value: str) -> None:
+        """Create or replace a value."""
+        with _db_errors("write state"):
+            self._c.execute(
+                "INSERT INTO app_state (key, value, updated_at) VALUES (?, ?, ?) "
+                "ON CONFLICT (key) DO UPDATE SET value = excluded.value, "
+                "updated_at = excluded.updated_at",
+                (key, value, to_db_time(utc_now())),
+            )
+
+    def delete(self, key: str) -> None:
+        """Remove a value (no error if absent)."""
+        with _db_errors("delete state"):
+            self._c.execute("DELETE FROM app_state WHERE key = ?", (key,))
+
+
 # ---------------------------------------------------------------------------- facade
 
 
@@ -909,6 +971,7 @@ class Repositories:
     events: RawEventRepository
     sessions: SessionRepository
     audit: AuditLogRepository
+    state: StateRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -921,6 +984,7 @@ class Repositories:
             events=RawEventRepository(connection),
             sessions=SessionRepository(connection),
             audit=AuditLogRepository(connection),
+            state=StateRepository(connection),
         )
 
 

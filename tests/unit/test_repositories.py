@@ -541,3 +541,41 @@ def test_sqlite_errors_are_translated(storage: Storage) -> None:
         with pytest.raises(Exception) as info:
             repos.audit.add("a", "b", None)
         assert not isinstance(info.value, sqlite3.Error)  # translated to OctaLedgerError
+
+
+# ------------------------------------------------- app state, quality, last end (AP-09)
+
+
+def test_state_repository_roundtrip(storage: Storage) -> None:
+    with storage.transaction() as repos:
+        assert repos.state.get("k") is None
+        repos.state.set("k", "v1")
+        repos.state.set("k", "v2")  # overwrite
+        assert repos.state.get("k") == "v2"
+        repos.state.delete("k")
+        repos.state.delete("k")  # idempotent
+        assert repos.state.get("k") is None
+
+
+def test_state_key_length_enforced(storage: Storage) -> None:
+    with pytest.raises(ConflictError):
+        with storage.transaction() as repos:
+            repos.state.set("k" * 101, "v")
+
+
+def test_set_quality_last_ended_and_list_by_quality(
+    storage: Storage, seeded: dict[str, str]
+) -> None:
+    with storage.transaction() as repos:
+        assert repos.sessions.last_ended() is None
+        first = repos.sessions.add(_session(seeded, T0, T0 + H))
+        second = repos.sessions.add(_session(seeded, T0 + 2 * H, T0 + 3 * H))
+        assert repos.sessions.last_ended() == T0 + 3 * H
+        marked = repos.sessions.set_quality(first.id, Quality.UNCERTAIN)
+        assert marked.quality is Quality.UNCERTAIN
+        assert repos.sessions.set_quality(first.id, Quality.UNCERTAIN) == marked  # idempotent
+        assert [s.id for s in repos.sessions.list_by_quality(Quality.UNCERTAIN)] == [first.id]
+        assert [s.id for s in repos.sessions.list_by_quality(Quality.CONFIRMED)] == [second.id]
+        # A system quality change is not a user correction: no audit trail, same revision.
+        assert repos.sessions.list_corrections(first.id) == []
+        assert repos.sessions.require(first.id).revision == 1
