@@ -502,7 +502,10 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 4. Bei **jedem** Problem wird alles zurückgenommen – Ihre bisherigen Daten bleiben unverändert und
    Sie erhalten eine verständliche Meldung (`OL-DATA-002`).
 - Eine Sicherung einer **neueren** Programmversion lässt sich nicht einlesen („bitte Programm
-  aktualisieren“).
+  aktualisieren“). Ältere Sicherungen (Version 1) lassen sich weiterhin einlesen.
+- **Zugangsdaten gehören nicht in Sicherungen.** Verbindungen im Steuerungsmodus (Einstellungen und Aktionen pro
+  Seite) sind enthalten, **Passwörter und Tokens nicht**. Nach einer Wiederherstellung auf einem anderen Rechner
+  geben Sie diese neu ein.
 - **Wichtig:** Testen Sie das Wiederherstellen einmal in Ruhe, bevor Sie sich auf eine Sicherung
   verlassen. Erst ein erfolgreich getestetes Backup ist ein belastbares Backup.
 

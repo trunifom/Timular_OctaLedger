@@ -46,6 +46,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-24a | Tests laufen im temporären Profilordner (nicht im echten Benutzerprofil, kein Konflikt mit laufendem Agent) | 2026-11-21 | 14:20 | bcb5d20 |
 | AP-25 | Startseite (Willkommen, geführte Einrichtung mit einem Klick, Handbuch zum Nachlesen), Standardseite, Suchergebnis auch ohne Tracker auf der Geräte-Seite (`views.start`, `docs_reader`) | 2026-11-21 | 15:30 | 8e515a6 |
 | AP-26a | Steuerungsmodus: Datenmodell (Modus je Tracker, Verbindungen, Aktionen pro Seite, Warteschlange „Outbox“), Migration 0003, Sicherung v2 (v1 bleibt lesbar, keine Geheimnisse) | 2026-11-21 | 16:30 | _folgt_ |
+| AP-26b | Baukasten: Adapter-Vertrag mit Selbstbeschreibung, Zugangsdaten-Speicher, Integrationsdienst (Verbindungen, Aktionen pro Seite, Senden mit Wiederholung/Verfall), Steuerungspfad im Tracking, Moduswechsel | 2026-11-21 | 17:30 | _folgt_ |
 
 ## Offen
 

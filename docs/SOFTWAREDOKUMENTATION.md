@@ -114,6 +114,8 @@ entspricht und eindeutig ist; die Klassen stehen in `ERROR_REGISTRY`.
 | OL-BLE-003 | `UnsupportedDeviceError` | Gerät bietet erwarteten Dienst nicht |
 | OL-API-001 | `AuthenticationError` | Token fehlt oder falsch |
 | OL-API-002 | `ApiUnavailableError` | Lokale API nicht erreichbar |
+| OL-INTEG-001 | `IntegrationError` | Aktion nicht ausführbar (Ziel lehnt ab oder Ausgang unbekannt); **wird nicht wiederholt** |
+| OL-INTEG-002 | `IntegrationConnectionError` | Ziel nicht erreichbar, die Anfrage hatte sicher keine Wirkung; **wird wiederholt** |
 | OL-API-003 | `ForbiddenOriginError` | Host-/Origin-Prüfung abgelehnt |
 
 ### 2.3 Verwendung
@@ -1506,3 +1508,83 @@ Zeitmodus**, Verbindungen (CRUD, eindeutige Namen, benutzte Verbindung nicht lö
 entfernen, mit dem Gerät löschen), Warteschlange (idempotent, fällig, Wiederholung/erledigt/fehlgeschlagen/verfallen,
 Bereinigung, Gerät gelöscht), Sicherung v2 (Rundreise, Wiederherstellung leert die Warteschlange, **v1-Datei lesbar**, acht
 ungültige Inhalte werden vor jeder Änderung abgelehnt).
+
+### 31.4 Adapter-Vertrag (`infrastructure.integrations.base`, AP-26b)
+
+Ein *Adapter* kann mit **einer** Art von Ziel sprechen. Alles andere (Speichern, Aktionen pro Seite, Warteschlange,
+Wiederholung, Oberfläche) ist allgemein. Damit auch die Oberfläche allgemein bleibt, **beschreibt sich jeder Adapter
+selbst** (`AdapterSpec`): welche Einstellungen er braucht (`FieldSpec`: Text, Passwort, Zahl, Ja/Nein, Auswahl; mit
+Pflicht, Hilfetext, Standardwert, Grenzen), welche Aktionen er bietet (`ActionSpec`, mit Feldern und dem Hinweis
+`idempotent`) und ob er Kopplung (`can_pair`) oder Entdeckung von Lampen/Szenen (`can_discover`) kann. Die Oberfläche
+erzeugt daraus Formulare; **ein neuer Adapter braucht keine Änderung an Oberfläche, API oder Speicher**, nur ein Modul und
+einen Eintrag in `registry.default_adapters()`.
+
+`Adapter` (abstrakte Klasse): `validate_config`, `validate_action` (Standard: gegen die Spezifikation, **unbekannte Felder
+werden abgelehnt**), `check` (Verbindungstest ohne Nebenwirkung), `execute` (blockierend, im Arbeits-Thread), optional
+`pair` und `discover`. `validate_fields` prüft Pflicht, Zahlengrenzen, Auswahlwerte, Länge (500 Zeichen) und **verbietet
+Zeilenumbrüche** (Schutz vor Header-Einschleusung).
+
+**Wiederholungsregel (wichtig):** Ein Adapter wirft `IntegrationConnectionError` **nur**, wenn die Anfrage **sicher keine
+Wirkung** hatte (nicht verbunden, vor dem Senden abgelehnt) – nur das wird wiederholt. Alles andere (auch ein Zeitlimit nach
+dem Senden) ist `IntegrationError` und wird **nicht** wiederholt, weil das Wiederholen einer Aktion mit unbekanntem Ausgang ein
+Licht zweimal umschalten könnte. Adapter führen keine Shell-Befehle aus, folgen keinen Weiterleitungen auf andere Schemata und
+nehmen keine Geheimnisse in Meldungen auf.
+
+### 31.5 Zugangsdaten (`core.secrets.SecretStore`, AP-26b)
+
+Passwörter und Tokens liegen in **einer** Datei `secrets.json` im Datenordner – **nicht** in der Datenbank (also nicht in
+Sicherungen), **nicht** in API-Antworten (die API nennt nur, *welche* Zugangsdaten gesetzt sind), **nicht** im Protokoll (jeder
+Wert wird beim Speichern und Laden bei `register_secret` angemeldet und überall maskiert). Atomares Schreiben über
+`core.fileio`, unter POSIX nur für den Besitzer lesbar; unter Windows schützt der Benutzerprofilordner. **Nicht
+verschlüsselt** (wie die Datei `api_token`); eine Verschlüsselung mit dem Windows-Tresor wäre ein späterer Schritt. Ein
+fehlgeschlagenes Schreiben hält Arbeitsspeicher und Datei konsistent; eine beschädigte Datei liefert eine klare Meldung **ohne
+Dateiinhalt**. Leerer Wert = Zugangsdatum entfernen.
+
+### 31.6 Dienst und Warteschlange (`application.integration_service`, `application.outbox`, AP-26b)
+
+`IntegrationService` (Adapter werden als `kind → Adapter` übergeben, Tests nutzen Attrappen):
+
+- **Verbindungen:** `create` trennt Einstellungen von Zugangsdaten (Pflicht-Zugangsdaten werden verlangt), legt zuerst die
+  Verbindung an und speichert danach die Zugangsdaten – schlägt das fehl, wird die Verbindung wieder entfernt (nichts
+  Halbfertiges). `update` führt geänderte Werte mit den gespeicherten **zusammen, bevor** geprüft wird; ein leeres Passwortfeld
+  behält das gespeicherte. `delete` verweigert, solange eine Seite die Verbindung nutzt, und vergisst danach die Zugangsdaten.
+- **Ausprobieren** (im aufrufenden Thread, nie in einer Transaktion): `check`, `probe` (eine Aktion **jetzt** ausführen, nach
+  Validierung), `pair`, `discover`.
+- **Aktionen pro Seite:** `assign_action` (vom Adapter validiert), `clear_action`, `list_actions`.
+- **Senden:** `process_due()` lässt Überfällige verfallen, räumt alte Historie auf (7 Tage), sendet fällige Aufträge in
+  Erzeugungsreihenfolge und hält jedes Ergebnis fest. Es wirft nie wegen eines Auftrags; ein **abstürzender Adapter** beendet
+  den Auftrag als fehlgeschlagen („Unerwarteter Fehler“, ohne Details und Geheimnisse), der nächste wird trotzdem gesendet.
+  Adapteraufrufe geschehen **außerhalb** von Datenbanktransaktionen.
+
+Regeln der Warteschlange (`outbox`): Der Auftrag entsteht **in derselben Transaktion** wie das Rohereignis; der eindeutige
+Schlüssel ist die Ereignis-Kennung. **Verfallszeit 30 s** (ein zu spät kommendes Licht ist schädlich), höchstens **50 wartende
+Aufträge je Verbindung** (weitere werden als „verfallen“ mit Begründung gespeichert statt unbegrenzt zu wachsen), höchstens
+**3 Versuche** mit Pausen von 1 s und 3 s; eine Wiederholung, die erst nach Ablauf der Verfallszeit käme, schlägt sofort
+fehl. Aus- oder gelöschte Verbindung → Auftrag verfällt; unbekannte Adapterart → fehlgeschlagen.
+
+### 31.7 Steuerungspfad im Tracking und Moduswechsel (AP-26b)
+
+`TrackingService.record_event`: Ein Tracker im Steuerungsmodus berührt **nie** Zeiteinträge. Nur ein echter Seitenwechsel
+(1–8) reiht die Aktion dieser Seite ein (`Outcome.ACTION_QUEUED`, sonst `ACTION_SKIPPED` bei Seite ohne Aktion, ausgeschalteter
+Verbindung oder voller Warteschlange); **Baseline (erste Meldung nach dem Verbinden), Zwischenlage, Trennen und Wiederverbinden
+lösen nie etwas aus**. Ein Steuerungs-Tracker arbeitet **unabhängig davon, ob er der aktive Tracker ist**; Zeit-Tracker verhalten
+sich unverändert.
+
+`DeviceService.set_mode`: Ein Steuerungs-Würfel kann nicht der aktive Zeit-Tracker sein. Stellt man den aktiven Tracker auf
+Steuerung, geht die Rolle an einen anderen Zeit-Tracker (falls vorhanden); stellt man einen Tracker auf Zeiterfassung zurück
+und niemand ist aktiv, wird er der aktive. **Eine laufende Zeit dieses Trackers muss zuerst gestoppt werden** (sonst
+`InvalidStateError`, nichts wird still abgeschnitten); eine laufende manuelle Zeit stört nicht. `TrackingService.handover` weist
+einen Steuerungs-Tracker ab. `DeviceInfo` trägt die Aktionen; `configured_faces` zählt im Steuerungsmodus die Aktionen.
+
+### 31.8 Tests (AP-26b)
+
+`tests/unit/test_secret_store.py` (14): Neustart, Namen ohne Werte, Zusammenführen/Entfernen, Löschen, Kopie, **Maskierung im
+Protokolltext**, Besitzer-Rechte (POSIX), beschädigte Dateien ohne Inhaltsleck, fehlgeschlagenes Schreiben, Längenlimit, keine
+Werte in Logzeilen. `tests/unit/test_integration_service.py` (23): Selbstbeschreibung, Zugangsdaten nur im Speicher, acht
+Eingabefehler mit deutschen Meldungen, eindeutige Namen, kein halbes Anlegen, Ändern (leeres Passwort behält), Löschen,
+Prüfen/Ausprobieren, Kopplung/Entdeckung, Aktionen (Validierung, Revision), Senden (Erfolg, Reihenfolge, Wiederholung,
+Versuchslimit, **dauerhafter Fehler wird nicht wiederholt**, abstürzender Adapter, Verfall, zu späte Wiederholung, ausgeschaltet,
+unbekannter Adapter, Historie, Bereinigung). `tests/unit/test_control_mode.py` (18): Auftrag je Seitenwechsel, Idempotenz,
+nichts bei Baseline/Zwischenlage/Trennen, Seite ohne Aktion, ausgeschaltet, begrenzte Warteschlange, Kopie der Aktion,
+Zeiteinträge bleiben unberührt, aktiver/nicht aktiver Steuerungs-Tracker, Zeit-Tracker unverändert, Moduswechsel (Rolle geben,
+laufende Zeit blockiert, manuelle Zeit nicht, Wiederholung, unbekanntes Gerät, Übergabe abgewiesen).

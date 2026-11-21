@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
+from octaledger.application.outbox import QueueResult, enqueue_face_action
 from octaledger.core.errors import InvalidStateError, ValidationError
 from octaledger.core.settings import (
     BaselinePolicy,
@@ -36,7 +37,9 @@ from octaledger.core.settings import (
     TrackingSettings,
 )
 from octaledger.domain.models import (
+    FACE_NUMBERS,
     Activity,
+    DeviceMode,
     EventKind,
     Project,
     Quality,
@@ -73,6 +76,10 @@ class Outcome(StrEnum):
     MARKED_UNCERTAIN = "marked_uncertain"
     #: The face has no activity assigned; nothing was booked.
     UNMAPPED = "unmapped"
+    #: Control mode: the face's action was queued for sending.
+    ACTION_QUEUED = "action_queued"
+    #: Control mode: nothing was queued (face without action, connection off, queue full).
+    ACTION_SKIPPED = "action_skipped"
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,9 +231,18 @@ class TrackingService:
 
         Raises:
             NotFoundError: If the new device is not registered.
+            InvalidStateError: If the new device is in control mode.
         """
         with self._storage.transaction() as repos:
-            repos.devices.require(new_device_id)
+            candidate = repos.devices.require(new_device_id)
+            if candidate.mode is DeviceMode.CONTROL:
+                raise InvalidStateError(
+                    f"Device {new_device_id} is in control mode",
+                    user_message=(
+                        "Ein Würfel im Steuerungsmodus kann nicht der aktive Zeit-Tracker sein. "
+                        "Stellen Sie ihn zuerst auf Zeiterfassung."
+                    ),
+                )
             current = repos.state.get(STATE_ACTIVE_DEVICE)
             if current == new_device_id:
                 return None
@@ -244,6 +260,9 @@ class TrackingService:
         """Store ``event`` and apply the session rules, atomically.
 
         Events of devices other than the active one are stored but have no session effect.
+        A tracker in **control mode** never touches sessions: a face change queues the action of
+        that face (in the same transaction, so it is neither lost nor sent twice), everything
+        else is only stored. The first value after connecting (baseline) never triggers an action.
 
         Args:
             event: The observation; ``received_at`` is the time the value was first seen.
@@ -256,12 +275,29 @@ class TrackingService:
         """
         with self._storage.transaction() as repos:
             repos.events.add(event)
-            if repos.state.get(STATE_ACTIVE_DEVICE) != event.device_id:
+            device = repos.devices.require(event.device_id)
+            if device.mode is DeviceMode.CONTROL:
+                result = self._control_event(repos, event)
+            elif repos.state.get(STATE_ACTIVE_DEVICE) != event.device_id:
                 logger.debug("Event %s of inactive device stored only", event.kind.value)
                 return EventResult(Outcome.STORED)
-            result = self._apply_event(repos, event)
+            else:
+                result = self._apply_event(repos, event)
         logger.info("Event %s (%s) -> %s", event.kind.value, event.raw_value, result.outcome.value)
         return result
+
+    def _control_event(self, repos: Repositories, event: RawEvent) -> EventResult:
+        """Control mode: only a real face change (1..8) queues the action of that face."""
+        if (
+            event.kind is not EventKind.FACE_CHANGE
+            or event.raw_value is None
+            or event.raw_value not in FACE_NUMBERS
+        ):
+            return EventResult(Outcome.STORED)
+        queued = enqueue_face_action(repos, event.device_id, event.raw_value, event.id, self._now())
+        if queued is QueueResult.QUEUED:
+            return EventResult(Outcome.ACTION_QUEUED)
+        return EventResult(Outcome.ACTION_SKIPPED)
 
     def _apply_event(self, repos: Repositories, event: RawEvent) -> EventResult:
         kind = event.kind

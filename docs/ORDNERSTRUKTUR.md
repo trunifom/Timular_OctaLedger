@@ -54,6 +54,8 @@ octaledger/
   src/octaledger/application/catalog_service.py
   src/octaledger/application/device_service.py
   src/octaledger/application/export_service.py
+  src/octaledger/application/integration_service.py
+  src/octaledger/application/outbox.py
   src/octaledger/application/reporting_service.py
   src/octaledger/application/tracking_service.py
   src/octaledger/cli.py
@@ -61,6 +63,7 @@ octaledger/
   src/octaledger/core/errors.py
   src/octaledger/core/fileio.py
   src/octaledger/core/logging.py
+  src/octaledger/core/secrets.py
   src/octaledger/core/settings.py
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/cube.py
@@ -101,6 +104,7 @@ octaledger/
   src/octaledger/infrastructure/ble/transport.py
   src/octaledger/infrastructure/integrations/__init__.py
   src/octaledger/infrastructure/integrations/base.py
+  src/octaledger/infrastructure/integrations/registry.py
   src/octaledger/infrastructure/storage/__init__.py
   src/octaledger/infrastructure/storage/database.py
   src/octaledger/infrastructure/storage/migrations/0001_initial.sql
@@ -109,6 +113,7 @@ octaledger/
   src/octaledger/infrastructure/storage/repositories.py
   tests/__init__.py
   tests/conftest.py
+  tests/fake_adapter.py
   tests/fixtures/.gitkeep
   tests/gui/__init__.py
   tests/gui/test_gui_core.py
@@ -128,18 +133,21 @@ octaledger/
   tests/unit/test_ble_bleak_layer.py
   tests/unit/test_ble_protocol_and_fake.py
   tests/unit/test_cli.py
+  tests/unit/test_control_mode.py
   tests/unit/test_dashboard_client.py
   tests/unit/test_database.py
   tests/unit/test_device_catalog_services.py
   tests/unit/test_errors.py
   tests/unit/test_export_service.py
   tests/unit/test_fileio.py
+  tests/unit/test_integration_service.py
   tests/unit/test_integrations_storage.py
   tests/unit/test_logging.py
   tests/unit/test_models.py
   tests/unit/test_orientation.py
   tests/unit/test_reporting_service.py
   tests/unit/test_repositories.py
+  tests/unit/test_secret_store.py
   tests/unit/test_settings.py
   tests/unit/test_state_machine.py
   tests/unit/test_supervisor.py

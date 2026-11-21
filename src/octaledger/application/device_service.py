@@ -16,12 +16,20 @@ Hand-over between trackers lives in :class:`TrackingService` because it changes 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from octaledger.application.tracking_service import STATE_ACTIVE_DEVICE
-from octaledger.core.errors import ConflictError
-from octaledger.domain.models import FACE_NUMBERS, Device, EventKind, FaceMapping
+from octaledger.core.errors import ConflictError, InvalidStateError
+from octaledger.domain.models import (
+    FACE_NUMBERS,
+    Device,
+    DeviceMode,
+    EventKind,
+    FaceAction,
+    FaceMapping,
+    SessionSource,
+)
 from octaledger.infrastructure.storage.repositories import Storage
 
 logger = logging.getLogger(__name__)
@@ -34,15 +42,19 @@ class DeviceInfo:
     device: Device
     mappings: dict[int, FaceMapping]
     is_active: bool
+    #: Actions per face (only meaningful in control mode).
+    actions: dict[int, FaceAction] = field(default_factory=dict)
 
     @property
     def configured_faces(self) -> int:
-        """Number of faces that have an activity assigned."""
+        """Number of faces that are set up: with an activity (time mode) or an action (control)."""
+        if self.device.mode is DeviceMode.CONTROL:
+            return len(self.actions)
         return sum(1 for m in self.mappings.values() if m.activity_id is not None)
 
     @property
     def is_fully_calibrated(self) -> bool:
-        """``True`` when all eight faces have an activity (acceptance A-01 precondition)."""
+        """``True`` when all eight faces are set up (acceptance A-01 precondition)."""
         return self.configured_faces == len(FACE_NUMBERS)
 
 
@@ -95,6 +107,7 @@ class DeviceService:
                     device=device,
                     mappings={m.face: m for m in repos.mappings.list_for_device(device.id)},
                     is_active=device.id == active,
+                    actions={a.face: a for a in repos.actions.list_for_device(device.id)},
                 )
                 for device in repos.devices.list_all()
             ]
@@ -111,7 +124,52 @@ class DeviceService:
                 device=device,
                 mappings={m.face: m for m in repos.mappings.list_for_device(device_id)},
                 is_active=repos.state.get(STATE_ACTIVE_DEVICE) == device_id,
+                actions={a.face: a for a in repos.actions.list_for_device(device_id)},
             )
+
+    def set_mode(self, device_id: str, mode: DeviceMode) -> Device:
+        """Switch a tracker between time recording and control.
+
+        A tracker in control mode cannot be the active time tracker: switching the active one to
+        control hands the role to another tracker in time mode (if there is one), and switching a
+        tracker back to time mode makes it the active one if nobody is. A running time entry of
+        the tracker must be stopped first, so no time entry is cut off silently.
+
+        Raises:
+            NotFoundError: If the device does not exist.
+            InvalidStateError: If a running time entry belongs to this (active) tracker.
+        """
+        with self._storage.transaction() as repos:
+            device = repos.devices.require(device_id)
+            if device.mode is mode:
+                return device
+            active = repos.state.get(STATE_ACTIVE_DEVICE)
+            if mode is DeviceMode.CONTROL and active == device_id:
+                running = repos.sessions.get_running()
+                if running is not None and running.source is SessionSource.DEVICE:
+                    raise InvalidStateError(
+                        f"Device {device_id} still has a running time entry",
+                        user_message=(
+                            "Auf diesem Würfel läuft gerade eine Zeit. Beenden Sie sie zuerst "
+                            "(Stopp), bevor Sie auf Steuerung umstellen."
+                        ),
+                    )
+                repos.state.delete(STATE_ACTIVE_DEVICE)
+                successor = next(
+                    (
+                        other
+                        for other in repos.devices.list_all()
+                        if other.id != device_id and other.mode is DeviceMode.TIME
+                    ),
+                    None,
+                )
+                if successor is not None:
+                    repos.state.set(STATE_ACTIVE_DEVICE, successor.id)
+            updated = repos.devices.update(replace(device, mode=mode))
+            if mode is DeviceMode.TIME and repos.state.get(STATE_ACTIVE_DEVICE) is None:
+                repos.state.set(STATE_ACTIVE_DEVICE, device_id)
+        logger.info("Tracker %s switched to %s mode", device.alias, mode.value)
+        return updated
 
     def rename(self, device_id: str, alias: str) -> Device:
         """Change the alias (must stay unique)."""

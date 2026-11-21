@@ -67,13 +67,14 @@ Nutzerdaten liegen **nicht** im Projektordner. Rangfolge für das Wurzelverzeich
 3. Benutzerprofil: unter Windows `%LOCALAPPDATA%\OctaLedger`.
 
 ```text
-settings.toml   api_token   data\octaledger.sqlite3   logs\octaledger.log   backups\   exports\
+settings.toml   api_token   secrets.json   data\octaledger.sqlite3   logs\octaledger.log   backups\   exports\
 ```
 
 | Datei/Ordner | Inhalt |
 |---|---|
 | `settings.toml` | Einstellungen (Vorlage: `config\settings.example.toml`); fehlt sie, gelten Standardwerte |
 | `api_token` | geheimes API-Token (256 Bit), vom Agenten erzeugt |
+| `secrets.json` | Zugangsdaten Ihrer Verbindungen im Steuerungsmodus (Passwörter, Tokens). **Nicht verschlüsselt**, nur im Benutzerprofil, **nie** in Sicherungen, Exporten, Diagnosebericht oder Protokoll. Beschädigt? Datei löschen und die Zugangsdaten neu eingeben |
 | `data\` | SQLite-Datenbank (zusätzliche `*-wal`/`*-shm`-Dateien sind normal, nicht einzeln löschen) |
 | `logs\` | rotierende Logdatei (1 MB × 5), Geheimnisse sind maskiert |
 | `backups\` | JSON-Sicherungen und automatische Kopien vor Migration/Restore |

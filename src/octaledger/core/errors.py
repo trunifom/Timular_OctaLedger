@@ -241,3 +241,20 @@ class ForbiddenOriginError(OctaLedgerError):
 
     code = "OL-API-003"
     default_user_message = "Die Anfrage wurde aus Sicherheitsgründen abgelehnt."
+
+
+class IntegrationError(OctaLedgerError):
+    """An action could not be carried out (the target refused it or the outcome is unknown).
+
+    Not retried automatically: repeating an action of unknown outcome could switch a light twice.
+    """
+
+    code = "OL-INTEG-001"
+    default_user_message = "Die Aktion konnte nicht ausgeführt werden."
+
+
+class IntegrationConnectionError(IntegrationError):
+    """The target could not be reached and the request certainly had no effect (retried)."""
+
+    code = "OL-INTEG-002"
+    default_user_message = "Das Ziel ist nicht erreichbar. Bitte Adresse und Netzwerk prüfen."
