@@ -57,10 +57,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-32a | Quelltext-Dokumentation: Docstrings für die letzten verschachtelten Hilfsfunktionen (jede Funktion und Klasse ist dokumentiert) | 2026-11-21 | 15:30 | 07b7755 |
 | AP-32b | Dokumentation: API-Referenz (jeder Endpunkt), Architektur und Datenmodell neu, Sicherheit, Glossar, Adapter-Anleitung, Dokumentationsübersicht, Wächtertests (`test_documentation`), Skript für die Ordnerstruktur | 2026-11-21 | 15:40 | 242fcff |
 | AP-32c | Dokumentation Teil 2: README mit Screenshots, Startseite „So funktioniert’s“, zehn Dokumente im Handbuch der App, Wächtertests für die Oberfläche, Handbuch/Installation/BLE/Konzept/Pflichtenheft/Roadmap/Testplan/Changelog aktualisiert, Metrik-Abschneiden behoben | 2026-11-21 | 16:10 | 146a4a2 |
+| AP-33a | Datenverwaltung: `DataService` (Vorschau, Löschen mit Sicherung und Zahlenbestätigung, Würfel entfernen, Zurücksetzen), neue Endpunkte, Client; Adapter mit erweiterten Feldern und Anleitungen | 2026-11-21 | 16:50 | 1d89f84 |
+| AP-33b | Oberfläche der Datenverwaltung: Reiter „Löschen“, Würfel verwalten (Kopplung aufheben, entfernen) | 2026-11-21 | 17:10 | dd275fb |
+| AP-34 | Einstellungsbereiche getrennt: Würfel verwalten · App · Darstellung · Smarthome & Verbindungen, neue Menügruppen, Hilfetext an jedem Knopf, Handbuch und Doku angepasst | 2026-11-21 | 17:45 | _folgt_ |
 
 ## Offen
 
-Alle Arbeitspakete (AP-00 bis AP-32c) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
+Alle Arbeitspakete (AP-00 bis AP-34) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
 kann** oder bewusst nicht im Umfang liegt:
 
 | ID | Thema | Wer | Hinweis |

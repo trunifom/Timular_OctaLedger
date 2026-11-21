@@ -111,7 +111,7 @@ def test_invalid_backup_is_rejected_without_changing_data(api_server: RunningApi
 
 def test_settings_page_shows_current_values_and_help(api_server: RunningApi) -> None:
     at = open_page(api_server, SETTINGS)
-    assert at.header[0].value == "Einstellungen"
+    assert at.header[0].value == "App"
     assert at.selectbox(key="set_timezone").value == "UTC"
     assert at.slider(key="set_debounce").value == 300
     assert "empfohlen" in at.selectbox(key="set_baseline").options[0]
@@ -230,11 +230,11 @@ def test_report_is_anonymised() -> None:
     assert "OctaLedger Diagnosebericht" in report and "Programmversion:" in report
 
 
-def test_navigation_now_lists_all_eight_pages(api_server: RunningApi) -> None:
+def test_every_page_of_the_menu_renders(api_server: RunningApi) -> None:
     from octaledger.dashboard.views import PAGES
 
     at = open_app(api_server.client)
-    assert len(PAGES) == 12
+    assert len(PAGES) == 13
     for slug in PAGES:  # every page renders without an exception
         at.sidebar.button(key=f"nav_{slug}").click().run()
         assert not at.exception, slug

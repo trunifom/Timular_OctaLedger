@@ -145,7 +145,7 @@ Würfel dreht sich  (Schritte 1–4 wie oben: Entprellung, Rohereignis speichern
        - Adapter.execute(...)           -> done
        - IntegrationConnectionError      -> "kam sicher nicht an": bis zu 3 Versuche mit 1 s / 3 s Pause
        - IntegrationError                -> failed, KEINE Wiederholung (Aktion könnte schon passiert sein)
-  7. Verlauf im Dashboard (Seite „Verbindungen“) und in der Live-Ansicht
+  7. Verlauf im Dashboard (Seite „Smarthome & Verbindungen“) und in der Live-Ansicht
 ```
 
 Die Zusicherungen der Warteschlange (`application/outbox.py`):
@@ -204,8 +204,9 @@ keine Überlappung, Wertebereiche), stehen in der Datenbank selbst – ein Fehle
 
 * **Streamlit** führt das Skript bei jeder Interaktion neu aus. Es gibt keine Endlosschleifen und keine BLE-Arbeit; Zustand liegt in
   `st.session_state`. Live-Teile (Würfel live, Verlauf) aktualisieren sich über `st.fragment(run_every=…)`, ohne die ganze Seite neu zu laden.
-* **Navigation** (vier Gruppen): *Start* – Startseite; *Alltag* – Übersicht, Würfel live, Zeitjournal, Statistik; *Einrichten* – Geräte, Seiten zuordnen, Verbindungen, Verwaltung; *System* – Daten, Einstellungen, Diagnose.
-* **Formulare der Verbindungen** entstehen **generisch** aus der Selbstbeschreibung der Adapter (`dashboard/forms.py`).
+* **Navigation** (fünf Gruppen): *Start* – Startseite; *Alltag* – Übersicht, Würfel live, Zeitjournal, Statistik; *Würfel* – Würfel verwalten, Seiten zuordnen; *Einstellungen* – App, Tätigkeiten & Projekte, Darstellung, Smarthome & Verbindungen; *System* – Daten, Diagnose. **Eine Seite pro Art von Einstellung** (Würfel / App / Darstellung / komplexe Funktionen), damit nie gesucht werden muss, was wohin gehört.
+* **Formulare der Verbindungen** entstehen **generisch** aus der Selbstbeschreibung der Adapter (`dashboard/forms.py`): Felder mit `advanced` erscheinen erst in einem eingeklappten Bereich „Erweiterte Einstellungen“ (er klappt von selbst auf, wenn ein gespeicherter Wert von der Voreinstellung abweicht); die `setup_guide` jedes Adapters wird als Anleitung neben dem Formular gezeigt.
+* **Datenverwaltung** (`application/data_service.py`): Löschen immer als *Vorschau → Bestätigung mit der gezeigten Zahl → automatische Sicherung → eine Transaktion → Eintrag in der Prüfspur*; die Sicherung ist das „Rückgängig“.
 * Der **SVG-Würfel** (`dashboard/cube.py`) zeigt die Lage; Bewegungen erkennt man auch ohne Hardware (Simulator, Vorschau).
 * **Handbuch in der App:** `docs_reader.py` liest die Markdown-Dateien aus `docs/`, teilt sie an `## `-Überschriften in Kapitel und bietet Suche –
   die Dokumentation hat eine einzige Quelle (auch lesbar auf GitHub).

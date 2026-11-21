@@ -98,7 +98,7 @@ def status_bar(client: ApiClient) -> None:
     if attention and status["devices"]:
         st.warning(
             "**Der Tracker liefert gerade keine Werte.** Würfelbewegungen werden nicht erfasst, "
-            "bis die Verbindung wieder steht (Bereich *Geräte*).",
+            "bis die Verbindung wieder steht (Bereich *Würfel verwalten*).",
             icon=":material/bluetooth_disabled:",
         )
     if tracking["uncertain_count"]:

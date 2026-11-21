@@ -302,11 +302,11 @@ def _software(live: dict[str, Any], labels: dict[int, FaceLabel], connected: boo
     if not live["is_active"]:
         st.warning(
             "Dieser Tracker ist **nicht der aktive**. Seine Bewegungen erzeugen keine Zeiten "
-            "(Bereich *Geräte*, „Zum aktiven Tracker machen“).",
+            "(Bereich *Würfel verwalten*, „Zum aktiven Tracker machen“).",
             icon="⚠️",
         )
     elif committed in range(1, 9) and labels.get(committed, FaceLabel()).name is None:
         st.info(
             f"Seite {committed} hat noch keine Tätigkeit, darum startet hier nichts. "
-            "Ordnen Sie ihr im Bereich *Geräte* eine zu."
+            "Ordnen Sie ihr im Bereich *Würfel verwalten* eine zu."
         )

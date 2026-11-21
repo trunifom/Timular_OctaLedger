@@ -24,9 +24,9 @@ FACES = range(1, 9)
 
 def render(client: ApiClient, tz: str) -> None:
     """Render the devices page."""
-    st.header("Geräte")
+    st.header("Würfel verwalten")
     page_help(
-        "So funktioniert die Geräte-Seite",
+        "So funktioniert „Würfel verwalten“",
         "**1. Registrieren:** Geben Sie Ihrem Würfel einen Namen.\n\n"
         "**2. Finden:** *Nach Geräten suchen* zeigt Bluetooth-Geräte in der Nähe. Wählen Sie Ihren "
         "Würfel und ordnen Sie ihn dem Tracker zu. OctaLedger verbindet nie von selbst mit "
@@ -66,7 +66,11 @@ def _register_form(client: ApiClient) -> None:
             placeholder="z. B. Tracker Büro",
             help="Frei wählbarer Name, nur zur Anzeige. Jeder Name darf nur einmal vorkommen.",
         )
-        if st.form_submit_button("➕ Registrieren", type="primary"):
+        if st.form_submit_button(
+            "➕ Registrieren",
+            type="primary",
+            help="Legt den Tracker mit diesem Namen an; die Bluetooth-Adresse folgt per Suche.",
+        ):
             created, device = call(client.register_device, alias)
             if created and device:
                 st.success(f"„{device['alias']}“ wurde registriert.")
@@ -254,7 +258,7 @@ def _calibration(
     else:
         st.caption(f"👈 Aktuell liegt **Seite {up}** oben.")
     if not activities:
-        st.info("Legen Sie zuerst im Bereich **Verwaltung** Tätigkeiten an.")
+        st.info("Legen Sie zuerst im Bereich **Tätigkeiten & Projekte** Tätigkeiten an.")
         return
 
     activity_options: list[dict[str, Any] | None] = [None, *activities]
@@ -287,7 +291,11 @@ def _calibration(
                 label_visibility="collapsed",
                 help=f"Optionales Projekt für Seite {face}.",
             )
-        if st.form_submit_button("💾 Kalibrierung speichern", type="primary"):
+        if st.form_submit_button(
+            "💾 Kalibrierung speichern",
+            type="primary",
+            help="Speichert die geänderten Seitenzuordnungen dieses Würfels.",
+        ):
             _save_calibration(client, device, activity_options, project_options)
 
 

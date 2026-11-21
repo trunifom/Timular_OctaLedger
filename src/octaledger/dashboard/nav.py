@@ -5,8 +5,10 @@ Menu structure (research: ``docs/GUI_KONZEPT.md``): eight destinations are fine 
 
 * **Start** - Startseite: what the cube is, guided setup, the manual (every new session opens here)
 * **Alltag** - Übersicht, Würfel live, Zeitjournal, Statistik (the daily work, one click away)
-* **Einrichten** - Geräte, Seiten zuordnen, Verwaltung (done once, changed rarely)
-* **System** - Daten, Einstellungen, Diagnose (backup, preferences, troubleshooting)
+* **Würfel** - Würfel verwalten, Seiten zuordnen (everything about the cubes themselves)
+* **Einstellungen** - App, Tätigkeiten & Projekte, Darstellung, Smarthome & Verbindungen
+  (one page per *kind* of setting, so nobody has to hunt)
+* **System** - Daten (export, backup, import, deleting), Diagnose (troubleshooting)
 
 Every entry has an icon **and** a text; the active page is filled (not only coloured) and every page
 shows a title identical to its menu label.
@@ -22,7 +24,7 @@ import streamlit as st
 from octaledger.dashboard_client.client import ApiClient
 
 #: Group headings in menu order.
-GROUPS: tuple[str, ...] = ("Start", "Alltag", "Einrichten", "System")
+GROUPS: tuple[str, ...] = ("Start", "Alltag", "Würfel", "Einstellungen", "System")
 DEFAULT_PAGE = "start"
 NAV_STATE_KEY = "nav"
 

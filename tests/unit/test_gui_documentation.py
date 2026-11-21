@@ -17,10 +17,13 @@ from octaledger.dashboard.views import PAGES
 
 VIEWS = Path(__file__).resolve().parents[2] / "src" / "octaledger" / "dashboard" / "views"
 
-#: Streamlit inputs that must carry ``help=`` (``button`` is deliberately not on this list: its
-#: label is the explanation, and the project does not tooltip every button).
+#: Streamlit inputs and controls that must carry ``help=``: every field, every switch and (since
+#: AP-34) every button, because the project promises an explanation for each control.
 INPUTS = frozenset(
     {
+        "button",
+        "download_button",
+        "form_submit_button",
         "text_input",
         "text_area",
         "number_input",

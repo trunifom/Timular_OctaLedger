@@ -28,6 +28,9 @@ octaledger/
   docs/GITHUB.md
   docs/GLOSSAR.md
   docs/GUI_KONZEPT.md
+  docs/images/app-einstellungen.png
+  docs/images/darstellung.png
+  docs/images/daten.png
   docs/images/seiten-aktionen.png
   docs/images/seiten-zuordnen.png
   docs/images/startseite.png
@@ -98,6 +101,7 @@ octaledger/
   src/octaledger/dashboard/views/data_cleanup.py
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
+  src/octaledger/dashboard/views/display.py
   src/octaledger/dashboard/views/faces.py
   src/octaledger/dashboard/views/faces_actions.py
   src/octaledger/dashboard/views/journal.py
@@ -149,6 +153,7 @@ octaledger/
   tests/gui/test_gui_journal_statistics.py
   tests/gui/test_gui_live.py
   tests/gui/test_gui_redesign.py
+  tests/gui/test_gui_settings_areas.py
   tests/gui/test_gui_start.py
   tests/hardware/.gitkeep
   tests/hardware/test_hardware_smoke.py

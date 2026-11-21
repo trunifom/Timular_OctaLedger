@@ -43,6 +43,21 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **API:** `/adapters`, `/integrations` (+ `check`, `probe`, `pair`, `discover`), `/jobs`, `/devices/{id}/mode`, `/devices/{id}/actions/{face}`.
 - **Oberfläche:** Seite *Verbindungen*, Moduswechsel pro Würfel, Aktions-Editor in *Seiten zuordnen*, Live-Ansicht und Geräteseite für Steuerungs-Würfel.
 
+### Hinzugefügt (Einstellungen, Würfel- und Datenverwaltung; AP-33, AP-34)
+- **Eine Seite pro Art von Einstellung** (Recherche: Struktur guter Settings-Seiten, Integrations-Einrichtung, destruktive Aktionen, Navigation): *Würfel verwalten*, *App*,
+  *Darstellung*, *Smarthome & Verbindungen*; neue Menügruppen *Würfel* und *Einstellungen*.
+- **Grund- und erweiterte Ansicht:** Adapter beschreiben `advanced`-Felder und eine deutsche Anleitung (`setup_guide`); die Formulare zeigen erst die Grundangaben, dann einen
+  eingeklappten Bereich „Erweiterte Einstellungen“; Anleitungen sagen, wo man Adresse und Token findet.
+- **App-Einstellungen** mit Grundansicht, erweiterten Einstellungen, Voreinstellungen im Hilfetext und „Auf Voreinstellungen zurücksetzen“; **Darstellung** (Hell/Dunkel, Schrift)
+  wirkt sofort.
+- **Datenverwaltung:** Einträge eines Zeitraums oder alle löschen (Vorschau, Bestätigung mit der Zahl, bei „alle“ Eintippen, automatische Sicherung vorher), **alles zurücksetzen**
+  (Gefahrenzone), **Würfel entfernen** (mit oder ohne Daten) und **Kopplung aufheben**. Neue Endpunkte `/data/…`, `/devices/{id}/remove`, `/devices/{id}/unpair`, `/settings/reset`.
+- Jede Schaltfläche hat jetzt einen Hilfetext (per Wächtertest erzwungen); Verbindungen zeigen das letzte Testergebnis und löschen in zwei Schritten.
+
+### Geändert
+- Menünamen: *Geräte* → *Würfel verwalten*, *Verwaltung* → *Tätigkeiten & Projekte*, *Einstellungen* → *App*, *Verbindungen* → *Smarthome & Verbindungen*; *Daten* und *Diagnose*
+  bilden die Gruppe *System*.
+
 ### Hinzugefügt (Dokumentation)
 - **Neue Dokumente:** `docs/API.md` (jeder Endpunkt), `docs/GLOSSAR.md`, `docs/ADAPTER_ENTWICKLUNG.md` (Anleitung mit Beispiel),
   `docs/README.md` (Wegweiser nach Zielgruppe), Screenshots in `docs/images/`.

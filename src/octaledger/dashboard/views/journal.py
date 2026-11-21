@@ -317,7 +317,11 @@ def _correct_form(
             max_chars=500,
             help="Warum ändern Sie diese Zeit? Wird im Protokoll festgehalten.",
         )
-        if st.form_submit_button("💾 Korrektur speichern", type="primary"):
+        if st.form_submit_button(
+            "💾 Korrektur speichern",
+            type="primary",
+            help="Speichert die Änderung samt Begründung in der Prüfspur.",
+        ):
             changes: dict[str, Any] = {
                 "activity_id": activity["id"],
                 "project_id": project["id"] if project else None,
@@ -341,7 +345,9 @@ def _split_form(client: ApiClient, tz: str, entry: dict[str, Any]) -> None:
             max_chars=500,
             help="Warum wird der Eintrag geteilt?",
         )
-        if st.form_submit_button("✂️ Teilen"):
+        if st.form_submit_button(
+            "✂️ Teilen", help="Teilt den Eintrag zum gewählten Zeitpunkt in zwei Einträge."
+        ):
             if call(client.split_session, sid, from_local(day, clock, tz), reason)[0]:
                 st.rerun()
 
@@ -379,7 +385,7 @@ def _add(
     client: ApiClient, tz: str, activities: list[dict[str, Any]], projects: list[dict[str, Any]]
 ) -> None:
     if not activities:
-        st.info("Legen Sie zuerst im Bereich **Verwaltung** eine Tätigkeit an.")
+        st.info("Legen Sie zuerst im Bereich **Tätigkeiten & Projekte** eine Tätigkeit an.")
         return
     with st.form("add_form", clear_on_submit=False):
         activity = st.selectbox(
@@ -400,7 +406,11 @@ def _add(
         start_day, start_time = _datetime_inputs("add_start", tz, now, "Beginn")
         end_day, end_time = _datetime_inputs("add_end", tz, now, "Ende")
         note = st.text_input("Notiz (optional)", key="add_note", max_chars=500, help="Freier Text.")
-        if st.form_submit_button("➕ Nachtragen", type="primary"):
+        if st.form_submit_button(
+            "➕ Nachtragen",
+            type="primary",
+            help="Fügt einen abgeschlossenen Eintrag nachträglich hinzu.",
+        ):
             added, _ = call(
                 client.add_session,
                 activity["id"],

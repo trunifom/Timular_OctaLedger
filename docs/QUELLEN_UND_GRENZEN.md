@@ -11,7 +11,7 @@
 
 ## Was geprüft wurde
 
-- **Alle automatischen Tests** (1344 Tests, 2 Hardwaretests bewusst übersprungen), `ruff check`,
+- **Alle automatischen Tests** (1381 Tests, davon 4 übersprungen: 2 Hardwaretests, 2 plattform- bzw. seitenbedingt), `ruff check`,
   `ruff format --check` und `mypy --strict` auf **Windows 11 (10.0.26300), Python 3.12.3**, mit den
   Versionen aus `constraints-tested.txt` (u. a. Bleak 3.1.0, Streamlit 1.67.0, FastAPI 0.165.0).
 - Die komplette Kette Tracker-**Simulator** → Agent → Datenbank → API → Dashboard-Client sowie jede

@@ -103,7 +103,7 @@ gehört nie ins Repository, in Screenshots oder Tickets (Logs maskieren es autom
    Einstellungen verbunden sein. Der Würfel meldet sich in der Liste oft als „Timeular Tra…“ (die Startseite markiert solche Treffer).
 1. Würfel laden und einmal drehen (weckt ihn). Hersteller-App schließen.
 2. `.venv\Scripts\python.exe -m octaledger scan` listet Geräte in der Nähe (verbindet nichts).
-3. Im Dashboard (Bereich **Geräte**): registrieren, suchen, Adresse speichern, **Verbinden**,
+3. Im Dashboard (Bereich **Würfel verwalten**): registrieren, suchen, Adresse speichern, **Verbinden**,
    Seiten zuordnen.
 4. **Hardwaretests bewusst starten** (nur Suchen/Lesen/Abonnieren, kein Schreiben):
 
@@ -132,7 +132,7 @@ Der Steuerungsmodus sendet **von diesem Rechner aus** an Ihre Geräte; es gehen 
 * Der Rechner muss im **selben Netz** wie das Ziel sein (ein VPN oder ein Gastnetz kann es trennen).
 * Ein **Proxy** der Umgebung wird **ignoriert**: Anfragen ins eigene Netz gehen bewusst direkt.
 * Weiterleitungen (HTTP 301/302) werden **nicht befolgt**; tragen Sie die endgültige Adresse ein.
-* Beim Einrichten helfen *Verbindung testen* und *Jetzt ausprobieren* (Seite **Verbindungen**). Sie prüfen Erreichbarkeit, Zugang und Wirkung.
+* Beim Einrichten helfen *Verbindung testen* und *Jetzt ausprobieren* (Seite **Smarthome & Verbindungen**). Sie prüfen Erreichbarkeit, Zugang und Wirkung.
 * Die Zugangsdaten liegen in `secrets.json` (siehe Abschnitt 4), nicht in der Sicherung.
 
 ## 6. Sicherung und Wiederherstellung

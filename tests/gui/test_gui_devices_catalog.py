@@ -41,9 +41,9 @@ def agent(api_server: RunningApi) -> FakeAgent:
 
 def test_devices_page_with_empty_state(api_server: RunningApi) -> None:
     at = open_page(api_server, DEVICES)
-    assert at.header[0].value == "Geräte"
+    assert at.header[0].value == "Würfel verwalten"
     assert any("Noch kein Tracker registriert" in i.value for i in at.info)
-    assert any("So funktioniert die Geräte-Seite" in e.label for e in at.expander)
+    assert any("So funktioniert „Würfel verwalten“" in e.label for e in at.expander)
 
 
 def test_register_device_and_duplicate_alias(api_server: RunningApi) -> None:
@@ -182,7 +182,7 @@ def test_calibration_shows_the_face_that_is_up(api_server: RunningApi) -> None:
 def test_calibration_requires_activities(api_server: RunningApi) -> None:
     api_server.client.register_device("A")
     at = open_page(api_server, DEVICES)
-    assert any("Verwaltung" in i.value and "Tätigkeiten" in i.value for i in at.info)
+    assert any("Tätigkeiten & Projekte" in i.value for i in at.info)
 
 
 def test_rename_and_remove_with_confirmation(api_server: RunningApi) -> None:
@@ -259,7 +259,7 @@ def test_user_supplied_device_name_is_escaped(api_server: RunningApi) -> None:
 def test_catalog_page_create_rename_archive_delete(api_server: RunningApi) -> None:
     client = api_server.client
     at = open_page(api_server, CATALOG)
-    assert at.header[0].value == "Verwaltung" and len(at.tabs) == 2
+    assert at.header[0].value == "Tätigkeiten & Projekte" and len(at.tabs) == 2
     at.text_input(key="new_name_activities").input("Meeting")
     button(at, "Tätigkeit anlegen").click().run()
     (item,) = client.list_items("activities")

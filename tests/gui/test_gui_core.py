@@ -215,7 +215,7 @@ def test_start_with_project_and_note(client: ApiClient) -> None:
 
 def test_overview_without_activities_explains_what_to_do(client: ApiClient) -> None:
     at = open_app(client)
-    assert any("Verwaltung" in i.value and "Tätigkeit" in i.value for i in at.info)
+    assert any("Tätigkeiten & Projekte" in i.value for i in at.info)
 
 
 def test_user_text_is_html_escaped(client: ApiClient) -> None:

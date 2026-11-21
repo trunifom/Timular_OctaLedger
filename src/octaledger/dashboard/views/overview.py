@@ -80,7 +80,7 @@ def _first_steps(client: ApiClient) -> None:
     except OctaLedgerError:
         return  # the checklist is a convenience; real errors are shown by the page itself
     steps = [
-        ("Tätigkeiten anlegen", bool(activities), "catalog", "Zur Verwaltung"),
+        ("Tätigkeiten anlegen", bool(activities), "catalog", "Zu Tätigkeiten & Projekten"),
         ("Tracker registrieren", bool(devices), "start", "Zur Einrichtung"),
         (
             "Bluetooth-Gerät zuordnen",
@@ -221,8 +221,8 @@ def _tracker_box(status: dict[str, Any]) -> None:
         st.markdown("**Tracker**")
         if not devices:
             st.info(
-                "Es ist noch kein Tracker registriert. Öffnen Sie den Bereich **Geräte**, um "
-                "einen Würfel einzurichten."
+                "Es ist noch kein Tracker registriert. Öffnen Sie den Bereich "
+                "**Würfel verwalten**, um einen Würfel einzurichten."
             )
             return
         for device in devices:
@@ -248,7 +248,7 @@ def _tracker_box(status: dict[str, Any]) -> None:
 def _quick_start(client: ApiClient, activities: list[dict[str, Any]]) -> None:
     """One-click tiles for the most used activities of the last 30 days."""
     if not activities:
-        st.info("Legen Sie zuerst im Bereich **Verwaltung** eine Tätigkeit an.")
+        st.info("Legen Sie zuerst im Bereich **Tätigkeiten & Projekte** eine Tätigkeit an.")
         return
     now = datetime.now(timezone.utc)
     _, entries = call(client.journal, now - timedelta(days=30), now + timedelta(days=1))
@@ -356,7 +356,12 @@ def _start_form(
                 max_chars=500,
                 help="Freier Text, z. B. „Angebot Müller“. Erscheint im Zeitjournal und im Export.",
             )
-            if st.form_submit_button("Start", icon=":material/play_arrow:", type="primary"):
+            if st.form_submit_button(
+                "Start",
+                icon=":material/play_arrow:",
+                type="primary",
+                help="Startet jetzt einen Eintrag mit der gewählten Tätigkeit.",
+            ):
                 started, _ = call(
                     client.start_tracking,
                     activity["id"],

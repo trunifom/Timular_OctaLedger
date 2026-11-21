@@ -70,7 +70,7 @@ def render(client: ApiClient, tz: str) -> None:
         "So funktioniert die Zuordnung",
         "Jede der acht Würfelseiten bekommt eine Tätigkeit. Dann genügt später ein Dreh, und die "
         "Zeit der passenden Tätigkeit läuft.\n\n"
-        "1. **Würfel verbinden** (Bereich *Geräte*, oder unten mit einem Klick).\n"
+        "1. **Würfel verbinden** (Bereich *Würfel verwalten*, oder unten mit einem Klick).\n"
         "2. **Würfel auf eine Seite legen.** Im Bild sehen Sie sofort, welche Seite oben liegt.\n"
         "3. **„Diese Seite einrichten“** wählt sie aus. Sie können eine Seite auch von Hand "
         "wählen.\n"
@@ -78,7 +78,8 @@ def render(client: ApiClient, tz: str) -> None:
         "Assistent springt zur nächsten freien Seite.\n\n"
         "**Steuerung statt Zeit:** Stellen Sie den Würfel oben auf *Steuerung*, dann bekommt jede "
         "Seite statt einer Tätigkeit eine **Aktion** (zum Beispiel Licht schalten über "
-        "Home Assistant oder Hue). Dafür brauchen Sie eine Verbindung (Seite *Verbindungen*). "
+        "Home Assistant oder Hue). Dafür brauchen Sie eine Verbindung "
+        "(Seite *Smarthome & Verbindungen*). "
         "Ein Würfel kennt "
         "immer nur einen der beiden Modi.\n\n"
         "Die Nummern im Bild sind die **technischen Seitennummern** des Würfels. Sie müssen nicht "
@@ -222,8 +223,8 @@ def _connection_hint(client: ApiClient, device: dict[str, Any]) -> None:
             on_click=go,
             args=("devices",),
             icon=":material/bluetooth_searching:",
-            help="Dieser Tracker hat noch keine Bluetooth-Adresse. Im Bereich *Geräte* suchen Sie "
-            "den Würfel.",
+            help="Dieser Tracker hat noch keine Bluetooth-Adresse. Im Bereich *Würfel "
+            "verwalten* suchen Sie den Würfel.",
         )
 
 

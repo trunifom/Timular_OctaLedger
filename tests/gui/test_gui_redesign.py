@@ -27,15 +27,16 @@ def goto(at: AppTest, slug: str) -> AppTest:
 
 
 def test_menu_is_grouped_by_task_in_the_documented_order() -> None:
-    assert GROUPS == ("Start", "Alltag", "Einrichten", "System")
+    assert GROUPS == ("Start", "Alltag", "Würfel", "Einstellungen", "System")
     order = {group: [p.slug for p in PAGES.values() if p.group == group] for group in GROUPS}
     assert order == {
         "Start": ["start"],
         "Alltag": ["overview", "live", "journal", "statistics"],
-        "Einrichten": ["devices", "faces", "connections", "catalog"],
-        "System": ["data", "settings", "diagnostics"],
+        "Würfel": ["devices", "faces"],
+        "Einstellungen": ["settings", "catalog", "display", "connections"],
+        "System": ["data", "diagnostics"],
     }
-    assert len(PAGES) == 12
+    assert len(PAGES) == 13
 
 
 def test_group_headings_are_shown_and_the_active_page_is_filled(api_server: RunningApi) -> None:
@@ -118,7 +119,7 @@ def test_first_steps_guide_progress_and_navigation(api_server: RunningApi) -> No
     at = open_app(api_server.client)
     assert "0 von 5 erledigt" in texts(at)
     at.button(key="step_0").click().run()  # "Zur Verwaltung"
-    assert at.header[0].value == "Verwaltung"
+    assert at.header[0].value == "Tätigkeiten & Projekte"
     api_server.client.create_item("activities", "Meeting")
     at = goto(at, "overview")
     assert "1 von 5 erledigt" in texts(at)

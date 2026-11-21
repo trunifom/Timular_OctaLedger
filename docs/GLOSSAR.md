@@ -60,17 +60,23 @@ Drehung zählt.
 
 ## E
 
+**Entfernen (Würfel)** – einen Würfel samt Seitenzuordnung und Aktionen aus OctaLedger löschen; hat er Daten, nur mit ausdrücklicher Entscheidung und nach einer automatischen Sicherung. Das Gegenstück ohne Löschen ist **Kopplung aufheben**.
+
 **Entprellen** – eine Seite muss kurz stabil liegen, bevor sie als neue Seite gilt. Schützt vor Fehlwechseln, wenn der Würfel beim Drehen über andere Seiten kippt.
 
 **Eintrag** – umgangssprachlich für → Sitzung.
 
 ## F
 
+**Erweiterte Einstellungen** – eingeklappter Bereich bei den App-Einstellungen und bei jeder Verbindung mit seltener nötigen Angaben (z. B. Zertifikatsprüfung, QoS). Die Voreinstellungen passen für die üblichen Fälle; der Bereich klappt von selbst auf, wenn ein gespeicherter Wert davon abweicht.
+
 **Fragment** – Streamlit-Technik, mit der Teile einer Seite (Würfel live, Verlauf) sich selbst aktualisieren, ohne die ganze Seite neu zu laden.
 
 ## G
 
 **Geheimnis** – Passwort, Token oder Schlüssel einer → Verbindung. Wird getrennt in `secrets.json` gespeichert, nie in der Datenbank, Sicherung, API-Antwort oder dem Protokoll.
+
+**Gefahrenzone** – der eingeklappte Bereich unten im Reiter „Löschen“ mit „Alles zurücksetzen“; verlangt das Eintippen von „ALLES LÖSCHEN“.
 
 **Gerät (Tracker)** – ein registrierter Würfel.
 
@@ -95,6 +101,8 @@ Drehung zählt.
 ## K
 
 **Kalibrierung** – das Zuordnen der acht Seiten zu Tätigkeiten oder Aktionen. Die Seite **Seiten zuordnen** führt Schritt für Schritt durch.
+
+**Kopplung aufheben** – die Verbindung zu einem Würfel beenden und seine Bluetooth-Adresse vergessen; Würfel, Seiten und Daten bleiben (erneutes Koppeln ist jederzeit möglich).
 
 **Kopplung (Pairing)** – ein einmaliger Schritt, der einer Verbindung Zugang verschafft (bei Hue: die Bridge-Taste drücken, dann „Koppeln“).
 
@@ -129,6 +137,8 @@ Drehung zählt.
 **Pairing** → Kopplung.
 
 **Projekt** – optional, wofür eine Zeit gebucht wird.
+
+**Sicherung vor dem Löschen** – vor jedem Löschen und Zurücksetzen schreibt OctaLedger automatisch eine vollständige Sicherung (`octaledger-pre-…json` im Ordner `backups`) und nennt ihren Namen; sie ist das „Rückgängig“.
 
 **Prüfsumme (Checksumme)** – SHA-256-Wert über den Inhalt einer Sicherung; erkennt Beschädigung und Abschneiden.
 

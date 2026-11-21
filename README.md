@@ -49,7 +49,7 @@ Dazu:
 | Bereich | Stand |
 |---|---|
 | Software (Agent, Datenbank, API, Dashboard, Export/Sicherung, Steuerungsmodus, CLI) | **vollständig umgesetzt** |
-| Automatische Tests | **1342 bestanden, 4 übersprungen** (2 Hardwaretests bewusst, 2 plattformbedingt) (Windows 11, Python 3.12); `ruff` und `mypy --strict` sauber |
+| Automatische Tests | **1377 bestanden, 4 übersprungen** (2 Hardwaretests bewusst, 2 plattformbedingt) (Windows 11, Python 3.12); `ruff` und `mypy --strict` sauber |
 | Echte Tracker-Hardware | **noch nicht geprüft** – bisher nur mit einem Simulator getestet |
 | Bluetooth-Protokoll | Community-Referenz, **nicht** hardwarevalidiert (Kompatibilität pro Exemplar/Firmware prüfen) |
 | Anbindungen im Steuerungsmodus | gegen **lokale Testserver und Fake-Broker** getestet; **nicht** gegen echte Home-Assistant-/Hue-/MQTT-Installationen; echter TLS-Handshake mit einer Hue-Bridge ungeprüft |
@@ -91,7 +91,7 @@ Die **Übersicht** zeigt, was gerade läuft, mit Schnellstart, Pause und Stopp:
 
 ## Steuerungsmodus: Dinge schalten
 
-Schalten Sie einen Würfel auf **Steuerung**, und jede Seite löst eine **Aktion** aus. Verbindungen legen Sie auf der Seite **Verbindungen** an; die Formulare entstehen
+Schalten Sie einen Würfel auf **Steuerung**, und jede Seite löst eine **Aktion** aus. Verbindungen legen Sie auf der Seite **Smarthome & Verbindungen** an (mit Anleitung, Grund- und erweiterter Ansicht); die Formulare entstehen
 automatisch aus der Selbstbeschreibung der jeweiligen Verbindungsart.
 
 | Verbindung | Wofür | Hinweise |
@@ -123,14 +123,28 @@ Eigene Anbindung nötig? Ein neuer **Adapter** ist eine Datei und eine Zeile: [A
 
 ## Die Oberfläche
 
-Das Dashboard (Streamlit) hat **11 Seiten in 4 Gruppen**:
+Das Dashboard (Streamlit) hat **13 Seiten in 5 Gruppen**. Jede **Art von Einstellung hat ihre eigene Seite**:
 
 | Gruppe | Seiten |
 |---|---|
 | **Start** | Startseite (Erklärung, geführte Einrichtung, Handbuch) |
 | **Alltag** | Übersicht, Würfel live, Zeitjournal, Statistik |
-| **Einrichten** | Geräte, Seiten zuordnen, Verbindungen, Verwaltung |
-| **System** | Daten (Export, Sicherung), Einstellungen, Diagnose |
+| **Würfel** | Würfel verwalten (hinzufügen, verbinden, Kopplung aufheben, entfernen), Seiten zuordnen |
+| **Einstellungen** | **App** (Zeiterfassung), Tätigkeiten & Projekte, **Darstellung** (Hell/Dunkel, Schrift), **Smarthome & Verbindungen** |
+| **System** | Daten (Export, Sicherung, Import, gezieltes Löschen, Zurücksetzen), Diagnose |
+
+Einstellungen zeigen zuerst die **Grundansicht**; Seltenes steht in eingeklappten **Erweiterten Einstellungen**, jede Einstellung hat Voreinstellung und Hilfetext, und
+Löschen folgt immer dem Muster *Vorschau → Bestätigung mit der Zahl → automatische Sicherung vorher*.
+
+**App-Einstellungen** – zuerst die Grundeinstellungen, Seltenes eingeklappt, jede Einstellung mit Voreinstellung und Hilfetext, ein Knopf stellt alles zurück:
+
+![App-Einstellungen](docs/images/app-einstellungen.png)
+
+**Darstellung** (wirkt sofort) und **Daten** (Export, Sicherung, Wiederherstellung/Import und Löschen mit Vorschau und automatischer Sicherung):
+
+![Darstellung](docs/images/darstellung.png)
+
+![Daten](docs/images/daten.png)
 
 Auf jeder Seite: Statusleiste (läuft etwas? Würfel verbunden? etwas zu tun?), ein ausklappbares „So funktioniert diese Seite“, Hilfetext an jedem Eingabefeld, verständliche
 deutsche Fehlermeldungen mit Code, Hell-/Dunkel-Umschalter, zwei Schriftgrößen. Konzept und Recherche: [GUI_KONZEPT](docs/GUI_KONZEPT.md).

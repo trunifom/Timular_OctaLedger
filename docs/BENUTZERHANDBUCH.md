@@ -25,7 +25,7 @@ Dokumente: [README.md](README.md).
 10. [Zeiten korrigieren und löschen](#10-zeiten-korrigieren-und-löschen)
 11. [Auswertungen lesen (Statistik und Zeitjournal)](#11-auswertungen-lesen-statistik-und-zeitjournal)
 12. [Zeiten, Mitternacht und Sommerzeit](#12-zeiten-mitternacht-und-sommerzeit)
-13. [Daten sichern, exportieren und wiederherstellen](#13-daten-sichern-exportieren-und-wiederherstellen)
+13. [Daten sichern, exportieren, importieren und löschen](#13-daten-sichern-exportieren-importieren-und-löschen)
 14. [Einstellungen und Speicherort](#14-einstellungen-und-speicherort)
 15. [Datenbank, Updates und Sicherheit Ihrer Daten](#15-datenbank-updates-und-sicherheit-ihrer-daten)
 16. [Protokolldatei (Logfile)](#16-protokolldatei-logfile)
@@ -121,20 +121,32 @@ Meldungen erscheinen als eine verständliche Zeile mit Fehlercode, z. B.
 - **„Es gibt noch kein API-Token“** (im Dashboard): Den Agenten starten – er legt das Token beim ersten
   Start an.
 - **Mit dem aktiven Tracker verbindet der Agent von selbst**, sobald für ihn eine Bluetooth-Adresse
-  gespeichert ist. Weitere Tracker verbinden Sie bewusst im Bereich *Geräte*.
+  gespeichert ist. Weitere Tracker verbinden Sie bewusst im Bereich *Würfel verwalten*.
 
 ## 5. Das Dashboard bedienen
 
 ### Die Seitenleiste (Menü)
-Das Menü ist nach Ihren Aufgaben in **vier Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
+Das Menü ist nach Ihren Aufgaben in **fünf Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
 Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entspricht immer dem Menütext.
 
 | Gruppe | Einträge | Wofür |
 |---|---|---|
 | **Start** | Startseite | Was ist der Würfel? Geführte Einrichtung und dieses Handbuch zum Nachlesen |
 | **Alltag** | Übersicht · Würfel live · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
-| **Einrichten** | Geräte · Seiten zuordnen · Verbindungen · Verwaltung | einmal einrichten: Würfel verbinden, den Seiten Tätigkeiten geben, Tätigkeiten und Projekte anlegen |
-| **System** | Daten · Einstellungen · Diagnose | Sicherung/Export, persönliche Einstellungen, Fehlersuche |
+| **Würfel** | Würfel verwalten · Seiten zuordnen | **alles rund um die Würfel**: hinzufügen, verbinden, Kopplung aufheben, entfernen; den Seiten Tätigkeiten oder Aktionen geben |
+| **Einstellungen** | App · Tätigkeiten & Projekte · Darstellung · Smarthome & Verbindungen | **je eine Seite pro Art von Einstellung** (siehe unten) |
+| **System** | Daten · Diagnose | Export, Sicherung, Import, Löschen; Fehlersuche |
+
+**Vier Arten von Einstellungen – vier getrennte Orte.** Damit Sie nie suchen müssen, was wohin gehört:
+
+| Sie wollen … | Seite |
+|---|---|
+| einen **Würfel** einrichten, verbinden, entfernen; die **Seiten** belegen | *Würfel verwalten* und *Seiten zuordnen* |
+| festlegen, **wie die Zeit erfasst wird** (Zeitzone, Erkennung der Bewegung, Protokoll); **Tätigkeiten und Projekte** anlegen | *App* und *Tätigkeiten & Projekte* |
+| das **Aussehen** ändern (Hell/Dunkel, Schriftgröße) | *Darstellung* |
+| **Smarthome** und andere komplexe Funktionen anbinden (Home Assistant, Hue, MQTT, Webhook) | *Smarthome & Verbindungen* |
+
+**Grundansicht und erweiterte Ansicht.** Auf *App* und bei jeder Verbindung sehen Sie zuerst nur die **Grundeinstellungen**. Seltener nötige Dinge stehen in einem eingeklappten Bereich **„Erweiterte Einstellungen“** – dort sind sie ordentlich gruppiert, und die **Voreinstellungen** passen für die üblichen Fälle. Weicht ein gespeicherter Wert von der Voreinstellung ab, klappt der Bereich von selbst auf. Zu **jedem** Feld, Schalter und Knopf gibt es einen Hilfetext (Fragezeichen beziehungsweise Maus darüberhalten), der auch die Voreinstellung nennt.
 
 - **Dunkel / Hell:** wechselt die Darstellung. **Größer / Kleiner:** wechselt zwischen normaler und
   größerer Schrift. Beides gilt sofort und wird gespeichert (beide Knöpfe unten im Menü).
@@ -191,7 +203,7 @@ Von oben nach unten:
 Der Agent läuft nicht (Fehlercode `OL-API-002`). Starten Sie ihn mit `octaledger agent` und klicken
 Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solange der Agent fehlt.
 
-### Bereich „Geräte“ – Schritt für Schritt
+### Bereich „Würfel verwalten“ – Schritt für Schritt
 1. **Tracker registrieren:** Namen eingeben (z. B. „Tracker Büro“), **➕ Registrieren**. Der erste
    Tracker wird automatisch der **aktive** (⭐); nur er erzeugt Zeiten.
 2. **Bluetooth-Suche:** Würfel einmal drehen (weckt ihn), dann **🔍 Nach Geräten suchen**. Wählen Sie
@@ -202,13 +214,19 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
    den Batteriestand und die letzte Meldung. **⛔ Trennen** beendet sie bewusst (kein automatischer
    Neuversuch).
 4. **Seiten zuordnen (Kalibrierung):** Am bequemsten geht das im Bereich **Seiten zuordnen** (siehe
-   unten) mit Bild und Live-Anzeige. Hier auf der Geräte-Seite finden Sie dieselbe Zuordnung als
+   unten) mit Bild und Live-Anzeige. Hier auf dieser Seite finden Sie dieselbe Zuordnung als
    Tabelle: „👈 Aktuell liegt **Seite N** oben“ zeigt die technische Nummer, Sie wählen für jede der
    acht Seiten eine Tätigkeit (und optional ein Projekt) und speichern mit
    **💾 Kalibrierung speichern**. „– nicht belegt –“ bucht nichts.
 5. **⭐ Zum aktiven Tracker machen:** bewusste Übergabe an den zweiten Tracker (die Zeit des alten
    Trackers endet, es entsteht keine doppelte Zeit).
-6. **Umbenennen oder löschen:** Löschen geht nur, solange noch keine Daten aufgezeichnet wurden.
+6. **Verwalten** (aufklappen unter dem Würfel):
+   - **Umbenennen:** ändert nur die Anzeige.
+   - **Kopplung aufheben:** beendet die Verbindung und vergisst die Bluetooth-Adresse. Der Würfel, seine Seiten und **alle Daten bleiben**;
+     Sie können ihn jederzeit neu koppeln (Bluetooth-Suche). Sinnvoll, wenn Sie einen anderen Würfel verwenden wollen.
+   - **Entfernen …:** fragt noch einmal nach. Ein Würfel **ohne Daten** wird einfach entfernt. Hat er schon Zeiten erfasst, müssen Sie den Haken
+     **„Auch alle mit diesem Würfel erfassten Daten löschen“** setzen; dann legt OctaLedger **vorher automatisch eine Sicherung** an, nennt ihren
+     Namen und entfernt den Würfel samt seinen Einträgen. **Behalten** bricht ab.
 
 ### Bereich „Würfel live“
 Hier sehen Sie **in Echtzeit**, wie der Würfel liegt und was die Software daraus macht – ideal zum
@@ -255,27 +273,30 @@ Die Nummern im Bild sind die **technischen Seitennummern**, die der Würfel meld
 einer Aufschrift auf dem Gehäuse übereinstimmen – diese Zuordnung stellt die Verbindung zu Ihren
 Tätigkeiten erst her. Tipp: Notieren Sie sich die Zuordnung (z. B. mit kleinen Aufklebern).
 
-### Bereich „Verbindungen“
+### Bereich „Smarthome & Verbindungen“
 Hier verbinden Sie OctaLedger mit Dingen, die der Würfel **steuern** soll (Steuerungsmodus): **Home Assistant**, **Philips Hue**,
 einen **MQTT-Broker** oder eine beliebige **Web-Adresse** (Webhook). **Matter-Geräte und Google Home erreichen Sie über Home
 Assistant**, sofern Sie diese dort eingebunden haben; OctaLedger spricht Matter und Google Home nicht selbst.
 
-- **Neue Verbindung:** Art wählen, Namen vergeben und die Angaben eintragen. Die Felder richten sich nach der Art und haben je einen
-  Hilfetext; mit **\*** markierte sind Pflicht. **Passwörter und Tokens werden nie angezeigt** und nie in Sicherungen gespeichert; nach
+- **Neue Verbindung:** Art wählen. Darunter steht eine **Anleitung** in wenigen Schritten (wo Sie Adresse und Zugangsdaten finden,
+  z. B. wo man in Home Assistant das Zugriffstoken erstellt). Dann Namen vergeben und die **Grundangaben** eintragen; seltener nötige
+  Einstellungen (Zertifikatsprüfung, Zeitlimits, QoS …) stehen unter **„Erweiterte Einstellungen“** mit sinnvollen Voreinstellungen. Die
+  Felder richten sich nach der Art und haben je einen Hilfetext; mit **\*** markierte sind Pflicht. **Passwörter und Tokens werden nie angezeigt** und nie in Sicherungen gespeichert; nach
   dem Anlegen wird das Formular geleert.
-- **Prüfen:** *Verbindung testen* prüft, ob das Ziel erreichbar ist und die Zugangsdaten stimmen, **ohne etwas zu schalten**. Bei Hue
+- **Prüfen:** Oben im Kasten jeder Verbindung steht das **Ergebnis des letzten Tests** (grün oder rot, mit Grund), solange Sie die Seite
+  offen haben. *Verbindung testen* prüft, ob das Ziel erreichbar ist und die Zugangsdaten stimmen, **ohne etwas zu schalten**. Bei Hue
   koppeln Sie hier einmalig: den runden Knopf an der Bridge drücken, dann innerhalb von 30 Sekunden *Koppeln*.
 - **Ausprobieren:** Führt eine Aktion **sofort** aus, damit Sie sehen, ob sie funktioniert. *Geräte der Verbindung auflisten* fragt das
   Ziel nach Lampen, Szenen und Ähnlichem, damit Sie auswählen statt Kennungen abzutippen. Aktionen, die bei **jedem** Senden erneut
   wirken (zum Beispiel Umschalten), sind mit einer Warnung gekennzeichnet.
 - **Einstellungen:** Namen und Angaben ändern (ein leeres Passwortfeld behält das gespeicherte), *Ausschalten* (die Verbindung behält
-  ihre Angaben, sendet aber nichts) und *Löschen* (nur mit Bestätigung und nur, solange keine Würfelseite die Verbindung nutzt).
+  ihre Angaben, sendet aber nichts) und *Löschen …* (fragt noch einmal nach; nur möglich, solange keine Würfelseite die Verbindung nutzt).
 - **Letzte Aktionen:** Tabelle mit Zeit, Verbindung, Aktion, Seite, Ergebnis (⏳ wartet, ✅ gesendet, ❌ fehlgeschlagen, ⌛ verfallen) und
   Hinweis. Eine Aktion, die nicht ausgeführt wurde, ist so nie ein Rätsel.
 
 Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet, wäre schlimmer als eines, das nicht schaltet.
 
-### Bereich „Verwaltung“
+### Bereich „Tätigkeiten & Projekte“
 - Reiter **Tätigkeiten** und **Projekte**: neuen Namen eingeben, **➕ anlegen**. Ohne eigene Farbe
   wählt OctaLedger gut unterscheidbare Farben.
 - Zu jedem Eintrag: Name und Farbe ändern (**💾 Speichern**), **📦 Archivieren** (verschwindet aus
@@ -322,13 +343,23 @@ Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet
   automatisch eine Kopie des aktuellen Stands an. Ist die Datei beschädigt, verändert oder von einer
   neueren Programmversion, erscheint eine verständliche Meldung und **nichts** wird geändert.
 
-### Bereich „Einstellungen“
-- **Zeitzone:** gilt sofort. **Entprellung** (empfohlen 300 ms), **Erste Seite nach dem Verbinden**,
-  **Bei Verbindungsverlust**, **Neutralwert** und **Protokollstufe** gelten nach einem **Neustart des
-  Agenten** (`octaledger agent`) – ein Hinweis erinnert Sie daran.
-- Bei jeder Einstellung zeigt das **Fragezeichen** eine Erklärung, und die empfohlene Wahl ist
-  gekennzeichnet. Die Neutralwert-Pause ist **experimentell**.
+### Bereich „App“
+Hier legen Sie fest, **wie OctaLedger Zeit erfasst**. Das Aussehen steht auf *Darstellung*.
+
+- **Grundeinstellungen:** **Zeitzone** (gilt sofort) und **Entprellung** (Voreinstellung 300 ms; gilt nach einem Neustart des Agenten).
+- **Erweiterte Einstellungen** (eingeklappt): **Erste Seite nach dem Verbinden**, **Bei Verbindungsverlust**, **Neutralwert** und
+  **Protokollstufe**. Sie gelten nach einem **Neustart des Agenten** (`octaledger agent`) – ein Hinweis erinnert Sie daran. Die
+  Neutralwert-Pause ist **experimentell**.
+- **Speichern** geschieht gemeinsam und wird geprüft: Ungültiges wird mit einer Erklärung abgelehnt, nichts wird halb gespeichert.
+- **Auf Voreinstellungen zurücksetzen** stellt alle Werte dieser Seite wieder her (Hell/Dunkel und Schrift bleiben unberührt). Der Knopf
+  ist abgeblendet, solange alles auf den Voreinstellungen steht.
+- Zu jeder Einstellung nennt der Hilfetext die **Voreinstellung**.
 - Adresse und Port der lokalen Schnittstelle können Sie hier bewusst **nicht** ändern (Sicherheit).
+
+### Bereich „Darstellung“
+Nur das Aussehen: **Erscheinungsbild** (Hell oder Dunkel) und **Schriftgröße** (Normal oder Groß). Änderungen gelten **sofort** und werden
+gespeichert (kein Speichern-Knopf nötig, weil nichts kaputtgehen kann). Eine **Vorschau** zeigt das Ergebnis; **Auf Voreinstellung
+zurücksetzen** stellt Hell und Normal wieder her. Dieselben zwei Umschalter finden Sie als Kurzbefehle unten im Menü.
 
 ### Bereich „Diagnose“
 - Ganz oben eine **Ampel** mit drei Karten: **Agent**, **Tracker**, **Datenbank** (jeweils Symbol und Text).
@@ -341,7 +372,7 @@ Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet
 ## 6. Geräte einrichten und Seiten zuordnen
 
 ### Tracker registrieren
-1. Öffnen Sie im Dashboard den Bereich **Geräte**.
+1. Öffnen Sie im Dashboard den Bereich **Würfel verwalten**.
 2. Geben Sie dem Tracker einen **Namen** (z. B. „Tracker Büro“). Namen müssen eindeutig sein.
 3. Der **erste** registrierte Tracker wird automatisch zum **aktiven Tracker**. Nur er erzeugt
    Zeiten. Weitere Tracker bleiben registriert; mit **Übergabe** wechseln Sie bewusst.
@@ -359,7 +390,7 @@ Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet
 Tipp: Kleben Sie einen kleinen Aufkleber oder schreiben Sie die Seitennummer auf eine Karte,
 damit Sie die Zuordnung später im Alltag wiederfinden.
 
-### Tätigkeiten und Projekte verwalten (Bereich **Verwaltung**)
+### Tätigkeiten und Projekte verwalten (Bereich **Tätigkeiten & Projekte**)
 - Anlegen, umbenennen, Farbe ändern. Ohne eigene Farbe vergibt OctaLedger automatisch
   gut unterscheidbare Farben.
 - **Archivieren statt Löschen:** Wird eine Tätigkeit/ein Projekt bereits verwendet, lässt sie/es
@@ -374,7 +405,7 @@ damit Sie die Zuordnung später im Alltag wiederfinden.
 - **Seite drehen** → die bisherige Tätigkeit endet, die neue beginnt (zu dem Zeitpunkt, an dem
   die Seite oben lag). Dreht man auf dieselbe Tätigkeit, läuft die Zeit einfach weiter.
 - **Seite ohne Tätigkeit:** Nichts wird gebucht, die laufende Zeit bleibt unverändert.
-  Weisen Sie der Seite im Bereich *Geräte* eine Tätigkeit zu.
+  Weisen Sie der Seite im Bereich *Würfel verwalten* oder *Seiten zuordnen* eine Tätigkeit zu.
 - **Zwei Tracker:** Nur der **aktive Tracker** erzeugt Zeiten. Der zweite Tracker bleibt
   registriert, seine Bewegungen werden nur protokolliert. Mit **Übergabe** wechseln Sie
   ausdrücklich den aktiven Tracker; die Zeit des alten Trackers endet dabei, es entsteht keine
@@ -508,7 +539,11 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
   Für Abrechnung und Auswertung Ihrer Arbeitszeit ist die *persönliche Arbeitszeit* maßgeblich.
 - **Wochen** beginnen standardmäßig am Montag.
 
-## 13. Daten sichern, exportieren und wiederherstellen
+## 13. Daten sichern, exportieren, importieren und löschen
+
+Die Seite **Daten** hat vier Reiter: **CSV-Export** (für Excel), **Sicherung** (alles in einer Datei), **Wiederherstellen** (das ist zugleich
+der **Import**) und **Löschen**. Export und Sicherung verändern nichts; Wiederherstellen und Löschen sind die zwei Reiter, in denen Daten
+verschwinden können – deshalb prüfen sie vorher und legen automatisch eine Sicherung an.
 
 ### CSV-Export (für Excel, LibreOffice, Auswertungen)
 - Bereich **Daten → Export**: Zeitraum wählen (oder alles), Zeitzone und Trennzeichen wählen
@@ -543,6 +578,32 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
   geben Sie diese neu ein.
 - **Wichtig:** Testen Sie das Wiederherstellen einmal in Ruhe, bevor Sie sich auf eine Sicherung
   verlassen. Erst ein erfolgreich getestetes Backup ist ein belastbares Backup.
+
+### Importieren
+Einen Import gibt es als **Wiederherstellen**: Jede mit OctaLedger erstellte Sicherung (JSON) lässt sich einspielen, auch auf einem anderen
+Rechner. Die Datei wird **zuerst vollständig geprüft** (Format, Version, Prüfsumme, jedes Feld, Verweise), und Sie sehen die Vorschau mit den
+Anzahlen, **bevor** etwas geändert wird. Einspielen ersetzt **alle** Daten; vorher gibt es die automatische Sicherung des alten Stands.
+Fremde Formate (z. B. die CSV eines anderen Programms) werden **nicht** importiert; die CSV von OctaLedger dient der Auswertung.
+
+### Löschen (Reiter „Löschen“)
+Löschen ist endgültig, deshalb folgt es einem festen, sicheren Ablauf:
+
+1. **Erst ansehen:** Sie wählen *Einträge eines Zeitraums* oder *Alle Einträge*. Eine **Vorschau** nennt sofort, was gelöscht würde: Anzahl, Zeitraum, wie
+   viele Einträge eine Notiz haben. Durch Ansehen wird nichts gelöscht. Der **laufende** Eintrag wird nie gelöscht.
+2. **Mit der Zahl bestätigen:** *Löschen …* öffnet eine Rückfrage; der Knopf nennt die Zahl („12 Einträge endgültig löschen“). *Behalten* bricht ab.
+   Ändert sich die Zahl zwischendurch (z. B. weil der Würfel einen Eintrag beendet hat), wird **nichts** gelöscht, und Sie sehen die Vorschau erneut.
+3. **Nur bei „Alle Einträge“ zusätzlich eintippen:** das Wort **ALLE LÖSCHEN**. Gewöhnliche Löschungen verlangen kein Eintippen – sonst klickt man sie
+   blind weg.
+4. **Automatische Sicherung vorher:** OctaLedger schreibt eine vollständige Sicherung in den Ordner `backups\` und nennt ihren Namen. **Das ist Ihr
+   Rückgängig:** Reiter *Wiederherstellen* → diese Datei.
+5. Optional werden auch die **Rohereignisse** (die unveränderten Meldungen des Würfels) des Zeitraums gelöscht.
+
+**Gefahrenzone – alles zurücksetzen** (am Ende des Reiters, eingeklappt): löscht **alles** – Einträge, Würfel, Tätigkeiten, Projekte, Verbindungen,
+gespeicherte Zugangsdaten und das Änderungsprotokoll; auf Wunsch auch die Einstellungen (Voreinstellung: ja). Die Folgen stehen mit Zahlen in der Warnung. Zur
+Bestätigung tippen Sie **ALLES LÖSCHEN** ein. Vorher wird automatisch eine Sicherung angelegt (ohne Zugangsdaten); danach ist OctaLedger so leer wie
+nach der Installation.
+
+Einen **Würfel entfernen** oder seine **Kopplung aufheben** erledigen Sie auf der Seite *Würfel verwalten* (siehe Kapitel 5).
 
 ## 14. Einstellungen und Speicherort
 
@@ -668,10 +729,10 @@ Bluetooth-Verbindungen an Ihrem Adapter zuverlässig laufen, müssen Sie ausprob
 **Eine Zeit ist falsch gebucht – was tun?** *Zeitjournal* → Sitzung wählen → *Korrigieren* (mit Grund),
 *Teilen* oder *Löschen*. Nichts geht still verloren; jede Änderung wird protokolliert.
 
-**Eine Seite des Würfels bucht nichts.** Der Seite ist keine Tätigkeit zugeordnet (Bereich *Geräte*,
+**Eine Seite des Würfels bucht nichts.** Der Seite ist keine Tätigkeit zugeordnet (Bereich *Würfel verwalten*,
 Kalibrierung) oder der Würfel liegt auf keiner stabilen Seite (neutral).
 
-**Die Zeiten stimmen nicht mit der Uhr überein.** Prüfen Sie in den *Einstellungen* die **Zeitzone**.
+**Die Zeiten stimmen nicht mit der Uhr überein.** Prüfen Sie auf der Seite *App* die **Zeitzone**.
 
 **Was ist dieser „Agent“? Ist das eine KI?** Nein. Der Agent ist ein gewöhnliches Hintergrundprogramm ohne Sprachmodell. Er hält die
 Bluetooth-Verbindung zum Würfel, erkennt Drehungen, speichert sie und (im Steuerungsmodus) sendet die Aktionen. Er ist ein eigenes
@@ -686,7 +747,7 @@ selbstständig; Sie müssen es nie eintippen.
 **Kann ich Matter- oder Google-Home-Geräte schalten?** Indirekt: OctaLedger spricht beides nicht selbst, aber **Home Assistant**. Binden
 Sie Ihre Geräte dort ein und legen Sie in OctaLedger eine Home-Assistant-Verbindung an.
 
-**Ein Licht reagiert nicht, wenn ich drehe.** Prüfen Sie unter *Verbindungen* den **Verlauf**: *erledigt* heißt, das Ziel hat die Aktion
+**Ein Licht reagiert nicht, wenn ich drehe.** Prüfen Sie unter *Smarthome & Verbindungen* den **Verlauf**: *erledigt* heißt, das Ziel hat die Aktion
 angenommen; *fehlgeschlagen* nennt den Grund; *abgelaufen* heißt, das Ziel war länger als 30 Sekunden nicht erreichbar. Probieren Sie
 die Aktion dort mit *Jetzt ausprobieren*.
 
@@ -718,7 +779,7 @@ ein Licht schaltet. Mit zwei Würfeln kann einer Zeit erfassen und der andere st
 OctaLedger spricht **kein Matter und kein Google Home direkt**; beides erreichen Sie über Home Assistant.
 
 ### Schritt für Schritt
-1. **Verbindung anlegen und testen:** Bereich **Verbindungen** → *Neue Verbindung* → Art wählen, Namen und Angaben eintragen →
+1. **Verbindung anlegen und testen:** Bereich **Smarthome & Verbindungen** → *Neue Verbindung* (die **Anleitung** darunter lesen) → Art wählen, Namen und Angaben eintragen →
    *Verbindung anlegen* → *Verbindung testen* (prüft Erreichbarkeit und Zugangsdaten, **ohne etwas zu schalten**). Bei Hue zusätzlich
    *Koppeln*. Mit *Ausprobieren* schicken Sie eine Aktion sofort los, um zu sehen, ob das Licht reagiert; *Geräte der Verbindung
    auflisten* lässt Sie Lampen und Szenen **nach Namen** wählen statt Kennungen abzutippen.
@@ -730,7 +791,7 @@ OctaLedger spricht **kein Matter und kein Google Home direkt**; beides erreichen
    speichern*. Der Assistent springt zur nächsten freien Seite. Der Name erscheint im Bild.
 4. **Zusehen:** Im Bereich **Würfel live** sehen Sie bei einem steuernden Würfel „③ Die Aktion“, was die Drehung auslöst, und darunter
    „Letzte Aktionen“ mit dem Ergebnis jeder gesendeten Aktion.
-5. **Benutzen:** Würfel drehen, die Aktion wird gesendet. Im Bereich **Verbindungen** steht unten der **Verlauf** aller Aktionen.
+5. **Benutzen:** Würfel drehen, die Aktion wird gesendet. Im Bereich **Smarthome & Verbindungen** steht unten der **Verlauf** aller Aktionen.
 
 ### Was OctaLedger dabei garantiert (und was nicht)
 - **Die erste Meldung nach dem Verbinden löst nie etwas aus**, ebenso wenig eine Zwischenlage oder ein Verbindungsabbruch. Nur ein
@@ -759,4 +820,4 @@ OctaLedger spricht **kein Matter und kein Google Home direkt**; beides erreichen
 | „Die Aktion wurde möglicherweise ausgeführt und wird nicht wiederholt“ | Prüfen Sie am Gerät, ob es geschaltet hat; das Ziel hat nicht rechtzeitig geantwortet. |
 | „Zu spät: Die Aktion wurde nicht mehr rechtzeitig gesendet“ | Das Ziel war zu lange nicht erreichbar; drehen Sie den Würfel erneut. |
 | „Auf diesem Würfel läuft gerade eine Zeit“ | Zeit stoppen (Stopp), dann auf *Dinge steuern* umstellen. |
-| Seite tut nichts | Hat die Seite eine Aktion? Ist die Verbindung eingeschaltet? Der Verlauf unter *Verbindungen* zeigt, was passiert ist. |
+| Seite tut nichts | Hat die Seite eine Aktion? Ist die Verbindung eingeschaltet? Der Verlauf unter *Smarthome & Verbindungen* zeigt, was passiert ist. |

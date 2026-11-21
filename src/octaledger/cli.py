@@ -167,7 +167,7 @@ def _cmd_scan(args: argparse.Namespace) -> int:
             else " " * 8
         )
         print(f"[{mark}] {result.label}")
-    print("Es wurde nichts verbunden. Zuordnung im Dashboard (Bereich Geräte).")
+    print("Es wurde nichts verbunden. Zuordnung im Dashboard (Bereich Würfel verwalten).")
     return EXIT_OK
 
 

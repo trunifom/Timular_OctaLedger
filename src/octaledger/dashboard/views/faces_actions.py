@@ -41,7 +41,8 @@ def render_action_editor(client: ApiClient, device: dict[str, Any], face: int) -
     if not usable:
         st.info(
             "Es gibt noch keine eingeschaltete Verbindung. Legen Sie zuerst auf der Seite "
-            "**Verbindungen** an, womit der Würfel sprechen soll (Home Assistant, Hue, MQTT …)."
+            "**Smarthome & Verbindungen** an, womit der Würfel sprechen soll (Home Assistant, Hue, "
+            "MQTT …)."
         )
         st.button(
             "Zu den Verbindungen",

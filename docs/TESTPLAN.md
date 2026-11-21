@@ -6,11 +6,11 @@
 
 | Schicht | Ort | Anzahl | Was geprüft wird |
 |---|---|---|---|
-| Unit | `tests/unit` | 1127 | Fehler, Logging, Dateizugriff, Einstellungen, Domäne, Zustandsautomaten, Zeitalgebra, Datenbank/Migrationen, Repositories, Services, BLE-Protokoll, Fake-Transport, Bleak-Schicht (Stubs), Supervisor, Reporting, Export/Restore, API-Sicherheit, API, Dashboard-Client, CLI; **Steuerungsmodus:** Moduswechsel, Warteschlange, Dispatcher, Geheimnisspeicher, die vier Adapter (Webhook gegen echten lokalen HTTP-Server, MQTT gegen Fake-Broker auf Protokollebene, Home Assistant, Hue); **Dokumentation:** Wächtertests |
+| Unit | `tests/unit` | 1151 | Fehler, Logging, Dateizugriff, Einstellungen, Domäne, Zustandsautomaten, Zeitalgebra, Datenbank/Migrationen, Repositories, Services, BLE-Protokoll, Fake-Transport, Bleak-Schicht (Stubs), Supervisor, Reporting, Export/Restore, API-Sicherheit, API, Dashboard-Client, CLI; **Steuerungsmodus:** Moduswechsel, Warteschlange, Dispatcher, Geheimnisspeicher, die vier Adapter (Webhook gegen echten lokalen HTTP-Server, MQTT gegen Fake-Broker auf Protokollebene, Home Assistant, Hue); **Dokumentation:** Wächtertests |
 | Integration | `tests/integration` | 18 | echter Server + echter Client über HTTP; **ganzer Agent** (BLE-Thread + API-Thread) mit synthetischem Tracker, auch die Kette Drehung → Aktion im Steuerungsmodus |
-| GUI | `tests/gui` | 199 | alle 11 Dashboard-Seiten (inkl. Startseite, Würfel live, Seiten zuordnen, Verbindungen) mit `streamlit.testing.v1.AppTest` gegen den **echten** API-Server: Bedienabläufe, Hilfetexte, Fehlermeldungen, Hell/Dunkel, Schriftgröße, HTML-Escaping |
+| GUI | `tests/gui` | 210 | alle 13 Dashboard-Seiten (inkl. Startseite, Würfel live, Seiten zuordnen, Verbindungen) mit `streamlit.testing.v1.AppTest` gegen den **echten** API-Server: Bedienabläufe, Hilfetexte, Fehlermeldungen, Hell/Dunkel, Schriftgröße, HTML-Escaping |
 | Hardware | `tests/hardware` | 2 | **manuell**, standardmäßig übersprungen (`OCTALEDGER_HARDWARE_TESTS=1`) |
-| **Summe** | | **1346** | **1342 bestanden, 4 übersprungen**: 2 Hardwaretests (bewusst, nur manuell), 1 Test der POSIX-Dateirechte (unter Windows nicht anwendbar) und der Wächtertest „Seite erklärt sich“ für die Startseite (sie ist selbst die Erklärung); ein zeitabhängiger GUI-Test überspringt nur in bestimmten UTC-Stunden |
+| **Summe** | | **1381** | **1377 bestanden, 4 übersprungen**: 2 Hardwaretests (bewusst, nur manuell), 1 Test der POSIX-Dateirechte (unter Windows nicht anwendbar) und der Wächtertest „Seite erklärt sich“ für die Startseite (sie ist selbst die Erklärung); ein zeitabhängiger GUI-Test überspringt nur in bestimmten UTC-Stunden |
 
 Grenzen der automatischen Tests (ehrlich):
 
@@ -21,6 +21,12 @@ Grenzen der automatischen Tests (ehrlich):
 - GUI-Tests mit Beispieldaten „heute 00:00–03:00 UTC“ werden zwischen 00:00 und 03:30 UTC übersprungen.
 - Zeitabhängige Asynchron-Tests (Supervisor, Agent) nutzen kleine echte Zeiten mit beschränktem Polling;
   sie wurden mehrfach wiederholt ausgeführt (stabil), können aber auf sehr langsamen Rechnern Zeit brauchen.
+
+### Datenverwaltung und Einstellungsseiten (AP-33, AP-34)
+
+Gelöscht wird nur nach Vorschau, Bestätigung mit der Zahl und einer automatischen Sicherung; getestet sind: Wiederherstellung **aus** der Sicherung, Abbruch bei geänderter Zahl, laufender
+Eintrag bleibt, Würfel mit/ohne Daten, Zurücksetzen (mit/ohne Einstellungen), Eintippen der Bestätigungstexte, Hilfetext an **jedem** Knopf und Feld, Voreinstellungen im Hilfetext,
+Zurücksetzen der App-Einstellungen ohne das Aussehen zu berühren, Sofortwirkung der Darstellung.
 
 ### Dokumentation als Testgegenstand
 

@@ -40,6 +40,7 @@ implementierten Codes – das ausführliche Nachschlagewerk. Den **Überblick** 
 30. [Startseite, geführte Einrichtung und Handbuch (`dashboard.views.start`, `dashboard.docs_reader`, AP-25)](#30-startseite-geführte-einrichtung-und-handbuch-dashboardviewsstart-dashboarddocs_reader-ap-25)
 31. [Steuerungsmodus und Integrationen (AP-26 bis AP-31)](#31-steuerungsmodus-und-integrationen-ap-26-bis-ap-31)
 32. [Dokumentationssystem (AP-32)](#32-dokumentationssystem-ap-32)
+33. [Einstellungsbereiche, Datenverwaltung und Würfelverwaltung (AP-33, AP-34)](#33-einstellungsbereiche-datenverwaltung-und-würfelverwaltung-ap-33-ap-34)
 
 ## 1. Überblick
 
@@ -1914,3 +1915,62 @@ Benutzerhandbuch, `ORDNERSTRUKTUR.md`, `FORTSCHRITT.md` und `CHANGELOG.md` im se
 ### 32.6 Tests und Stand
 
 Gesamtzahl der Tests: Unit 1127, Integration 18, GUI 199 (plus 2 Hardwaretests, standardmäßig übersprungen).
+
+## 33. Einstellungsbereiche, Datenverwaltung und Würfelverwaltung (AP-33, AP-34)
+
+Auslöser: Einstellungen und Verbindungen waren unübersichtlich, Würfel und Daten ließen sich kaum entfernen, Sicherung/Import/Export waren knapp. Vorab wurden vier
+Recherchen durchgeführt (Struktur von Einstellungsseiten, Einrichtung von Integrationen, destruktive Aktionen und Datenverwaltung, Navigation und Streamlit-Muster); ihre
+Ergebnisse stehen als Regeln in den folgenden Entscheidungen.
+
+### 33.1 Die vier Arten von Einstellungen
+
+| Art | Seite (Slug) | Inhalt |
+|---|---|---|
+| 1. Würfel | *Würfel verwalten* (`devices`), *Seiten zuordnen* (`faces`) | hinzufügen, suchen, verbinden, Kopplung aufheben, entfernen, Seiten und Aktionen |
+| 2. App | *App* (`settings`), *Tätigkeiten & Projekte* (`catalog`), *Daten* (`data`) | Zeiterfassung, Zeitzone, Erkennung, Protokoll; Katalog; Export, Sicherung, Import, Löschen |
+| 3. Darstellung | *Darstellung* (`display`) | Hell/Dunkel, Schriftgröße (wirkt sofort) |
+| 4. Komplexe Funktionen | *Smarthome & Verbindungen* (`connections`) | Home Assistant, Hue, MQTT, Webhook |
+
+Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 13 Seiten.
+
+### 33.2 Regeln aus der Recherche und ihre Umsetzung
+
+| Regel | Umsetzung |
+|---|---|
+| Nach Aufgabe gruppieren, kurze Namen | s. o.; Namen wie „Darstellung“, „App“ |
+| Basis zuerst, Seltenes in „Erweitert“ (höchstens zwei Ebenen) | `FieldSpec.advanced` → `forms.render_fields` zeigt Basisfelder, dann `st.expander("Erweiterte Einstellungen")`; auf *App* ein fester Expander |
+| Erweitert klappt auf, wenn ein Wert abweicht | `deviates`-Prüfung in `render_fields` |
+| Sinnvolle Defaults, im Hilfetext genannt, zurücksetzbar | Hilfetexte nennen „Voreinstellung: …“ (Test); `POST /settings/reset`; Knöpfe „Auf Voreinstellungen zurücksetzen“ |
+| Unkritisches wirkt sofort, Abhängiges wird explizit gespeichert | *Darstellung* sofort; *App* und Verbindungen per Speichern-Knopf |
+| Jede Eingabe, jeder Knopf mit Hilfetext | Wächtertest `test_every_input_of_every_page_has_a_help_text` umfasst jetzt auch `button`, `download_button`, `form_submit_button` |
+| Anleitung an der Stelle (wo bekomme ich das Token?) | `AdapterSpec.setup_guide` → `connections._guide` (Expander) |
+| Status zuerst, Testergebnis sichtbar | Kopfzeile je Verbindung mit letztem Test (`CHECK_KEY`) |
+| Destruktives: Vorschau, konkrete Beschriftung, Bestätigung mit Zahl, Eintippen nur bei den gefährlichsten, Sicherung vorher | `DataService`, `data_cleanup`, zweistufige Löschrückfragen |
+| Gefahrenzone getrennt am Ende | Expander „Alles zurücksetzen“ im Reiter „Löschen“ |
+| Keine `st.dialog` | Rückfragen sind eingebettete Bereiche (mit `AppTest` testbar, ohne Dialog-Beschränkungen: ein Dialog je Lauf) |
+
+### 33.3 `DataService` (`application/data_service.py`)
+
+`overview()`, `preview_entries(start, end)`, `delete_entries(start, end, expected_count, include_events)`, `remove_device(id, delete_data)`, `factory_reset(reset_settings)`.
+Jede löschende Operation schreibt zuerst eine vollständige Sicherung (`octaledger-pre-delete|pre-remove-device|pre-reset-<Zeit>.json`), vergleicht `expected_count` mit der
+aktuellen Zahl (sonst `InvalidStateError`, nichts wird gelöscht), arbeitet in **einer** Transaktion und schreibt **eine** Zusammenfassung in die Prüfspur. Laufende Einträge sind
+ausgenommen. SQL steht nur in den Repositories (`SessionRepository.range_stats/delete_range/delete_all_of_device/count_all`, `RawEventRepository.delete_range/delete_all_of_device`).
+`DeviceService.forget_address` hebt die Kopplung auf; `IntegrationService.forget_secrets` vergisst die Zugangsdaten beim Zurücksetzen.
+
+**API:** siehe `docs/API.md` §6 (`/devices/{id}/remove`, `/devices/{id}/unpair`), §11 (Daten löschen), §12 (`/settings/reset`). `AppContext.data` wird automatisch aufgebaut.
+
+### 33.4 Oberfläche
+
+* `views/display.py`: zwei Radiogruppen; der Schlüssel enthält den aktuellen Wert (`display_theme_<wert>`), damit ein Umschalten über die Seitenleiste den Zustand nicht widerspricht.
+* `views/settings.py` („App“): Form mit Grundeinstellungen und Expander „Erweiterte Einstellungen“; `_reset` setzt Zeitzone, `tracking` und `logging` zurück, nicht das Aussehen.
+* `views/data_cleanup.py` (Reiter „Löschen“): `radio` Zeitraum/Alle, Vorschau live, `ASK_KEY` für die Rückfrage (Zustand `(start, end, count)` – ändert sich einer, verschwindet die Rückfrage),
+  bei „Alle“ Eintippen von „ALLE LÖSCHEN“, Gefahrenzone mit „ALLES LÖSCHEN“.
+* `views/devices.py`: `_manage` (Umbenennen, Kopplung aufheben, Entfernen …) und `_confirm_remove` (Haken „Auch alle erfassten Daten löschen“).
+* `views/connections.py`: Anleitung, letztes Testergebnis, zweistufiges Löschen; ein fehlgeschlagenes Löschen lässt die Rückfrage stehen.
+
+### 33.5 Tests
+
+`tests/unit/test_data_service.py` (17): Übersicht, Vorschau, exklusives Ende, Sicherung vor dem Löschen und Wiederherstellung daraus, geänderte Zahl bricht ab, leerer Zeitraum, laufender
+Eintrag bleibt, Prüfspur, Würfel mit/ohne Daten, aktive Auswahl, Zurücksetzen mit/ohne Einstellungen, Kopplung aufheben. `tests/unit/test_api.py` (+6): Endpunkte der Datenverwaltung,
+Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/test_gui_data_cleanup.py` (8), `tests/gui/test_gui_settings_areas.py` (7), erweiterte
+`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (13 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).

@@ -13,9 +13,9 @@ from octaledger.dashboard_client.client import ApiClient
 
 def render(client: ApiClient, tz: str) -> None:
     """Render the management page."""
-    st.header("Verwaltung")
+    st.header("Tätigkeiten & Projekte")
     page_help(
-        "So funktioniert die Verwaltung",
+        "So funktionieren Tätigkeiten und Projekte",
         "**Tätigkeiten** sagen, *was* Sie tun (z. B. Meeting, Entwicklung). Jede Würfelseite "
         "bekommt eine Tätigkeit. **Projekte** sagen, *wofür* die Zeit gebucht wird (optional).\n\n"
         "- **Farbe:** Ohne eigene Wahl vergibt OctaLedger gut unterscheidbare Farben für die "
@@ -50,7 +50,11 @@ def _catalog(client: ApiClient, kind: str, singular: str, plural: str) -> None:
             key=f"new_color_{kind}",
             help="Wird nur verwendet, wenn „Eigene Farbe wählen“ aktiv ist.",
         )
-        if st.form_submit_button(f"➕ {singular} anlegen", type="primary"):
+        if st.form_submit_button(
+            f"➕ {singular} anlegen",
+            type="primary",
+            help="Legt den Eintrag mit dem eingegebenen Namen an.",
+        ):
             created, item = call(client.create_item, kind, name, color if custom else None)
             if created and item:
                 st.success(f"„{item['name']}“ wurde angelegt.")
