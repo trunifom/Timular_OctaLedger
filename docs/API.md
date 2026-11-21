@@ -269,6 +269,8 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 | `PUT /devices/{id}/music` | Verhalten speichern | `{base_action, stop_delay_ms (0–60000), default_volume (0–100)}` | wie oben |
 | `PUT /devices/{id}/music/faces/{1..8}` | einer Seite einen Titel aus einem Link geben (vom Adapter des Ziels geprüft) | `{"integration_id", "link", "label", "volume"?, "options"?: {"entity_id"}}` | `{steps, device}`; 422 bei unpassendem Ziel/Link, 409 wenn der Würfel nicht im Musik-Modus ist |
 
+| `GET /music/browser-state` | gewünschter Zustand des Players in der App (AP-50), von der Seite „Musik-Player“ jede Sekunde gelesen | – | `{playing, video_id, list_id, volume, nonce}` |
+
 Eine Seite **ohne** Titel ist eine „Stille-Seite“ (sie beendet die Musik). `GET /adapters` nennt je Art `music_capable`.
 
 ### Bericht und Kalender-Import (AP-42)

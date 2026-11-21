@@ -116,6 +116,7 @@ from octaledger.domain.attention import AttentionKind
 from octaledger.domain.models import DeviceMode
 from octaledger.domain.music import MusicSettings
 from octaledger.domain.time_rules import ensure_utc, local_day_bounds, utc_now
+from octaledger.infrastructure.integrations.browser import BrowserAdapter
 from octaledger.infrastructure.system.holidays_provider import holidays_available
 from octaledger.infrastructure.system.toast import toast_available
 
@@ -462,6 +463,16 @@ def build_router(ctx: AppContext) -> APIRouter:
     def music_state() -> dict[str, Any]:
         """For every cube in music mode: what plays at the moment (``null`` = nothing)."""
         return {"devices": require_music().state()}
+
+    @router.get("/music/browser-state")
+    def music_browser_state() -> dict[str, Any]:
+        """What the page "Musik-Player" should play (wanted state of the browser player)."""
+        if ctx.integrations is None:
+            raise ApiUnavailableError("Control mode is not available in this process")
+        adapter = ctx.integrations.adapter_for("browser")
+        if not isinstance(adapter, BrowserAdapter):  # pragma: no cover - registry guarantees it
+            raise ApiUnavailableError("The browser player is not available")
+        return adapter.state()
 
     @router.post("/music/parse")
     def music_parse(body: ParseBody) -> dict[str, Any]:

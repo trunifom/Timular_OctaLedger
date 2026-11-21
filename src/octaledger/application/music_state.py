@@ -22,7 +22,9 @@ STATE_NOW: Final = "music_now:"
 STATE_STOP: Final = "music_stop:"
 STATE_LOST: Final = "music_lost:"
 #: Actions that really start sound; only their success marks "now playing".
-PLAY_ACTIONS: Final = frozenset({"play_url", "play_file", "media_play"})
+PLAY_ACTIONS: Final = frozenset(
+    {"play_url", "play_file", "media_play", "spotify_play", "browser_play"}
+)
 
 
 def load_settings(repos: Repositories, device_id: str) -> MusicSettings:

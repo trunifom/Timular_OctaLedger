@@ -31,12 +31,12 @@ def test_menu_is_grouped_by_task_in_the_documented_order() -> None:
     order = {group: [p.slug for p in PAGES.values() if p.group == group] for group in GROUPS}
     assert order == {
         "Start": ["start"],
-        "Alltag": ["overview", "live", "journal", "statistics"],
+        "Alltag": ["overview", "live", "player", "journal", "statistics"],
         "Würfel": ["devices", "faces"],
         "Einstellungen": ["settings", "catalog", "display", "connections"],
         "System": ["data", "diagnostics"],
     }
-    assert len(PAGES) == 13
+    assert len(PAGES) == 14
 
 
 def test_group_headings_are_shown_and_the_active_page_is_filled(api_server: RunningApi) -> None:

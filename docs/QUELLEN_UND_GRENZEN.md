@@ -53,6 +53,10 @@ Die Dienste von Home Assistant (`media_player.play_media`, `media_pause`, `media
 
 Die Endpunkte (`/authorize` und `/api/token` mit PKCE, `/v1/me/player/play|pause|volume`), die Berechtigungen (`user-modify-playback-state`, `user-read-playback-state`) und die Fehlerbedeutungen (403 = Premium nötig, 404 = kein aktives Gerät, 429 = langsamer) stammen aus der öffentlichen Spotify-Dokumentation und wurden nur gegen eine lokale Attrappe getestet; die PKCE-Prüfsumme gegen das Beispiel aus RFC 7636. **Nicht geprüft:** Anmeldung und Wiedergabe mit einem echten Premium-Konto und einer echten App-Registrierung, das Verhalten bei einem vom Spotify rotierten Refresh-Token (OctaLedger behält den gespeicherten; bei „Zugang abgelehnt“ erneut koppeln) und künftige Änderungen der Spotify-Regeln für Entwickler-Apps. Die dauerhafte Berechtigung liegt wie alle Geheimnisse **unverschlüsselt** in `secrets.json` im Benutzerprofil (Zugriff nur für Ihr Windows-Konto). Beachten Sie die Spotify-Entwicklerbedingungen.
 
+## Player in der App (AP-50): Stand der Prüfung
+
+Geprüft (automatisch): der Zustand des Adapters, die Form der YouTube-Kennungen (nur `[A-Za-z0-9_-]`, 11 bzw. 10–60 Zeichen), dass ein falscher Wert nie in die Seite gelangt, dass derselbe Zustand denselben Seitentext ergibt (der Browser behält den laufenden Player) und dass vor der Zustimmung nichts Externes geladen wird. **Nicht geprüft:** Verhalten der IFrame-Player-API (`YT.Player`, `setVolume`, `playVideo`, Fehlercodes 101/150), Autoplay-Regeln der Browser, ob Streamlit das Neuzeichnen ohne Unterbrechung der Wiedergabe erlaubt, und welche Videos einbettbar sind. Harte Grenze: **nur bei geöffneter Seite**. Datenschutz: Der Player nutzt `youtube-nocookie.com`, das Skript kommt von `www.youtube.com`.
+
 ## Was **nicht** geprüft wurde (Grenzen)
 
 - **Keine echte BLE-Hardware:** Weder Scan noch Verbindung, Benachrichtigungen, Reconnect, Reichweite,

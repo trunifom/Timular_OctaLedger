@@ -126,6 +126,7 @@ octaledger/
   src/octaledger/dashboard/views/journal_ics.py
   src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
+  src/octaledger/dashboard/views/player.py
   src/octaledger/dashboard/views/settings.py
   src/octaledger/dashboard/views/start.py
   src/octaledger/dashboard/views/statistics.py
@@ -162,6 +163,7 @@ octaledger/
   src/octaledger/infrastructure/ble/transport.py
   src/octaledger/infrastructure/integrations/__init__.py
   src/octaledger/infrastructure/integrations/base.py
+  src/octaledger/infrastructure/integrations/browser.py
   src/octaledger/infrastructure/integrations/demo.py
   src/octaledger/infrastructure/integrations/homeassistant.py
   src/octaledger/infrastructure/integrations/httpio.py
@@ -204,6 +206,7 @@ octaledger/
   tests/gui/test_gui_faces.py
   tests/gui/test_gui_journal_statistics.py
   tests/gui/test_gui_live.py
+  tests/gui/test_gui_player.py
   tests/gui/test_gui_redesign.py
   tests/gui/test_gui_settings_areas.py
   tests/gui/test_gui_start.py
@@ -215,6 +218,7 @@ octaledger/
   tests/integration/test_client_server.py
   tests/unit/__init__.py
   tests/unit/test_action_chains.py
+  tests/unit/test_adapter_browser.py
   tests/unit/test_adapter_demo_and_hints.py
   tests/unit/test_adapter_homeassistant.py
   tests/unit/test_adapter_hue.py

@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Player in der App, AP-50)
+- Neue Verbindungsart `browser` (Musik-Ziel ohne Netzwerkziel) und Seite **Musik-Player**: YouTube-/YouTube-Music-Titel im eingebetteten Player, nur bei geöffneter Seite, erst nach ausdrücklicher Zustimmung zum Laden von youtube.com; API `GET /music/browser-state`.
+- Korrektur: `spotify_play` zählt nun als Wiedergabe-Aktion („läuft gerade“).
+
 ### Hinzugefügt (Spotify direkt, AP-49)
 - Neue Verbindungsart `spotify` (Musik-Ziel): Wiedergabe von Titel/Album/Playlist/Künstler/Podcast, Pause (= Stopp) und Lautstärke über die Spotify Web API; Kopplung per Browser mit PKCE über einen lokalen Rückkanal (`127.0.0.1`, einmaliger `state`, kein Client Secret), Zugangstoken nur im Speicher, Berechtigung im Geheimnis-Speicher.
 - Dashboard-Client: Kopplung darf bis zu 150 s warten (`PAIR_TIMEOUT`).

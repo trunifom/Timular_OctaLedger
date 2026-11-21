@@ -1931,7 +1931,7 @@ Ergebnisse stehen als Regeln in den folgenden Entscheidungen.
 | 3. Darstellung | *Darstellung* (`display`) | Hell/Dunkel, Schriftgröße (wirkt sofort) |
 | 4. Komplexe Funktionen | *Smarthome & Verbindungen* (`connections`) | Home Assistant, Hue, MQTT, Webhook |
 
-Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 13 Seiten.
+Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 14 Seiten (mit „Musik-Player“, AP-50).
 
 ### 33.2 Regeln aus der Recherche und ihre Umsetzung
 
@@ -1973,7 +1973,7 @@ ausgenommen. SQL steht nur in den Repositories (`SessionRepository.range_stats/d
 `tests/unit/test_data_service.py` (17): Übersicht, Vorschau, exklusives Ende, Sicherung vor dem Löschen und Wiederherstellung daraus, geänderte Zahl bricht ab, leerer Zeitraum, laufender
 Eintrag bleibt, Prüfspur, Würfel mit/ohne Daten, aktive Auswahl, Zurücksetzen mit/ohne Einstellungen, Kopplung aufheben. `tests/unit/test_api.py` (+6): Endpunkte der Datenverwaltung,
 Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/test_gui_data_cleanup.py` (8), `tests/gui/test_gui_settings_areas.py` (7), erweiterte
-`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (13 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
+`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (14 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
 
 ## 34. Spotify-Adapter (`infrastructure.integrations.spotify`, AP-49)
 
@@ -1982,3 +1982,9 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Betrieb:** Vor jeder Anfrage liefert `_access_token` ein im Speicher zwischengespeichertes Zugangstoken (erneuert 60 s vor Ablauf, durch ein Schloss geschützt). Fehler: 401/403/404 → `IntegrationError` mit verständlichem Text (nicht wiederholt); 429 → `IntegrationConnectionError` (wiederholbar, da nicht ausgeführt).
 * **Tests:** `tests/unit/test_adapter_spotify.py` gegen eine lokale Attrappe (Token, Player, Kopplung mit simuliertem Browser, falscher `state`, Ablehnung, belegter Port, RFC-7636-Beispiel).
 * **Grenzen:** nicht an einem echten Konto geprüft (siehe `docs/QUELLEN_UND_GRENZEN.md`).
+
+## 35. Player in der App (`infrastructure.integrations.browser`, `dashboard.views.player`, AP-50)
+
+* **Adapter `browser`:** kein Netzwerkziel; `execute` ändert nur den thread-sicheren Zustand `{playing, video_id, list_id, volume, nonce}` (`nonce` wächst bei jedem Befehl). Die IDs werden streng geprüft. `GET /music/browser-state` liefert den Zustand (über `IntegrationService.adapter_for`, kein globaler Zustand).
+* **Seite „Musik-Player“:** zeigt zuerst nur die Zustimmung (nichts Externes wird geladen); danach liest ein Fragment (`run_every=1s`) den Zustand und zeichnet `player_document(state)` (reine Funktion, validiert die IDs erneut, JSON für `<script>` maskiert; gleicher Zustand → gleicher Text → der Browser behält den Player).
+* **Grenzen:** läuft nur bei geöffneter Seite; Autoplay/Einbettbarkeit nur im echten Browser prüfbar.

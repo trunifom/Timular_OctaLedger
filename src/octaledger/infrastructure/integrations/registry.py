@@ -8,6 +8,7 @@ else (storage, API, dashboard) needs to change, because adapters describe themse
 from __future__ import annotations
 
 from octaledger.infrastructure.integrations.base import Adapter
+from octaledger.infrastructure.integrations.browser import BrowserAdapter
 from octaledger.infrastructure.integrations.demo import DemoAdapter
 from octaledger.infrastructure.integrations.homeassistant import HomeAssistantAdapter
 from octaledger.infrastructure.integrations.hue import HueAdapter
@@ -26,6 +27,7 @@ def default_adapters() -> dict[str, Adapter]:
         HueAdapter(),
         PlayerAdapter(),
         SpotifyAdapter(),
+        BrowserAdapter(),
         DemoAdapter(),
     ]
     return {adapter.spec.kind: adapter for adapter in adapters}

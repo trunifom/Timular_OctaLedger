@@ -639,6 +639,11 @@ class ApiClient:
         devices: list[dict[str, Any]] = result["devices"]
         return devices
 
+    def browser_player_state(self) -> dict[str, Any]:
+        """The wanted state of the player on the page "Musik-Player"."""
+        result: dict[str, Any] = self._get("/music/browser-state")
+        return result
+
     def parse_music(self, text: str) -> dict[str, Any]:
         """Recognise a pasted music link (changes nothing)."""
         result: dict[str, Any] = self._post("/music/parse", {"text": text})

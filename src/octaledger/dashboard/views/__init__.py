@@ -20,6 +20,7 @@ from octaledger.dashboard.views import (
     journal,
     live,
     overview,
+    player,
     settings,
     start,
     statistics,
@@ -49,6 +50,14 @@ _DEFINITIONS = (
         "Alltag",
         "Sehen Sie in Echtzeit, wie der Würfel liegt und was die Software daraus macht",
         live.render,
+    ),
+    PageDef(
+        "player",
+        "Musik-Player",
+        "music_note",
+        "Alltag",
+        "Der eingebaute Player für YouTube und YouTube Music (läuft nur bei geöffneter Seite)",
+        player.render,
     ),
     PageDef(
         "journal",
