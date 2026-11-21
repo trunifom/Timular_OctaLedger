@@ -77,7 +77,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-46 | Vorlagen (Presets) und Platzhalter für Webhook/MQTT, Rezeptbuch `docs/REZEPTE.md` (Node-RED, Zigbee2MQTT, WLED, Shelly, openHAB); nichts an echten Zielen geprüft | 2026-11-22 | 13:30 | e82129b |
 | AP-48 | Musik-Modus (Kern): dritte Betriebsart, Link-Erkennung, Auslöse-Regeln (Halterung/Stille-Seite/Zielwechsel), Ziele Player und Home Assistant, „läuft gerade“, Wächter bei Verbindungsverlust, Editor; Halterungs-Rohwert nicht hardwarebestätigt | 2026-11-22 | 16:00 | ff0ce39 |
 | AP-49 | Spotify direkt: Adapter `spotify` (Web API, PKCE-Kopplung per Browser mit lokalem Rückkanal, Wiedergabe/Pause/Lautstärke), Kopplung mit langem Zeitlimit; nur gegen Attrappe getestet | 2026-11-22 | 17:00 | deba4d5 |
-| AP-50 | Player in der App: Adapter `browser`, Seite „Musik-Player“ (Zustimmung vor dem Laden von youtube.com, nur bei geöffneter Seite), API `/music/browser-state`; Fix `spotify_play` als Wiedergabe-Aktion; nicht im echten Browser geprüft | 2026-11-22 | 18:00 | _folgt_ |
+| AP-50 | Player in der App: Adapter `browser`, Seite „Musik-Player“ (Zustimmung vor dem Laden von youtube.com, nur bei geöffneter Seite), API `/music/browser-state`; Fix `spotify_play` als Wiedergabe-Aktion; nicht im echten Browser geprüft | 2026-11-22 | 18:00 | 3a5750d |
 
 ## Offen
 
