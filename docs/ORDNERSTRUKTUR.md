@@ -105,6 +105,7 @@ octaledger/
   src/octaledger/infrastructure/storage/database.py
   src/octaledger/infrastructure/storage/migrations/0001_initial.sql
   src/octaledger/infrastructure/storage/migrations/0002_app_state.sql
+  src/octaledger/infrastructure/storage/migrations/0003_integrations.sql
   src/octaledger/infrastructure/storage/repositories.py
   tests/__init__.py
   tests/conftest.py
@@ -133,6 +134,7 @@ octaledger/
   tests/unit/test_errors.py
   tests/unit/test_export_service.py
   tests/unit/test_fileio.py
+  tests/unit/test_integrations_storage.py
   tests/unit/test_logging.py
   tests/unit/test_models.py
   tests/unit/test_orientation.py

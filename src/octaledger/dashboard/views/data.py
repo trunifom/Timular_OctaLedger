@@ -20,6 +20,8 @@ COUNT_LABELS = {
     "sessions": "Einträge",
     "corrections": "Korrekturen",
     "audit_log": "Protokolleinträge",
+    "integrations": "Verbindungen",
+    "face_actions": "Aktionen",
 }
 
 

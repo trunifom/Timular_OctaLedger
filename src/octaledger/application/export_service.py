@@ -48,8 +48,11 @@ from octaledger.domain.models import (
     Activity,
     Correction,
     Device,
+    DeviceMode,
     EventKind,
+    FaceAction,
     FaceMapping,
+    Integration,
     Project,
     Quality,
     RawEvent,
@@ -69,7 +72,9 @@ logger = logging.getLogger(__name__)
 
 BACKUP_FORMAT: Final = "octaledger-backup"
 #: Highest backup schema version this program can read and the one it writes.
-BACKUP_SCHEMA_VERSION: Final = 1
+#: v2 adds the device mode, integrations (settings only, **never secrets**) and face actions;
+#: v1 files are still read (every device then is in time mode and there are no integrations).
+BACKUP_SCHEMA_VERSION: Final = 2
 #: Largest backup file accepted (bytes).
 MAX_BACKUP_BYTES: Final = 200 * 1024 * 1024
 
@@ -94,7 +99,7 @@ _ALLOWED_DELIMITERS: Final = {";": "semicolon", ",": "comma", "\t": "tab"}
 _FORMULA_PREFIXES: Final = ("=", "+", "-", "@", "\t", "\r", "\n")
 _SAFE_FILENAME: Final = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,100}$")
 
-_DATA_KEYS: Final = frozenset(
+_DATA_KEYS_V1: Final = frozenset(
     {
         "devices",
         "activities",
@@ -107,6 +112,7 @@ _DATA_KEYS: Final = frozenset(
         "app_state",
     }
 )
+_DATA_KEYS: Final = _DATA_KEYS_V1 | {"integrations", "face_actions"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -305,8 +311,31 @@ class ExportService:
                     "model": d.model,
                     "firmware": d.firmware,
                     "created_at": to_db_time(d.created_at),
+                    "mode": d.mode.value,
                 }
                 for d in content.devices
+            ],
+            "integrations": [
+                {
+                    "id": i.id,
+                    "kind": i.kind,
+                    "name": i.name,
+                    "config": dict(i.config),
+                    "enabled": i.enabled,
+                    "created_at": to_db_time(i.created_at),
+                }
+                for i in content.integrations
+            ],
+            "face_actions": [
+                {
+                    "device_id": a.device_id,
+                    "face": a.face,
+                    "integration_id": a.integration_id,
+                    "label": a.label,
+                    "params": dict(a.params),
+                    "revision": a.revision,
+                }
+                for a in content.actions
             ],
             "activities": [
                 {"id": a.id, "name": a.name, "color": a.color, "archived": a.archived}
@@ -461,13 +490,24 @@ class ExportService:
         return tuple(result)
 
     @classmethod
-    def _decode(cls, data: Mapping[str, Any]) -> BackupContent:
-        """Validate and convert the ``data`` section into domain objects."""
-        if set(data) != _DATA_KEYS:
+    def _decode(
+        cls, data: Mapping[str, Any], version: int = BACKUP_SCHEMA_VERSION
+    ) -> BackupContent:
+        """Validate and convert the ``data`` section into domain objects.
+
+        Args:
+            data: The ``data`` section of the document.
+            version: The file's schema version; a v1 file has no mode, integrations or actions.
+        """
+        expected = _DATA_KEYS if version >= 2 else _DATA_KEYS_V1
+        if set(data) != expected:
             raise cls._fail(
-                f"Unexpected data sections: {sorted(set(data) ^ _DATA_KEYS)}",
+                f"Unexpected data sections: {sorted(set(data) ^ expected)}",
                 "Die Abschnitte der Datei stimmen nicht",
             )
+        device_keys = {"id", "alias", "platform_address", "model", "firmware", "created_at"}
+        if version >= 2:
+            device_keys.add("mode")
 
         def exact(record: dict[str, Any], keys: set[str]) -> dict[str, Any]:
             if set(record) != keys:
@@ -489,13 +529,39 @@ class ExportService:
                 "devices",
                 lambda r: Device(
                     **{
-                        **exact(
-                            r,
-                            {"id", "alias", "platform_address", "model", "firmware", "created_at"},
-                        ),
+                        **exact(r, device_keys),
                         "created_at": from_db_time(r["created_at"]),
+                        "mode": DeviceMode(r.get("mode", DeviceMode.TIME.value)),
                     }
                 ),
+            ),
+            integrations=(
+                cls._build(
+                    data,
+                    "integrations",
+                    lambda r: Integration(
+                        **{
+                            **exact(r, {"id", "kind", "name", "config", "enabled", "created_at"}),
+                            "created_at": from_db_time(r["created_at"]),
+                        }
+                    ),
+                )
+                if version >= 2
+                else ()
+            ),
+            actions=(
+                cls._build(
+                    data,
+                    "face_actions",
+                    lambda r: FaceAction(
+                        **exact(
+                            r,
+                            {"device_id", "face", "integration_id", "label", "params", "revision"},
+                        )
+                    ),
+                )
+                if version >= 2
+                else ()
             ),
             activities=cls._build(
                 data,
@@ -610,6 +676,7 @@ class ExportService:
             "raw_events": [e.id for e in content.events],
             "corrections": [c.id for c in content.corrections],
             "audit_log": [a.id for a in content.audit],
+            "integrations": [i.id for i in content.integrations],
         }
         for name, ids in groups.items():
             if len(ids) != len(set(ids)):
@@ -617,6 +684,12 @@ class ExportService:
         keys = [(m.device_id, m.face) for m in content.mappings]
         if len(keys) != len(set(keys)):
             raise cls._fail("Duplicate face mapping", "doppelte Seitenzuordnung")
+        action_keys = [(a.device_id, a.face) for a in content.actions]
+        if len(action_keys) != len(set(action_keys)):
+            raise cls._fail("Duplicate face action", "doppelte Aktion für eine Seite")
+        names = [i.name.casefold() for i in content.integrations]
+        if len(names) != len(set(names)):
+            raise cls._fail("Duplicate integration name", "doppelte Namen bei den Verbindungen")
         devices, activities = set(groups["devices"]), set(groups["activities"])
         projects, sessions = set(groups["projects"]), set(groups["sessions"])
         problems = (
@@ -659,6 +732,16 @@ class ExportService:
                 f"correction {c.id} of unknown session"
                 for c in content.corrections
                 if c.session_id not in sessions
+            ]
+            + [
+                f"face action of unknown device {a.device_id}"
+                for a in content.actions
+                if a.device_id not in devices
+            ]
+            + [
+                f"face action with unknown integration {a.integration_id}"
+                for a in content.actions
+                if a.integration_id not in set(groups["integrations"])
             ]
         )
         if problems:
@@ -711,7 +794,7 @@ class ExportService:
             exported_at = from_db_time(document.get("exported_at", ""))
         except OctaLedgerError as exc:
             raise self._fail("Invalid exported_at", "ungültiges Exportdatum") from exc
-        content = self._decode(data)
+        content = self._decode(data, version)
         summary = BackupSummary(
             schema_version=version,
             app_version=str(document.get("app_version", "?"))[:50],

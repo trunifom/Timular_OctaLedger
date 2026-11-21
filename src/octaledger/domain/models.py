@@ -17,12 +17,14 @@ because addresses may change or be randomised.
 
 from __future__ import annotations
 
+import json
 import re
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 
 from octaledger.core.errors import ValidationError
 from octaledger.domain.time_rules import ensure_utc, interval_duration, utc_now
@@ -62,6 +64,30 @@ class EventKind(StrEnum):
     RECONNECT = "reconnect"
     #: Packet that failed validation (kept for diagnostics, never creates a session).
     INVALID = "invalid"
+
+
+class DeviceMode(StrEnum):
+    """What a tracker is used for (switchable per tracker).
+
+    The two modes never mix on one tracker, so a turn can never both start a time entry and
+    switch a light by accident.
+    """
+
+    #: Faces are activities; turning the cube records working time (the default).
+    TIME = "time"
+    #: Faces are actions (switch a light, publish a message ...); no time is recorded.
+    CONTROL = "control"
+
+
+class JobStatus(StrEnum):
+    """Life cycle of an integration job (one action waiting to be sent)."""
+
+    PENDING = "pending"
+    DONE = "done"
+    #: Gave up: a permanent error or the attempts are used up.
+    FAILED = "failed"
+    #: Dropped on purpose: too late to be useful, or the queue was full.
+    EXPIRED = "expired"
 
 
 class SessionSource(StrEnum):
@@ -141,6 +167,51 @@ def _check_face(value: object) -> int:
     return value
 
 
+def _check_mode(value: object) -> DeviceMode:
+    """Validate a device mode (accepts the enum or its text value)."""
+    try:
+        return DeviceMode(str(value))
+    except ValueError:
+        raise ValidationError(
+            f"Invalid device mode {value!r}",
+            user_message="Der Modus muss „Zeiterfassung“ oder „Steuerung“ sein.",
+            details={"field": "mode"},
+        ) from None
+
+
+#: Upper bound of the JSON text of an integration's settings or an action's parameters.
+MAX_JSON_BYTES: Final = 8 * 1024
+_KIND_PATTERN: Final = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
+
+
+def _check_json_object(value: object, field_name: str) -> dict[str, Any]:
+    """Validate a small JSON object (text keys, JSON-serialisable values, size limit).
+
+    Returns a *copy*, so the caller cannot change the stored value afterwards.
+
+    Raises:
+        ValidationError: If it is not an object, not serialisable, or larger than the limit.
+    """
+    if not isinstance(value, Mapping) or not all(isinstance(key, str) for key in value):
+        raise ValidationError(
+            f"{field_name} must be an object with text keys", details={"field": field_name}
+        )
+    try:
+        text = json.dumps(dict(value), ensure_ascii=False)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(
+            f"{field_name} is not valid JSON data: {exc}", details={"field": field_name}
+        ) from exc
+    if len(text.encode("utf-8")) > MAX_JSON_BYTES:
+        raise ValidationError(
+            f"{field_name} larger than {MAX_JSON_BYTES} bytes",
+            user_message=f"Die Angaben für „{field_name}“ sind zu umfangreich.",
+            details={"field": field_name},
+        )
+    loaded: dict[str, Any] = json.loads(text)
+    return loaded
+
+
 # -------------------------------------------------------------------------------- devices
 
 
@@ -156,6 +227,7 @@ class Device:
         model: Optional model description reported by the device.
         firmware: Optional firmware version reported by the device.
         created_at: Registration time (UTC).
+        mode: Whether the faces record time or trigger actions (:class:`DeviceMode`).
     """
 
     alias: str
@@ -164,6 +236,7 @@ class Device:
     model: str | None = None
     firmware: str | None = None
     created_at: datetime = field(default_factory=utc_now)
+    mode: DeviceMode = DeviceMode.TIME
 
     def __post_init__(self) -> None:
         """Validate and normalise all fields."""
@@ -179,6 +252,7 @@ class Device:
         object.__setattr__(self, "model", _optional_text(self.model, "model", MAX_NAME_LENGTH))
         object.__setattr__(self, "firmware", _optional_text(self.firmware, "firmware", 50))
         object.__setattr__(self, "created_at", ensure_utc(self.created_at, name="created_at"))
+        object.__setattr__(self, "mode", _check_mode(self.mode))
 
 
 # ------------------------------------------------------------- activities and projects
@@ -426,3 +500,145 @@ class Correction:
             or self.revision < 2
         ):
             raise ValidationError("a correction creates revision 2 or higher")
+
+
+# --------------------------------------------------------------- integrations and actions
+
+
+@dataclass(frozen=True, slots=True)
+class Integration:
+    """A configured connection to something that can be controlled (MQTT broker, Hue bridge ...).
+
+    Attributes:
+        kind: Which adapter handles it (``webhook``, ``mqtt``, ``homeassistant``, ``hue``).
+        name: User-chosen name, unique among integrations (case-insensitive).
+        config: Adapter settings **without secrets**. Secrets (tokens, passwords) live in the
+            separate secret store and are never part of this object, a backup or an API answer.
+        enabled: A disabled integration keeps its settings but sends nothing.
+    """
+
+    kind: str
+    name: str
+    config: Mapping[str, Any] = field(default_factory=dict)
+    enabled: bool = True
+    id: str = field(default_factory=new_id)
+    created_at: datetime = field(default_factory=utc_now)
+
+    def __post_init__(self) -> None:
+        """Validate and normalise all fields."""
+        object.__setattr__(self, "id", _check_id(self.id, "id"))
+        if not isinstance(self.kind, str) or not _KIND_PATTERN.match(self.kind):
+            raise ValidationError(
+                f"Invalid integration kind {self.kind!r}", details={"field": "kind"}
+            )
+        object.__setattr__(
+            self,
+            "name",
+            _clean_text(self.name, "Name", max_length=MAX_NAME_LENGTH, required=True),
+        )
+        object.__setattr__(self, "config", _check_json_object(self.config, "config"))
+        if not isinstance(self.enabled, bool):
+            raise ValidationError("enabled must be true or false", details={"field": "enabled"})
+        object.__setattr__(self, "created_at", ensure_utc(self.created_at, name="created_at"))
+
+
+@dataclass(frozen=True, slots=True)
+class FaceAction:
+    """What one face of a tracker in control mode does: one action of one integration.
+
+    ``params`` holds the adapter-specific action (for example ``{"action": "call_service",
+    "domain": "light", "service": "toggle", "entity_id": "light.desk"}``). ``label`` is the name
+    the user gave the face ("Schreibtischlampe"); it is shown in the live view and the history.
+    ``revision`` increases with every change, like :class:`FaceMapping`.
+    """
+
+    device_id: str
+    face: int
+    integration_id: str
+    label: str
+    params: Mapping[str, Any] = field(default_factory=dict)
+    revision: int = 1
+
+    def __post_init__(self) -> None:
+        """Validate ids, face, texts and revision."""
+        object.__setattr__(self, "device_id", _check_id(self.device_id, "device_id"))
+        object.__setattr__(self, "face", _check_face(self.face))
+        object.__setattr__(self, "integration_id", _check_id(self.integration_id, "integration_id"))
+        object.__setattr__(
+            self,
+            "label",
+            _clean_text(self.label, "Bezeichnung", max_length=MAX_NAME_LENGTH, required=True),
+        )
+        object.__setattr__(self, "params", _check_json_object(self.params, "params"))
+        if (
+            isinstance(self.revision, bool)
+            or not isinstance(self.revision, int)
+            or self.revision < 1
+        ):
+            raise ValidationError("revision must be a positive integer")
+
+
+@dataclass(frozen=True, slots=True)
+class IntegrationJob:
+    """One action waiting to be sent (the "outbox" entry written together with the raw event).
+
+    Writing the job in the same transaction as the event makes the trigger reliable, and the
+    unique ``idempotency_key`` (the id of the raw event) makes a repeated trigger harmless. The
+    action is copied into the job (``label``/``params``), so editing the face later does not
+    change what an already queued job does. A job is only useful for a short time, hence
+    ``expires_at``.
+    """
+
+    idempotency_key: str
+    integration_id: str
+    label: str
+    params: Mapping[str, Any]
+    expires_at: datetime
+    device_id: str | None = None
+    face: int | None = None
+    status: JobStatus = JobStatus.PENDING
+    attempts: int = 0
+    last_error: str | None = None
+    created_at: datetime = field(default_factory=utc_now)
+    next_attempt_at: datetime | None = None
+    finished_at: datetime | None = None
+    id: str = field(default_factory=new_id)
+
+    def __post_init__(self) -> None:
+        """Validate and normalise all fields."""
+        object.__setattr__(self, "id", _check_id(self.id, "id"))
+        object.__setattr__(
+            self, "idempotency_key", _check_id(self.idempotency_key, "idempotency_key")
+        )
+        object.__setattr__(self, "integration_id", _check_id(self.integration_id, "integration_id"))
+        object.__setattr__(
+            self,
+            "label",
+            _clean_text(self.label, "Bezeichnung", max_length=MAX_NAME_LENGTH, required=True),
+        )
+        object.__setattr__(self, "params", _check_json_object(self.params, "params"))
+        if self.face is not None:
+            object.__setattr__(self, "face", _check_face(self.face))
+        object.__setattr__(self, "status", JobStatus(self.status))
+        if (
+            isinstance(self.attempts, bool)
+            or not isinstance(self.attempts, int)
+            or self.attempts < 0
+        ):
+            raise ValidationError("attempts must be a non-negative integer")
+        object.__setattr__(
+            self, "last_error", _optional_text(self.last_error, "error", MAX_NOTE_LENGTH)
+        )
+        object.__setattr__(self, "created_at", ensure_utc(self.created_at, name="created_at"))
+        object.__setattr__(self, "expires_at", ensure_utc(self.expires_at, name="expires_at"))
+        object.__setattr__(
+            self,
+            "next_attempt_at",
+            self.created_at
+            if self.next_attempt_at is None
+            else ensure_utc(self.next_attempt_at, name="next_attempt_at"),
+        )
+        if self.finished_at is not None:
+            object.__setattr__(
+                self, "finished_at", ensure_utc(self.finished_at, name="finished_at")
+            )

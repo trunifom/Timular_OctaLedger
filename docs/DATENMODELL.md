@@ -3,18 +3,19 @@
 Ziel: SQLite im Benutzerprofil, nicht im Projektordner. Pfade über platformdirs
 ermitteln; Benutzer kann einen bewussten alternativen Datenpfad wählen. Geplante
 Unterordner: data/, logs/, backups/, exports/ (umgesetzt, siehe SOFTWAREDOKUMENTATION §5).
-Schema und Migrationen: SOFTWAREDOKUMENTATION §9 (Migrationen 0001 und 0002 umgesetzt;
-`integration_jobs` folgt mit F-20).
+Schema und Migrationen: SOFTWAREDOKUMENTATION §9 (Migrationen 0001 bis 0003 umgesetzt).
 
 | Entität | Inhalt |
 |---|---|
-| devices | Interne UUID, Alias, optionale Firmware, Plattformkennung |
+| devices | Interne UUID, Alias, optionale Firmware, Plattformkennung, **Modus** (`time` = Zeiterfassung, `control` = Steuerung; Migration 0003) |
 | face_mappings | Gerät, technische Seite, Aktivität, Revision |
 | activities/projects | Benennung, Farbe, Archivierungsstatus |
 | raw_events | UUID, Empfangszeit UTC, Sequenz, Verbindungssitzung, Rohwert |
 | sessions | Tätigkeit, Beginn/Ende UTC, Quelle, Gerät, Qualitätskennzeichen |
 | corrections | Änderungsgrund, alter/neuer Wert, Zeitpunkt, Revision |
-| integration_jobs | Auftrag, Ziel, Status, Versuche, Verfallszeit (**noch nicht umgesetzt**, F-20) |
+| integrations | Verbindung zu etwas Steuerbarem (Art, Name, Einstellungen **ohne Geheimnisse**, aktiv); Migration 0003 |
+| face_actions | Gerät, Seite, Verbindung, Bezeichnung, Aktionsparameter, Revision (nur im Steuerungsmodus) |
+| integration_jobs | Warteschlange („Outbox“): Auftrag, Ziel, Status, Versuche, Verfallszeit; Laufzeitdaten, **nicht** Teil der Sicherung |
 | audit_log | Löschungen, Bereinigungen, Restore (zusätzlich umgesetzt) |
 | app_state | aktiver Tracker, Pause (zusätzlich umgesetzt, Migration 0002) |
 

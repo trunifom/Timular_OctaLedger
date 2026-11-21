@@ -507,6 +507,8 @@ atomaren Datenbanktransaktion. Keine BLE-/HTTP-Kenntnis; der Agent liefert `RawE
 die API ruft die Benutzeroperationen. Die Zeit kommt aus einer injizierbaren Uhr
 (`clock`), alle Tests laufen deterministisch.
 
+Ergänzend (AP-26a): Migration `0003_integrations.sql` (Spalte `devices.mode` und die Tabellen `integrations`, `face_actions`, `integration_jobs`, siehe §31).
+
 Ergänzend (AP-09): Migration `0002_app_state.sql` (Tabelle `app_state`: aktiver Tracker, Pause),
 `StateRepository`, `SessionRepository.set_quality/last_ended/list_by_quality`.
 
@@ -798,7 +800,7 @@ Ergänzend im Storage: `list_all`-Methoden (Ereignisse, Korrekturen, Audit), `St
 ### 17.2 JSON-Backup (`create_backup_text`, `export_backup`)
 
 ```json
-{ "format": "octaledger-backup", "schema_version": 1, "app_version": "...",
+{ "format": "octaledger-backup", "schema_version": 2, "app_version": "...",
   "exported_at": "2026-01-05T08:00:00.000000Z", "counts": { "sessions": 3, ... },
   "checksum": "<sha256 über data>", "data": { "devices": [...], "activities": [...],
   "projects": [...], "face_mappings": [...], "raw_events": [...], "sessions": [...],
@@ -1447,3 +1449,60 @@ fehlende/ungültige Dateien, **die mitgelieferten Dokumente** (mindestens fünf 
 nicht erkannter Würfel, Erkennung am Dienst, leere Suche, vorhandener Tracker ohne Adresse wird wiederverwendet,
 Schritte schalten frei, Handbuch (Kapitel, Suche, zweites Dokument, fehlende Dokumentation), Hilfetexte. Im Browser
 (Chromium) angesehen; nicht mit echter Hardware.
+
+## 31. Steuerungsmodus und Integrationen (AP-26 bis AP-31)
+
+Neben der Zeiterfassung kann ein Würfel **Dinge steuern** (Licht, Szenen, MQTT-Nachrichten, Webhooks). Entscheidungen
+(Stand der Planung):
+
+- **Umschalter pro Würfel:** `DeviceMode.TIME` (Standard) oder `DeviceMode.CONTROL`. Die Modi vermischen sich nie auf
+  einem Würfel, damit eine Drehung nicht versehentlich Zeit startet **und** ein Licht schaltet.
+- **Home Assistant ist die Zentrale für Smarthome-Standards.** Matter und Google Home werden **über Home Assistant**
+  erreicht (dort läuft ein Matter-Controller, und Google Home kann Home-Assistant-Geräte steuern). OctaLedger
+  verspricht **keine eigene Matter-Unterstützung** (Pflichtenheft §2: keine Matter-Zertifizierung; unter Windows gibt es
+  keine unterstützte Matter-Bibliothek für Python).
+- **Erste Anbindungen:** Webhook, MQTT, Home Assistant, Philips Hue (AP-27 bis AP-30), alle über denselben Baukasten.
+- **Keine Shell-Befehle**, nur ausdrücklich eingerichtete Ziele (Pflichtenheft §8).
+
+### 31.1 Datenmodell (AP-26a)
+
+| Teil | Inhalt |
+|---|---|
+| `domain.models.DeviceMode`, `Device.mode` | Modus je Tracker; bestehende Tracker bleiben in `time` (Migration mit `DEFAULT 'time'`) |
+| `Integration(kind, name, config, enabled)` | Eine Verbindung. `config` enthält **nur Einstellungen ohne Geheimnisse** (JSON-Objekt, höchstens 8 KiB, wird kopiert). Namen sind eindeutig (ohne Groß-/Kleinschreibung) |
+| `FaceAction(device_id, face, integration_id, label, params, revision)` | Was eine Seite im Steuerungsmodus tut. `label` ist der Name, den der Anwender der Seite gibt; `revision` zählt Änderungen wie bei `FaceMapping` |
+| `IntegrationJob` / `JobStatus` | Ein wartender Auftrag (`pending`, `done`, `failed`, `expired`). Enthält eine **Kopie** von Bezeichnung und Parametern, damit eine spätere Änderung der Seite einen bereits wartenden Auftrag nicht verändert |
+| `IntegrationRepository`, `FaceActionRepository`, `JobRepository` | Persistenz (`repos.integrations`, `repos.actions`, `repos.jobs`) |
+
+**Fremdschlüssel:** `face_actions → devices` mit `CASCADE` (Aktionen folgen dem Gerät), `face_actions → integrations` mit
+`RESTRICT` (eine benutzte Verbindung lässt sich nicht löschen, erst die Aktion entfernen), `integration_jobs →
+integrations` mit `CASCADE`, `integration_jobs → devices` mit `SET NULL` (die Historie bleibt, auch wenn das Gerät
+gelöscht wird).
+
+**Warteschlange („Outbox“):** Ein Auftrag wird in **derselben Transaktion** wie das auslösende Rohereignis geschrieben, der
+eindeutige `idempotency_key` (die Kennung des Rohereignisses) macht eine Wiederholung unschädlich (`enqueue` liefert
+`False`, nichts ändert sich). Jeder Auftrag hat eine **Verfallszeit** (`expires_at`): Ein Lichtschalter, der Minuten zu
+spät kommt, ist schädlich. `due(now)` liefert fällige Aufträge, `mark_retry/done/failed/expired` beenden oder verschieben
+sie, `expire_overdue` lässt Überfällige verfallen, `delete_finished_before` hält die Historie klein. Die Warteschlange ist
+**Laufzeitdaten und nicht Teil der Sicherung** (nach einer Wiederherstellung wird sie geleert).
+
+**Geheimnisse (Tokens, Passwörter) stehen nie in der Datenbank, in der Sicherung, in API-Antworten oder im Protokoll**; sie
+liegen in einem eigenen Speicher im Benutzerprofil (AP-26b).
+
+### 31.2 Sicherung Version 2
+
+`BACKUP_SCHEMA_VERSION = 2`: Die Geräte enthalten `mode`, neue Abschnitte `integrations` und `face_actions` (Einstellungen
+und Aktionen, **ohne Geheimnisse**; nach einer Wiederherstellung auf einem anderen Rechner müssen Tokens und Passwörter neu
+eingegeben werden). **Dateien der Version 1 bleiben lesbar** (alle Tracker im Zeitmodus, keine Verbindungen). Die
+Validierung ist unverändert streng (genaue Feldmengen, Eindeutigkeit, Verweise, Prüfsumme) und prüft zusätzlich doppelte
+Verbindungsnamen, doppelte Aktionen je Seite und Verweise von Aktionen auf unbekannte Geräte oder Verbindungen. Die
+Wiederherstellung leert zuerst Aufträge, Aktionen und Verbindungen (Reihenfolge wegen der Fremdschlüssel).
+
+### 31.3 Tests (AP-26a)
+
+`tests/unit/test_integrations_storage.py` (25): Modelle (Modus, Art/Name/Einstellungen, Kopie der Einstellungen, Größenlimit,
+Seite/Bezeichnung/Revision, Auftragsstandards), Gerätemodus speichern und ändern, **Migration lässt bestehende Tracker im
+Zeitmodus**, Verbindungen (CRUD, eindeutige Namen, benutzte Verbindung nicht löschbar), Aktionen (zuweisen, Revision,
+entfernen, mit dem Gerät löschen), Warteschlange (idempotent, fällig, Wiederholung/erledigt/fehlgeschlagen/verfallen,
+Bereinigung, Gerät gelöscht), Sicherung v2 (Rundreise, Wiederherstellung leert die Warteschlange, **v1-Datei lesbar**, acht
+ungültige Inhalte werden vor jeder Änderung abgelehnt).

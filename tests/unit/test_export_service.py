@@ -272,7 +272,7 @@ def test_inspect_does_not_change_anything(tmp_path: Path) -> None:
     source.fill()
     path = source.service.export_backup(filename="b.json").path
     summary = target.service.inspect_backup(path)
-    assert summary.counts["devices"] == 1 and summary.schema_version == 1
+    assert summary.counts["devices"] == 1 and summary.schema_version == BACKUP_SCHEMA_VERSION
     assert summary.exported_at == NOW and summary.app_version
     assert target.content().devices == ()
     assert not list(target.backups.glob("*pre-restore*"))  # preview creates no backup

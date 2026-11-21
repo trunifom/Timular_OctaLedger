@@ -22,6 +22,7 @@ Structure
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import sqlite3
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -40,7 +41,11 @@ from octaledger.domain.models import (
     Correction,
     Device,
     EventKind,
+    FaceAction,
     FaceMapping,
+    Integration,
+    IntegrationJob,
+    JobStatus,
     Project,
     Quality,
     RawEvent,
@@ -146,6 +151,7 @@ class DeviceRepository:
                 model=row["model"],
                 firmware=row["firmware"],
                 created_at=from_db_time(row["created_at"]),
+                mode=row["mode"],
             ),
             "device",
             row["id"],
@@ -159,8 +165,8 @@ class DeviceRepository:
         """
         with _db_errors("insert device"):
             self._c.execute(
-                "INSERT INTO devices (id, alias, platform_address, model, firmware, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO devices (id, alias, platform_address, model, firmware, created_at, "
+                "mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     device.id,
                     device.alias,
@@ -168,6 +174,7 @@ class DeviceRepository:
                     device.model,
                     device.firmware,
                     to_db_time(device.created_at),
+                    device.mode.value,
                 ),
             )
         logger.info("Device registered: %s (%s)", device.alias, device.id[:8])
@@ -193,7 +200,7 @@ class DeviceRepository:
         return [self._from_row(r) for r in rows]
 
     def update(self, device: Device) -> Device:
-        """Update alias, address, model and firmware of an existing device.
+        """Update alias, address, model, firmware and mode of an existing device.
 
         Raises:
             NotFoundError: If the device does not exist.
@@ -201,9 +208,16 @@ class DeviceRepository:
         """
         with _db_errors("update device"):
             cursor = self._c.execute(
-                "UPDATE devices SET alias = ?, platform_address = ?, model = ?, firmware = ? "
-                "WHERE id = ?",
-                (device.alias, device.platform_address, device.model, device.firmware, device.id),
+                "UPDATE devices SET alias = ?, platform_address = ?, model = ?, firmware = ?, "
+                "mode = ? WHERE id = ?",
+                (
+                    device.alias,
+                    device.platform_address,
+                    device.model,
+                    device.firmware,
+                    device.mode.value,
+                    device.id,
+                ),
             )
         if cursor.rowcount == 0:
             raise NotFoundError(f"Device {device.id} not found", details={"id": device.id})
@@ -428,6 +442,382 @@ class FaceMappingRepository:
             self._c.execute(
                 "DELETE FROM face_mappings WHERE device_id = ? AND face = ?", (device_id, face)
             )
+
+
+# -------------------------------------------------------------------------- integrations
+
+
+def _to_json(value: Mapping[str, Any]) -> str:
+    """Canonical JSON text of a small settings/parameter object."""
+    return json.dumps(dict(value), sort_keys=True, ensure_ascii=False)
+
+
+def _from_json(text: str) -> dict[str, Any]:
+    """Decode stored JSON; anything but an object is a data integrity problem."""
+    try:
+        loaded = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise DataIntegrityError(f"Stored JSON is invalid: {exc}") from exc
+    if not isinstance(loaded, dict):
+        raise DataIntegrityError("Stored JSON is not an object")
+    return loaded
+
+
+class IntegrationRepository:
+    """Persistence of integrations (settings only; secrets are stored elsewhere)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> Integration:
+        return _load(
+            lambda: Integration(
+                id=row["id"],
+                kind=row["kind"],
+                name=row["name"],
+                config=_from_json(row["config"]),
+                enabled=bool(row["enabled"]),
+                created_at=from_db_time(row["created_at"]),
+            ),
+            "integration",
+            row["id"],
+        )
+
+    def add(self, integration: Integration) -> Integration:
+        """Insert an integration.
+
+        Raises:
+            ConflictError: If the name is already used.
+        """
+        with _db_errors("insert integration"):
+            self._c.execute(
+                "INSERT INTO integrations (id, kind, name, config, enabled, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    integration.id,
+                    integration.kind,
+                    integration.name,
+                    _to_json(integration.config),
+                    int(integration.enabled),
+                    to_db_time(integration.created_at),
+                ),
+            )
+        logger.info("Integration added: %s (%s)", integration.name, integration.kind)
+        return integration
+
+    def get(self, integration_id: str) -> Integration | None:
+        """Return the integration or ``None``."""
+        with _db_errors("read integration"):
+            row = self._c.execute(
+                "SELECT * FROM integrations WHERE id = ?", (integration_id,)
+            ).fetchone()
+        return None if row is None else self._from_row(row)
+
+    def require(self, integration_id: str) -> Integration:
+        """Return the integration or raise :class:`NotFoundError`."""
+        integration = self.get(integration_id)
+        if integration is None:
+            raise NotFoundError(
+                f"Integration {integration_id} not found", details={"id": integration_id}
+            )
+        return integration
+
+    def list_all(self) -> list[Integration]:
+        """Return all integrations ordered by name."""
+        with _db_errors("list integrations"):
+            rows = self._c.execute(
+                "SELECT * FROM integrations ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def update(self, integration: Integration) -> Integration:
+        """Change name, settings and enabled flag (the kind never changes).
+
+        Raises:
+            NotFoundError: If the integration does not exist.
+            ConflictError: If the new name is already used.
+        """
+        with _db_errors("update integration"):
+            cursor = self._c.execute(
+                "UPDATE integrations SET name = ?, config = ?, enabled = ? WHERE id = ?",
+                (
+                    integration.name,
+                    _to_json(integration.config),
+                    int(integration.enabled),
+                    integration.id,
+                ),
+            )
+        if cursor.rowcount == 0:
+            raise NotFoundError(
+                f"Integration {integration.id} not found", details={"id": integration.id}
+            )
+        return integration
+
+    def delete(self, integration_id: str, audit: AuditLogRepository | None = None) -> None:
+        """Delete an integration and its queued jobs.
+
+        Raises:
+            NotFoundError: If missing.
+            ConflictError: If a face still uses it (remove the action first).
+        """
+        integration = self.require(integration_id)
+        with _savepoint(self._c, "delete_integration"):
+            with _db_errors("delete integration"):
+                self._c.execute("DELETE FROM integrations WHERE id = ?", (integration_id,))
+            if audit is not None:
+                audit.add("delete", "integration", integration_id, f"name={integration.name}")
+        logger.info("Integration deleted: %s", integration.name)
+
+
+class FaceActionRepository:
+    """Persistence of face-to-action assignments (control mode)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> FaceAction:
+        return _load(
+            lambda: FaceAction(
+                device_id=row["device_id"],
+                face=row["face"],
+                integration_id=row["integration_id"],
+                label=row["label"],
+                params=_from_json(row["params"]),
+                revision=row["revision"],
+            ),
+            "face action",
+            f"{row['device_id']}/{row['face']}",
+        )
+
+    def get(self, device_id: str, face: int) -> FaceAction | None:
+        """Return the action of one face or ``None``."""
+        with _db_errors("read face action"):
+            row = self._c.execute(
+                "SELECT * FROM face_actions WHERE device_id = ? AND face = ?", (device_id, face)
+            ).fetchone()
+        return None if row is None else self._from_row(row)
+
+    def list_for_device(self, device_id: str) -> list[FaceAction]:
+        """Return all configured actions of a device ordered by face."""
+        with _db_errors("list face actions"):
+            rows = self._c.execute(
+                "SELECT * FROM face_actions WHERE device_id = ? ORDER BY face", (device_id,)
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def list_all(self) -> list[FaceAction]:
+        """Return every action (for backups), ordered by device and face."""
+        with _db_errors("list all face actions"):
+            rows = self._c.execute("SELECT * FROM face_actions ORDER BY device_id, face").fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def assign(
+        self,
+        device_id: str,
+        face: int,
+        integration_id: str,
+        label: str,
+        params: Mapping[str, Any],
+    ) -> FaceAction:
+        """Create or change an action; the revision grows when something changes.
+
+        Raises:
+            ValidationError: For invalid values.
+            ConflictError: If the device or integration does not exist.
+        """
+        existing = self.get(device_id, face)
+        candidate = FaceAction(device_id, face, integration_id, label, params, revision=1)
+        if existing is not None:
+            same = (existing.integration_id, existing.label, existing.params) == (
+                candidate.integration_id,
+                candidate.label,
+                candidate.params,
+            )
+            if same:
+                return existing
+            candidate = dataclasses.replace(candidate, revision=existing.revision + 1)
+        with _db_errors("assign face action"):
+            self._c.execute(
+                "INSERT INTO face_actions (device_id, face, integration_id, label, params, "
+                "revision) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (device_id, face) DO UPDATE SET "
+                "integration_id = excluded.integration_id, label = excluded.label, "
+                "params = excluded.params, revision = excluded.revision",
+                (
+                    device_id,
+                    face,
+                    integration_id,
+                    candidate.label,
+                    _to_json(candidate.params),
+                    candidate.revision,
+                ),
+            )
+        logger.info(
+            "Action of face %d of device %s set (revision %d)",
+            face,
+            device_id[:8],
+            candidate.revision,
+        )
+        return candidate
+
+    def clear(self, device_id: str, face: int) -> None:
+        """Remove the action of a face (no error if none existed)."""
+        with _db_errors("clear face action"):
+            self._c.execute(
+                "DELETE FROM face_actions WHERE device_id = ? AND face = ?", (device_id, face)
+            )
+
+
+class JobRepository:
+    """The outbox of actions waiting to be sent (see :class:`IntegrationJob`)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> IntegrationJob:
+        return _load(
+            lambda: IntegrationJob(
+                id=row["id"],
+                idempotency_key=row["idempotency_key"],
+                integration_id=row["integration_id"],
+                device_id=row["device_id"],
+                face=row["face"],
+                label=row["label"],
+                params=_from_json(row["params"]),
+                status=JobStatus(row["status"]),
+                attempts=row["attempts"],
+                last_error=row["last_error"],
+                created_at=from_db_time(row["created_at"]),
+                expires_at=from_db_time(row["expires_at"]),
+                next_attempt_at=from_db_time(row["next_attempt_at"]),
+                finished_at=_opt_time(row["finished_at"]),
+            ),
+            "integration job",
+            row["id"],
+        )
+
+    def enqueue(self, job: IntegrationJob) -> bool:
+        """Insert a job unless one with the same idempotency key exists.
+
+        Returns:
+            ``True`` if the job was stored, ``False`` if it was a repeat (nothing changes).
+        """
+        with _db_errors("enqueue job"):
+            cursor = self._c.execute(
+                "INSERT OR IGNORE INTO integration_jobs (id, idempotency_key, integration_id, "
+                "device_id, face, label, params, status, attempts, last_error, created_at, "
+                "expires_at, next_attempt_at, finished_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    job.id,
+                    job.idempotency_key,
+                    job.integration_id,
+                    job.device_id,
+                    job.face,
+                    job.label,
+                    _to_json(job.params),
+                    job.status.value,
+                    job.attempts,
+                    job.last_error,
+                    to_db_time(job.created_at),
+                    to_db_time(job.expires_at),
+                    to_db_time(job.next_attempt_at or job.created_at),
+                    None if job.finished_at is None else to_db_time(job.finished_at),
+                ),
+            )
+        return cursor.rowcount == 1
+
+    def get(self, job_id: str) -> IntegrationJob | None:
+        """Return the job or ``None``."""
+        with _db_errors("read job"):
+            row = self._c.execute(
+                "SELECT * FROM integration_jobs WHERE id = ?", (job_id,)
+            ).fetchone()
+        return None if row is None else self._from_row(row)
+
+    def count_pending(self, integration_id: str) -> int:
+        """Number of jobs of an integration that are still waiting."""
+        with _db_errors("count pending jobs"):
+            row = self._c.execute(
+                "SELECT COUNT(*) FROM integration_jobs WHERE integration_id = ? "
+                "AND status = 'pending'",
+                (integration_id,),
+            ).fetchone()
+        return int(row[0])
+
+    def due(self, now: datetime, limit: int = 20) -> list[IntegrationJob]:
+        """Pending jobs whose next attempt is due, oldest first."""
+        with _db_errors("list due jobs"):
+            rows = self._c.execute(
+                "SELECT * FROM integration_jobs WHERE status = 'pending' AND next_attempt_at <= ? "
+                "ORDER BY created_at, id LIMIT ?",
+                (to_db_time(now), limit),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def _finish(
+        self, job_id: str, status: JobStatus, now: datetime, attempts: int, error: str | None
+    ) -> None:
+        with _db_errors("finish job"):
+            self._c.execute(
+                "UPDATE integration_jobs SET status = ?, attempts = ?, last_error = ?, "
+                "finished_at = ? WHERE id = ?",
+                (status.value, attempts, error, to_db_time(now), job_id),
+            )
+
+    def mark_done(self, job_id: str, now: datetime, attempts: int) -> None:
+        """The action was sent."""
+        self._finish(job_id, JobStatus.DONE, now, attempts, None)
+
+    def mark_failed(self, job_id: str, now: datetime, attempts: int, error: str) -> None:
+        """Give up on a job (permanent error or attempts used up)."""
+        self._finish(job_id, JobStatus.FAILED, now, attempts, error)
+
+    def mark_expired(self, job_id: str, now: datetime, attempts: int, error: str) -> None:
+        """Drop a job that is too late to be useful."""
+        self._finish(job_id, JobStatus.EXPIRED, now, attempts, error)
+
+    def mark_retry(self, job_id: str, attempts: int, next_attempt_at: datetime, error: str) -> None:
+        """Keep the job pending and try again at ``next_attempt_at``."""
+        with _db_errors("retry job"):
+            self._c.execute(
+                "UPDATE integration_jobs SET attempts = ?, last_error = ?, next_attempt_at = ? "
+                "WHERE id = ?",
+                (attempts, error, to_db_time(next_attempt_at), job_id),
+            )
+
+    def expire_overdue(self, now: datetime, message: str) -> int:
+        """Expire every pending job whose time ran out; returns how many."""
+        with _db_errors("expire jobs"):
+            cursor = self._c.execute(
+                "UPDATE integration_jobs SET status = 'expired', last_error = ?, finished_at = ? "
+                "WHERE status = 'pending' AND expires_at <= ?",
+                (message, to_db_time(now), to_db_time(now)),
+            )
+        return cursor.rowcount
+
+    def list_recent(self, limit: int = 50) -> list[IntegrationJob]:
+        """The newest jobs first (for the history)."""
+        with _db_errors("list jobs"):
+            rows = self._c.execute(
+                "SELECT * FROM integration_jobs ORDER BY created_at DESC, id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def delete_finished_before(self, cutoff: datetime) -> int:
+        """Remove finished jobs older than ``cutoff`` (keeps the history small)."""
+        with _db_errors("purge jobs"):
+            cursor = self._c.execute(
+                "DELETE FROM integration_jobs WHERE status != 'pending' AND finished_at < ?",
+                (to_db_time(cutoff),),
+            )
+        return cursor.rowcount
 
 
 # ------------------------------------------------------------------------------- events
@@ -1005,6 +1395,8 @@ class BackupContent:
     corrections: tuple[Correction, ...] = ()
     audit: tuple[AuditEntry, ...] = ()
     state: Mapping[str, str] | None = None
+    integrations: tuple[Integration, ...] = ()
+    actions: tuple[FaceAction, ...] = ()
 
     def counts(self) -> dict[str, int]:
         """Number of records per entity (for previews and summaries)."""
@@ -1017,6 +1409,8 @@ class BackupContent:
             "sessions": len(self.sessions),
             "corrections": len(self.corrections),
             "audit_log": len(self.audit),
+            "integrations": len(self.integrations),
+            "face_actions": len(self.actions),
         }
 
 
@@ -1029,6 +1423,9 @@ class BackupRepository:
 
     #: Tables in the order they can be emptied without violating foreign keys.
     _CLEAR_ORDER = (
+        "integration_jobs",
+        "face_actions",
+        "integrations",
         "corrections",
         "sessions",
         "raw_events",
@@ -1059,6 +1456,8 @@ class BackupRepository:
             corrections=tuple(r.sessions.list_corrections()),
             audit=tuple(r.audit.list_all()),
             state=r.state.items(),
+            integrations=tuple(r.integrations.list_all()),
+            actions=tuple(r.actions.list_all()),
         )
 
     def replace_all(self, content: BackupContent) -> None:
@@ -1077,6 +1476,24 @@ class BackupRepository:
             r.activities.add(activity)
         for project in content.projects:
             r.projects.add(project)
+        for integration in content.integrations:
+            r.integrations.add(integration)
+        with _db_errors("restore face actions"):
+            self._c.executemany(
+                "INSERT INTO face_actions (device_id, face, integration_id, label, params, "
+                "revision) VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        a.device_id,
+                        a.face,
+                        a.integration_id,
+                        a.label,
+                        _to_json(a.params),
+                        a.revision,
+                    )
+                    for a in content.actions
+                ],
+            )
         with _db_errors("restore face mappings"):
             self._c.executemany(
                 "INSERT INTO face_mappings (device_id, face, activity_id, project_id, revision) "
@@ -1136,6 +1553,9 @@ class Repositories:
     audit: AuditLogRepository
     state: StateRepository
     backup: BackupRepository
+    integrations: IntegrationRepository
+    actions: FaceActionRepository
+    jobs: JobRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -1152,6 +1572,9 @@ class Repositories:
             ("sessions", SessionRepository(connection)),
             ("audit", AuditLogRepository(connection)),
             ("state", StateRepository(connection)),
+            ("integrations", IntegrationRepository(connection)),
+            ("actions", FaceActionRepository(connection)),
+            ("jobs", JobRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

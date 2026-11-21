@@ -494,7 +494,7 @@ def test_csv_export_backup_inspect_and_confirmed_restore(env: Env, tmp_path: Pat
     backup = env.post("/backup").json()
     assert backup["records"] > 0 and (tmp_path / "backups" / backup["filename"]).exists()
     preview = env.post("/restore/inspect", {"content": backup["content"]})
-    assert preview.json()["counts"]["sessions"] == 1 and preview.json()["schema_version"] == 1
+    assert preview.json()["counts"]["sessions"] == 1 and preview.json()["schema_version"] == 2
 
     env.post("/tracking/start", {"activity_id": activity})  # change data after the backup
     unconfirmed = env.post("/restore", {"content": backup["content"]})
