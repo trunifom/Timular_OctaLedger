@@ -42,6 +42,7 @@ octaledger/
   src/octaledger/__init__.py
   src/octaledger/__main__.py
   src/octaledger/agent/__init__.py
+  src/octaledger/agent/dispatcher.py
   src/octaledger/agent/main.py
   src/octaledger/agent/supervisor.py
   src/octaledger/api/__init__.py
@@ -135,6 +136,7 @@ octaledger/
   tests/unit/test_cli.py
   tests/unit/test_control_mode.py
   tests/unit/test_dashboard_client.py
+  tests/unit/test_dispatcher.py
   tests/unit/test_database.py
   tests/unit/test_device_catalog_services.py
   tests/unit/test_errors.py

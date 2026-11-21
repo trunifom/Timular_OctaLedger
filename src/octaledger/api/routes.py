@@ -25,6 +25,7 @@ from octaledger import __version__
 from octaledger.api.context import AppContext
 from octaledger.api.schemas import (
     API_VERSION,
+    ActionAssign,
     AddressBody,
     ArchiveBody,
     CatalogCreate,
@@ -34,7 +35,11 @@ from octaledger.api.schemas import (
     DeviceRename,
     ExportCsvBody,
     FaceAssign,
+    IntegrationCreate,
+    IntegrationUpdate,
     ManualSession,
+    ModeBody,
+    ProbeBody,
     ReasonBody,
     RestoreBody,
     RestoreInspectBody,
@@ -43,8 +48,11 @@ from octaledger.api.schemas import (
     SplitBody,
     StartBody,
     activity_out,
+    adapter_out,
     device_out,
+    integration_out,
     iso,
+    job_out,
     journal_out,
     live_out,
     report_out,
@@ -56,6 +64,7 @@ from octaledger.api.security import parse_bearer, verify_token
 from octaledger.application.reporting_service import ReportFilter
 from octaledger.core.errors import ApiUnavailableError, InvalidStateError, ValidationError
 from octaledger.core.settings import settings_from_mapping, settings_to_mapping
+from octaledger.domain.models import DeviceMode
 from octaledger.domain.time_rules import ensure_utc, utc_now
 
 logger = logging.getLogger(__name__)
@@ -81,6 +90,11 @@ def build_router(ctx: AppContext) -> APIRouter:
         if ctx.agent is None:
             raise ApiUnavailableError("The BLE agent is not running in this process")
         return ctx.agent
+
+    def require_integrations() -> Any:
+        if ctx.integrations is None:
+            raise ApiUnavailableError("Control mode is not available in this process")
+        return ctx.integrations
 
     # ----------------------------------------------------------------------- health
     @public.get("/health")
@@ -162,6 +176,33 @@ def build_router(ctx: AppContext) -> APIRouter:
         tracking = tracking_status_out(ctx.tracking.status(), now())
         return live_out(info, device_statuses().get(device_id), activities, projects, tracking)
 
+    @router.put("/devices/{device_id}/mode")
+    def set_device_mode(device_id: str, body: ModeBody) -> dict[str, Any]:
+        """Switch a tracker between time recording (``time``) and control (``control``)."""
+        try:
+            mode = DeviceMode(body.mode)
+        except ValueError:
+            raise ValidationError(
+                f"Invalid mode {body.mode!r}",
+                user_message="Der Modus muss „time“ (Zeit) oder „control“ (Steuerung) sein.",
+            ) from None
+        ctx.devices.set_mode(device_id, mode)
+        return device_out(ctx.devices.get(device_id), device_statuses().get(device_id))
+
+    @router.put("/devices/{device_id}/actions/{face}")
+    def assign_action(device_id: str, face: int, body: ActionAssign) -> dict[str, Any]:
+        """Give a face an action of a connection (validated by the connection's adapter)."""
+        require_integrations().assign_action(
+            device_id, face, body.integration_id, body.label, body.params
+        )
+        return device_out(ctx.devices.get(device_id))
+
+    @router.delete("/devices/{device_id}/actions/{face}")
+    def clear_action(device_id: str, face: int) -> dict[str, Any]:
+        """Remove the action of a face."""
+        require_integrations().clear_action(device_id, face)
+        return device_out(ctx.devices.get(device_id))
+
     @router.post("/devices/{device_id}/activate")
     def activate_device(device_id: str) -> dict[str, Any]:
         """Explicit hand-over: make this tracker the active one."""
@@ -199,6 +240,61 @@ def build_router(ctx: AppContext) -> APIRouter:
     def scan(body: ScanBody) -> list[dict[str, Any]]:
         """Scan for BLE devices (explicit user action; never connects by itself)."""
         return [scan_out(r) for r in require_agent().scan(body.seconds)]
+
+    # ----------------------------------------------------- control mode: connections
+    @router.get("/adapters")
+    def list_adapters() -> list[dict[str, Any]]:
+        """The kinds of connection OctaLedger offers, each with its form description."""
+        return [adapter_out(spec) for spec in require_integrations().adapter_specs()]
+
+    @router.get("/integrations")
+    def list_integrations() -> list[dict[str, Any]]:
+        """All connections (settings and the names of stored secrets, never secret values)."""
+        return [integration_out(i) for i in require_integrations().list_integrations()]
+
+    @router.post("/integrations", status_code=201)
+    def create_integration(body: IntegrationCreate) -> dict[str, Any]:
+        """Create a connection; secrets in ``values`` go to the separate secret store."""
+        return integration_out(require_integrations().create(body.kind, body.name, body.values))
+
+    @router.patch("/integrations/{integration_id}")
+    def update_integration(integration_id: str, body: IntegrationUpdate) -> dict[str, Any]:
+        """Change name, settings, secrets (blank keeps) or the enabled flag."""
+        return integration_out(
+            require_integrations().update(
+                integration_id, name=body.name, values=body.values, enabled=body.enabled
+            )
+        )
+
+    @router.delete("/integrations/{integration_id}", status_code=204)
+    def delete_integration(integration_id: str) -> None:
+        """Delete a connection (refused while a face still uses it)."""
+        require_integrations().delete(integration_id)
+
+    @router.post("/integrations/{integration_id}/check")
+    def check_integration(integration_id: str) -> dict[str, Any]:
+        """Test the connection without side effects."""
+        return {"message": require_integrations().check(integration_id)}
+
+    @router.post("/integrations/{integration_id}/probe")
+    def probe_integration(integration_id: str, body: ProbeBody) -> dict[str, Any]:
+        """Run one action right now (\"try it\")."""
+        return {"message": require_integrations().probe(integration_id, body.params)}
+
+    @router.post("/integrations/{integration_id}/pair")
+    def pair_integration(integration_id: str) -> dict[str, Any]:
+        """Run the one-time pairing (for example after pressing the bridge button)."""
+        return {"message": require_integrations().pair(integration_id)}
+
+    @router.post("/integrations/{integration_id}/discover")
+    def discover_integration(integration_id: str) -> dict[str, Any]:
+        """List lights, scenes ... the target offers to choose from."""
+        return {"items": require_integrations().discover(integration_id)}
+
+    @router.get("/jobs")
+    def list_jobs(limit: Annotated[int, Query(ge=1, le=200)] = 50) -> list[dict[str, Any]]:
+        """History of sent actions, newest first."""
+        return [job_out(j) for j in require_integrations().list_jobs(limit)]
 
     # ------------------------------------------------------------ activities/projects
     def catalog_routes(kind: str, plural_name: str) -> None:

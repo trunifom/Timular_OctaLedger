@@ -28,12 +28,13 @@ import logging
 import socket
 import threading
 import time
-from collections.abc import Coroutine
+from collections.abc import Coroutine, Mapping
 from pathlib import Path
 from typing import Any, TypeVar
 
 import uvicorn
 
+from octaledger.agent.dispatcher import ActionDispatcher
 from octaledger.agent.supervisor import AgentSupervisor, DeviceStatus, SupervisorTuning
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
@@ -41,6 +42,7 @@ from octaledger.api.security import TOKEN_FILE_NAME, load_or_create_token
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
+from octaledger.application.integration_service import IntegrationService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
 from octaledger.core.errors import (
@@ -50,6 +52,7 @@ from octaledger.core.errors import (
     OctaLedgerError,
 )
 from octaledger.core.logging import configure_logging, recent_log_lines, shutdown_logging
+from octaledger.core.secrets import SECRETS_FILE_NAME, SecretStore
 from octaledger.core.settings import (
     AppPaths,
     Settings,
@@ -58,9 +61,12 @@ from octaledger.core.settings import (
     load_settings,
     resolve_paths,
 )
+from octaledger.domain.models import DeviceMode
 from octaledger.infrastructure.ble.client import BleakTransportFactory
 from octaledger.infrastructure.ble.scanner import DiscoverFn, ScanResult, scan
 from octaledger.infrastructure.ble.transport import TransportFactory
+from octaledger.infrastructure.integrations.base import Adapter
+from octaledger.infrastructure.integrations.registry import default_adapters
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
@@ -112,6 +118,7 @@ class AgentRuntime:
         tuning: SupervisorTuning | None = None,
         autostart: bool = True,
         token: str | None = None,
+        adapters: Mapping[str, Adapter] | None = None,
     ) -> None:
         """Build all services (nothing runs until :meth:`start`).
 
@@ -123,6 +130,7 @@ class AgentRuntime:
             tuning: Supervisor timing; default derived from the settings.
             autostart: Connect the active tracker automatically after start.
             token: API token; default is loaded/created in the data folder.
+            adapters: Integration adapters by kind; default are the shipped ones.
         """
         ensure_directories(paths)
         self._settings = settings
@@ -130,10 +138,17 @@ class AgentRuntime:
         self._discover = discover
         self._autostart = autostart
         self._tuning = tuning or SupervisorTuning(debounce_ms=settings.tracking.debounce_ms)
+        self._adapters = adapters
 
         database = Database(paths.database_file, backup_dir=paths.backups_dir)
         database.initialize()
         storage = Storage(database)
+        integrations = IntegrationService(
+            storage,
+            SecretStore(paths.root / SECRETS_FILE_NAME),
+            default_adapters() if adapters is None else adapters,
+        )
+        self._dispatcher = ActionDispatcher(integrations)
         self.context = AppContext(
             storage=storage,
             tracking=TrackingService(storage, settings.tracking),
@@ -148,6 +163,7 @@ class AgentRuntime:
             port=settings.agent.port,
             log_lines=recent_log_lines,
             agent=self,
+            integrations=integrations,
         )
         self._loop: asyncio.AbstractEventLoop | None = None
         self._ble_thread: threading.Thread | None = None
@@ -167,6 +183,7 @@ class AgentRuntime:
         """
         check_port_free(self._settings.agent.host, self._settings.agent.port)
         self._start_ble_loop()
+        self._dispatcher.start()
         config = uvicorn.Config(
             create_app(self.context),
             host=self._settings.agent.host,
@@ -192,7 +209,7 @@ class AgentRuntime:
             "Agent API listening on %s:%d", self._settings.agent.host, self._settings.agent.port
         )
         if self._autostart:
-            self._autostart_active_device()
+            self._autostart_devices()
 
     def wait(self) -> None:
         """Block the calling thread until :meth:`request_stop` or Ctrl+C."""
@@ -218,6 +235,7 @@ class AgentRuntime:
             self._server.should_exit = True
         if self._api_thread is not None:
             self._api_thread.join(timeout=10)
+        self._dispatcher.stop()
         loop, supervisor = self._loop, self._supervisor
         if loop is not None and supervisor is not None and loop.is_running():
             try:
@@ -278,18 +296,31 @@ class AgentRuntime:
                 user_message="Der Bluetooth-Vorgang hat zu lange gedauert.",
             ) from exc
 
-    def _autostart_active_device(self) -> None:
-        """Connect the active tracker if it has an address; never fail the agent start."""
+    def _autostart_devices(self) -> None:
+        """Connect the active tracker and every tracker in control mode that has an address.
+
+        Control trackers are never "the active tracker", yet they must work right after the start.
+        One tracker failing to start never prevents the others or the agent from starting.
+        """
         try:
-            device_id = self.context.tracking.get_active_device_id()
-            if device_id is None:
-                return
-            if self.context.devices.get(device_id).device.platform_address is None:
-                logger.info("Active tracker has no Bluetooth address yet; not connecting")
-                return
-            self.start_device(device_id)
+            candidates = [
+                info
+                for info in self.context.devices.list_devices()
+                if info.is_active or info.device.mode is DeviceMode.CONTROL
+            ]
         except OctaLedgerError as exc:
             logger.warning("Automatic connect skipped: %s", exc)
+            return
+        for info in candidates:
+            if info.device.platform_address is None:
+                logger.info(
+                    "Tracker %s has no Bluetooth address yet; not connecting", info.device.alias
+                )
+                continue
+            try:
+                self.start_device(info.device.id)
+            except OctaLedgerError as exc:
+                logger.warning("Automatic connect of %s skipped: %s", info.device.alias, exc)
 
     # -------------------------------------------------------------- AgentControl (API)
 

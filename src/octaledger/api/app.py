@@ -37,6 +37,7 @@ from octaledger.core.errors import (
     DataIntegrityError,
     ForbiddenOriginError,
     ImportDataError,
+    IntegrationError,
     InvalidStateError,
     NotFoundError,
     OctaLedgerError,
@@ -61,6 +62,7 @@ _STATUS: tuple[tuple[type[OctaLedgerError], int], ...] = (
     (UnsupportedDeviceError, 422),
     (ImportDataError, 422),
     (BleConnectionError, 502),
+    (IntegrationError, 502),  # also IntegrationConnectionError: the target failed, not us
     (ApiUnavailableError, 503),
     (DataIntegrityError, 500),
 )

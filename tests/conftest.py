@@ -18,15 +18,18 @@ from octaledger.api.context import AppContext
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
+from octaledger.application.integration_service import IntegrationService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
 from octaledger.core.errors import BleConnectionError
+from octaledger.core.secrets import SecretStore
 from octaledger.core.settings import ENV_DATA_DIR, Settings, SettingsStore
 from octaledger.dashboard_client.client import ApiClient
 from octaledger.domain.state_machine import ConnectionState
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
+from tests.fake_adapter import FakeAdapter
 
 API_TOKEN = "i" * 43
 
@@ -130,6 +133,9 @@ def api_server(tmp_path: Path) -> Iterator[RunningApi]:
         settings=SettingsStore(tmp_path / "settings.toml", Settings()),
         token=API_TOKEN,
         port=port,
+        integrations=IntegrationService(
+            storage, SecretStore(tmp_path / "secrets.json"), {"fake": FakeAdapter()}
+        ),
     )
     config = uvicorn.Config(create_app(context), host="127.0.0.1", port=port, log_level="warning")
     server = uvicorn.Server(config)

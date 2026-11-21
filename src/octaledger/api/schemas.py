@@ -18,10 +18,18 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.device_service import DeviceInfo
+from octaledger.application.integration_service import IntegrationInfo, JobInfo
 from octaledger.application.reporting_service import JournalEntry, Report, Share
 from octaledger.application.tracking_service import TrackingStatus
-from octaledger.domain.models import FACE_NUMBERS, Activity, Project, Session
+from octaledger.domain.models import (
+    FACE_NUMBERS,
+    Activity,
+    FaceAction,
+    Project,
+    Session,
+)
 from octaledger.infrastructure.ble.scanner import ScanResult
+from octaledger.infrastructure.integrations.base import AdapterSpec, FieldSpec
 
 API_VERSION: Final = 1
 API_PREFIX: Final = f"/api/v{API_VERSION}"
@@ -60,6 +68,42 @@ class FaceAssign(_Strict):
 
     activity_id: str | None = None
     project_id: str | None = None
+
+
+class IntegrationCreate(_Strict):
+    """Create a connection (settings and secrets together; secrets are stored separately)."""
+
+    kind: str = Field(min_length=1, max_length=40)
+    name: str = Field(min_length=1, max_length=200)
+    values: dict[str, Any] = Field(default_factory=dict)
+
+
+class IntegrationUpdate(_Strict):
+    """Change a connection; blank secrets keep the stored value."""
+
+    name: str | None = Field(default=None, max_length=200)
+    values: dict[str, Any] | None = None
+    enabled: bool | None = None
+
+
+class ProbeBody(_Strict):
+    """Run one action right now (\"try it\")."""
+
+    params: dict[str, Any]
+
+
+class ModeBody(_Strict):
+    """Switch a tracker between time recording and control."""
+
+    mode: str = Field(min_length=1, max_length=20)
+
+
+class ActionAssign(_Strict):
+    """Give a face an action of a connection."""
+
+    integration_id: str = Field(min_length=1, max_length=64)
+    label: str = Field(max_length=200)
+    params: dict[str, Any]
 
 
 class CatalogCreate(_Strict):
@@ -230,7 +274,9 @@ def live_out(
     faces: dict[str, Any] = {}
     for face in FACE_NUMBERS:
         mapping = info.mappings.get(face)
+        action = info.actions.get(face)
         faces[str(face)] = {
+            "action": None if action is None else {"label": action.label},
             "activity": (
                 named(activities.get(mapping.activity_id))
                 if mapping and mapping.activity_id
@@ -245,6 +291,7 @@ def live_out(
         "device_id": info.device.id,
         "alias": info.device.alias,
         "is_active": info.is_active,
+        "mode": info.device.mode.value,
         "state": live["state"] if live else None,
         "raw_value": status.raw_value if status else None,
         "raw_at": iso(status.raw_at) if status else None,
@@ -261,6 +308,85 @@ def live_out(
     }
 
 
+def action_out(action: FaceAction) -> dict[str, Any]:
+    """Serialise the action of a face."""
+    return {
+        "integration_id": action.integration_id,
+        "label": action.label,
+        "params": dict(action.params),
+        "revision": action.revision,
+    }
+
+
+def field_out(spec: FieldSpec) -> dict[str, Any]:
+    """Serialise one form field of an adapter description."""
+    return {
+        "name": spec.name,
+        "label": spec.label,
+        "kind": spec.kind,
+        "required": spec.required,
+        "help": spec.help,
+        "default": spec.default,
+        "placeholder": spec.placeholder,
+        "choices": [{"value": value, "label": label} for value, label in spec.choices],
+        "minimum": spec.minimum,
+        "maximum": spec.maximum,
+    }
+
+
+def adapter_out(spec: AdapterSpec) -> dict[str, Any]:
+    """Serialise an adapter's self-description (the dashboard renders forms from it)."""
+    return {
+        "kind": spec.kind,
+        "title": spec.title,
+        "description": spec.description,
+        "config_fields": [field_out(f) for f in spec.config_fields],
+        "actions": [
+            {
+                "id": a.id,
+                "label": a.label,
+                "description": a.description,
+                "idempotent": a.idempotent,
+                "fields": [field_out(f) for f in a.fields],
+            }
+            for a in spec.actions
+        ],
+        "can_pair": spec.can_pair,
+        "pair_help": spec.pair_help,
+        "can_discover": spec.can_discover,
+    }
+
+
+def integration_out(info: IntegrationInfo) -> dict[str, Any]:
+    """Serialise a connection: settings and the *names* of stored secrets, never their values."""
+    integration = info.integration
+    return {
+        "id": integration.id,
+        "kind": integration.kind,
+        "name": integration.name,
+        "config": dict(integration.config),
+        "enabled": integration.enabled,
+        "secrets_set": list(info.secrets_set),
+        "created_at": iso(integration.created_at),
+    }
+
+
+def job_out(info: JobInfo) -> dict[str, Any]:
+    """Serialise one entry of the action history."""
+    job = info.job
+    return {
+        "id": job.id,
+        "integration": info.integration_name,
+        "label": job.label,
+        "face": job.face,
+        "status": job.status.value,
+        "attempts": job.attempts,
+        "error": job.last_error,
+        "created_at": iso(job.created_at),
+        "finished_at": iso(job.finished_at),
+    }
+
+
 def device_out(info: DeviceInfo, status: DeviceStatus | None = None) -> dict[str, Any]:
     """Serialise a device with calibration and optional live status."""
     device = info.device
@@ -272,8 +398,10 @@ def device_out(info: DeviceInfo, status: DeviceStatus | None = None) -> dict[str
         "firmware": device.firmware,
         "created_at": iso(device.created_at),
         "is_active": info.is_active,
+        "mode": device.mode.value,
         "configured_faces": info.configured_faces,
         "fully_calibrated": info.is_fully_calibrated,
+        "actions": {str(face): action_out(action) for face, action in sorted(info.actions.items())},
         "faces": {
             str(face): {
                 "activity_id": mapping.activity_id,

@@ -12,12 +12,15 @@ from octaledger.api.context import AppContext
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
+from octaledger.application.integration_service import IntegrationService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
+from octaledger.core.secrets import SecretStore
 from octaledger.core.settings import Settings, SettingsStore
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from tests.conftest import FakeAgent
+from tests.fake_adapter import FakeAdapter
 
 PORT = 8765
 TOKEN = "t" * 43
@@ -48,6 +51,9 @@ class Env:
             port=PORT,
             log_lines=lambda: ["line one", "line two", "line three"],
             agent=agent,
+            integrations=IntegrationService(
+                self.storage, SecretStore(tmp_path / "secrets.json"), {"fake": FakeAdapter()}
+            ),
         )
         self.client = TestClient(
             create_app(self.context), base_url=BASE, raise_server_exceptions=False
@@ -577,7 +583,7 @@ def test_live_view_shows_position_calibration_and_effect(env: Env, agent: FakeAg
     idle = env.get(f"/devices/{device['id']}/live").json()  # never started: nothing is invented
     assert idle["state"] is None and idle["raw_value"] is None and idle["recent"] == []
     assert idle["faces"]["3"]["activity"]["name"] == "Meeting"
-    assert idle["faces"]["4"] == {"activity": None, "project": None}
+    assert idle["faces"]["4"] == {"action": None, "activity": None, "project": None}
     assert sorted(idle["faces"]) == [str(n) for n in range(1, 9)]
 
     env.post(f"/devices/{device['id']}/connect")
@@ -588,3 +594,164 @@ def test_live_view_shows_position_calibration_and_effect(env: Env, agent: FakeAg
     assert [e["kind"] for e in live["recent"]] == ["face_change", "raw"]  # newest first
     assert live["tracking"]["running"]["activity_id"] == activity
     assert env.get("/devices/ghost/live").status_code == 404
+
+
+# ------------------------------------------------------------------ control mode (AP-26c)
+
+
+def make_connection(env: Env, name: str = "Licht") -> dict[str, Any]:
+    response = env.post(
+        "/integrations",
+        {"kind": "fake", "name": name, "values": {"host": "10.0.0.5", "password": "richtig"}},
+    )
+    assert response.status_code == 201, response.text
+    created: dict[str, Any] = response.json()
+    return created
+
+
+def test_adapters_describe_their_forms(env: Env) -> None:
+    (spec,) = env.get("/adapters").json()
+    assert spec["kind"] == "fake" and spec["can_pair"] and spec["can_discover"]
+    password = next(f for f in spec["config_fields"] if f["name"] == "password")
+    assert password["kind"] == "password" and password["required"] is True
+    port = next(f for f in spec["config_fields"] if f["name"] == "port")
+    assert (port["minimum"], port["maximum"], port["default"]) == (1, 65535, 80)
+    toggle = next(a for a in spec["actions"] if a["id"] == "toggle")
+    assert toggle["idempotent"] is False  # the interface warns about this
+
+
+def test_secrets_are_never_returned_by_the_api(env: Env, tmp_path: Path) -> None:
+    created = make_connection(env)
+    assert created["secrets_set"] == ["password"] and "password" not in created["config"]
+    everything = env.get("/integrations").text + env.get("/adapters").text
+    assert "richtig" not in everything and "richtig" not in env.get("/jobs").text
+    assert "richtig" in (tmp_path / "secrets.json").read_text(encoding="utf-8")  # only there
+    backup = env.post("/backup").json()["content"]
+    assert "richtig" not in backup  # and never in a backup
+
+
+def test_connection_lifecycle_over_http(env: Env) -> None:
+    created = make_connection(env)
+    assert [i["name"] for i in env.get("/integrations").json()] == ["Licht"]
+    assert env.post(
+        "/integrations", {"kind": "fake", "name": "licht", "values": {}}
+    ).status_code in (
+        409,
+        422,
+    )
+    changed = env.call(
+        "PATCH",
+        f"/integrations/{created['id']}",
+        json={"name": "Lampe", "values": {"host": "10.0.0.9", "password": ""}, "enabled": False},
+    ).json()
+    assert changed["name"] == "Lampe" and changed["enabled"] is False
+    assert changed["config"]["host"] == "10.0.0.9" and changed["secrets_set"] == ["password"]
+    assert env.call("DELETE", f"/integrations/{created['id']}").status_code == 204
+    assert env.get("/integrations").json() == []
+    assert env.call("DELETE", "/integrations/ghost").status_code == 404
+
+
+def test_invalid_connections_get_german_422s(env: Env) -> None:
+    unknown = env.post("/integrations", {"kind": "gibtsnicht", "name": "X", "values": {}})
+    assert (
+        unknown.status_code == 422
+        and "kennt OctaLedger nicht" in unknown.json()["error"]["message"]
+    )
+    missing = env.post("/integrations", {"kind": "fake", "name": "X", "values": {"password": "p"}})
+    assert missing.status_code == 422 and "Adresse" in missing.json()["error"]["message"]
+    extra = env.post(
+        "/integrations", {"kind": "fake", "name": "X", "values": {"host": "h"}, "x": 1}
+    )
+    assert extra.status_code == 422  # unknown request fields are rejected
+
+
+def test_check_probe_pair_and_discover(env: Env) -> None:
+    created = make_connection(env)
+    base = f"/integrations/{created['id']}"
+    assert env.post(f"{base}/check").json() == {"message": "Verbunden mit 10.0.0.5."}
+    probe = env.post(f"{base}/probe", {"params": {"action": "ping", "target": "x"}})
+    assert probe.json() == {"message": "gesendet"}
+    bad = env.post(f"{base}/probe", {"params": {"action": "ping"}})
+    assert bad.status_code == 422  # missing field, nothing was sent
+    assert env.post(f"{base}/pair").json() == {"message": "Gekoppelt!"}
+    items = env.post(f"{base}/discover").json()["items"]
+    assert items == {"lights": [{"id": "1", "name": "Schreibtisch"}]}
+    assert env.post("/integrations/ghost/check").status_code == 404
+
+
+def test_a_failing_target_is_a_502_with_the_code(env: Env) -> None:
+    created = make_connection(env)
+    env.call("PATCH", f"/integrations/{created['id']}", json={"values": {"password": "falsch"}})
+    response = env.post(f"/integrations/{created['id']}/check")
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "OL-INTEG-001"
+    assert "Zugangsdaten abgelehnt" in response.json()["error"]["message"]
+
+
+def test_mode_switch_and_actions_per_face(env: Env) -> None:
+    device = env.post("/devices", {"alias": "Würfel"}).json()
+    other = env.post("/devices", {"alias": "Zweiter"}).json()
+    assert device["mode"] == "time" and device["actions"] == {}
+    connection = make_connection(env)
+    switched = env.call("PUT", f"/devices/{other['id']}/mode", json={"mode": "control"}).json()
+    assert switched["mode"] == "control"
+    assigned = env.call(
+        "PUT",
+        f"/devices/{other['id']}/actions/3",
+        json={"integration_id": connection["id"], "label": "Lampe", "params": {"action": "toggle"}},
+    ).json()
+    assert assigned["actions"]["3"]["label"] == "Lampe" and assigned["configured_faces"] == 1
+    live = env.get(f"/devices/{other['id']}/live").json()
+    assert live["mode"] == "control" and live["faces"]["3"]["action"] == {"label": "Lampe"}
+    assert live["faces"]["4"]["action"] is None
+    cleared = env.call("DELETE", f"/devices/{other['id']}/actions/3").json()
+    assert cleared["actions"] == {} and cleared["configured_faces"] == 0
+
+
+def test_mode_and_action_errors_are_clear(env: Env) -> None:
+    device = env.post("/devices", {"alias": "Würfel"}).json()
+    connection = make_connection(env)
+    assert (
+        env.call("PUT", f"/devices/{device['id']}/mode", json={"mode": "turbo"}).status_code == 422
+    )
+    assert env.call("PUT", "/devices/ghost/mode", json={"mode": "control"}).status_code == 404
+    unknown_action = env.call(
+        "PUT",
+        f"/devices/{device['id']}/actions/1",
+        json={"integration_id": connection["id"], "label": "x", "params": {"action": "nope"}},
+    )
+    assert unknown_action.status_code == 422
+    unknown_connection = env.call(
+        "PUT",
+        f"/devices/{device['id']}/actions/1",
+        json={"integration_id": "ghost", "label": "x", "params": {"action": "toggle"}},
+    )
+    assert unknown_connection.status_code == 404
+
+
+def test_a_connection_in_use_cannot_be_deleted(env: Env) -> None:
+    device = env.post("/devices", {"alias": "Würfel"}).json()
+    connection = make_connection(env)
+    env.call(
+        "PUT",
+        f"/devices/{device['id']}/actions/1",
+        json={"integration_id": connection["id"], "label": "x", "params": {"action": "toggle"}},
+    )
+    assert env.call("DELETE", f"/integrations/{connection['id']}").status_code == 409
+    env.call("DELETE", f"/devices/{device['id']}/actions/1")
+    assert env.call("DELETE", f"/integrations/{connection['id']}").status_code == 204
+
+
+def test_the_history_lists_sent_actions(env: Env) -> None:
+    assert env.get("/jobs").json() == []
+    assert env.get("/jobs", params={"limit": 0}).status_code == 422
+    assert env.get("/jobs", params={"limit": 500}).status_code == 422
+
+
+def test_control_mode_endpoints_say_so_when_it_is_unavailable(env: Env) -> None:
+    env.context.integrations = None
+    for method, path in (("GET", "/adapters"), ("GET", "/integrations"), ("GET", "/jobs")):
+        assert env.call(method, path).status_code == 503
+    device = env.post("/devices", {"alias": "Würfel"}).json()
+    unavailable = env.call("DELETE", f"/devices/{device['id']}/actions/1")
+    assert unavailable.status_code == 503

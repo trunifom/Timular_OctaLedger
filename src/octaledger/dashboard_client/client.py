@@ -265,6 +265,100 @@ class ApiClient:
         result: dict[str, Any] = self._get(f"/devices/{device_id}/observed-face")
         return result
 
+    def set_device_mode(self, device_id: str, mode: str) -> dict[str, Any]:
+        """Switch a tracker between ``"time"`` and ``"control"``."""
+        result: dict[str, Any] = self._request(
+            "PUT", f"/devices/{device_id}/mode", json={"mode": mode}
+        )
+        return result
+
+    def assign_action(
+        self,
+        device_id: str,
+        face: int,
+        integration_id: str,
+        label: str,
+        params: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Give a face an action of a connection."""
+        result: dict[str, Any] = self._request(
+            "PUT",
+            f"/devices/{device_id}/actions/{face}",
+            json={"integration_id": integration_id, "label": label, "params": params},
+        )
+        return result
+
+    def clear_action(self, device_id: str, face: int) -> dict[str, Any]:
+        """Remove the action of a face."""
+        result: dict[str, Any] = self._request("DELETE", f"/devices/{device_id}/actions/{face}")
+        return result
+
+    def adapters(self) -> list[dict[str, Any]]:
+        """The kinds of connection with their form descriptions."""
+        result: list[dict[str, Any]] = self._get("/adapters")
+        return result
+
+    def integrations(self) -> list[dict[str, Any]]:
+        """All connections (settings and the names of stored secrets)."""
+        result: list[dict[str, Any]] = self._get("/integrations")
+        return result
+
+    def create_integration(self, kind: str, name: str, values: dict[str, Any]) -> dict[str, Any]:
+        """Create a connection (secrets inside ``values`` are stored separately)."""
+        result: dict[str, Any] = self._post(
+            "/integrations", {"kind": kind, "name": name, "values": values}
+        )
+        return result
+
+    def update_integration(
+        self,
+        integration_id: str,
+        *,
+        name: str | None = None,
+        values: dict[str, Any] | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any]:
+        """Change a connection; only the given fields are sent."""
+        body = {
+            key: value
+            for key, value in (("name", name), ("values", values), ("enabled", enabled))
+            if value is not None
+        }
+        result: dict[str, Any] = self._request(
+            "PATCH", f"/integrations/{integration_id}", json=body
+        )
+        return result
+
+    def delete_integration(self, integration_id: str) -> None:
+        """Delete a connection."""
+        self._request("DELETE", f"/integrations/{integration_id}")
+
+    def check_integration(self, integration_id: str) -> str:
+        """Test a connection; returns the message."""
+        return str(self._post(f"/integrations/{integration_id}/check")["message"])
+
+    def probe_integration(self, integration_id: str, params: dict[str, Any]) -> str:
+        """Run one action right now; returns the message."""
+        return str(
+            self._post(f"/integrations/{integration_id}/probe", {"params": params})["message"]
+        )
+
+    def pair_integration(self, integration_id: str) -> str:
+        """Run the one-time pairing; returns the message."""
+        return str(self._post(f"/integrations/{integration_id}/pair")["message"])
+
+    def discover_integration(self, integration_id: str) -> dict[str, list[dict[str, str]]]:
+        """List what the target offers to choose from (lights, scenes ...)."""
+        items: dict[str, list[dict[str, str]]] = self._post(
+            f"/integrations/{integration_id}/discover"
+        )["items"]
+        return items
+
+    def jobs(self, limit: int = 50) -> list[dict[str, Any]]:
+        """History of sent actions, newest first."""
+        result: list[dict[str, Any]] = self._get("/jobs", limit=limit)
+        return result
+
     def live_view(self, device_id: str) -> dict[str, Any]:
         """Live position, debounce state, recent movements and effect of one cube."""
         result: dict[str, Any] = self._get(f"/devices/{device_id}/live")

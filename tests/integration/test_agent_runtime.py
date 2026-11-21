@@ -26,9 +26,11 @@ from octaledger.infrastructure.ble.protocol import (
     ORIENTATION_CHARACTERISTIC_UUID,
     ORIENTATION_SERVICE_UUID,
 )
+from octaledger.infrastructure.integrations.base import Adapter
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from tests.conftest import API_TOKEN, free_port
+from tests.fake_adapter import FakeAdapter
 
 ORIENT = ORIENTATION_CHARACTERISTIC_UUID
 FAST = SupervisorTuning(
@@ -62,7 +64,12 @@ async def fake_discover(**_kwargs: Any) -> dict[str, tuple[Any, Any]]:
 
 class Agent:
     def __init__(
-        self, tmp_path: Path, factory: FakeTransportFactory, *, autostart: bool = False
+        self,
+        tmp_path: Path,
+        factory: FakeTransportFactory,
+        *,
+        autostart: bool = False,
+        adapters: dict[str, Adapter] | None = None,
     ) -> None:
         self.port = free_port()
         self.paths = AppPaths(root=tmp_path / "data")
@@ -78,6 +85,7 @@ class Agent:
             tuning=FAST,
             autostart=autostart,
             token=API_TOKEN,
+            adapters=adapters,
         )
         self.client = ApiClient(f"http://127.0.0.1:{self.port}", API_TOKEN)
 
@@ -254,3 +262,104 @@ def test_check_port_free_detects_a_taken_port() -> None:
             check_port_free("127.0.0.1", port)
         assert info.value.details["port"] == port
     check_port_free("127.0.0.1", port)  # free again after closing
+
+
+# ----------------------------------------------------------------- control mode (AP-26c)
+
+
+def setup_control_device(agent: Agent) -> dict[str, str]:
+    client = agent.client
+    device = client.register_device("Steuerung")
+    client.set_device_mode(device["id"], "control")
+    connection = client.create_integration(
+        "fake", "Licht", {"host": "10.0.0.5", "password": "richtig"}
+    )
+    client.assign_action(
+        device["id"], 2, connection["id"], "Schreibtischlampe", {"action": "toggle"}
+    )
+    client.set_device_address(device["id"], "AA:BB:CC:DD:EE:FF")
+    return {"device": device["id"], "connection": connection["id"]}
+
+
+@pytest.fixture
+def control_agent(tmp_path: Path) -> Iterator[tuple[Agent, FakeAdapter]]:
+    adapter = FakeAdapter()
+    instance = Agent(
+        tmp_path,
+        FakeTransportFactory(values={ORIENT: b"\x01"}),
+        adapters={"fake": adapter},
+    )
+    instance.runtime.start()
+    try:
+        yield instance, adapter
+    finally:
+        instance.runtime.shutdown()
+
+
+def test_turning_the_cube_in_control_mode_sends_the_action_and_records_no_time(
+    control_agent: tuple[Agent, FakeAdapter],
+) -> None:
+    agent, adapter = control_agent
+    ids = setup_control_device(agent)
+    agent.client.connect_device(ids["device"])
+    wait_for(lambda: agent.live_state(ids["device"]) == "ready")
+    time.sleep(0.3)
+    assert adapter.calls == []  # the baseline (first value after connecting) switches nothing
+
+    agent.factory.last.push(b"\x02")  # the user turns the cube to face 2
+    wait_for(lambda: len(adapter.calls) == 1)
+    config, secrets, params = adapter.calls[0]
+    assert params == {"action": "toggle"} and secrets == {"password": "richtig"}
+    assert config["host"] == "10.0.0.5"
+    job = wait_for(lambda: next((j for j in agent.client.jobs() if j["status"] == "done"), None))
+    assert job["label"] == "Schreibtischlampe" and job["face"] == 2
+
+    agent.factory.last.push(b"\x05")  # a face without an action does nothing
+    time.sleep(0.4)
+    assert len(adapter.calls) == 1
+    assert agent.client.status()["tracking"]["running"] is None  # no time was recorded
+    now = datetime.now(timezone.utc)
+    assert agent.client.journal(now - timedelta(days=1), now + timedelta(days=1)) == []
+    live = agent.client.live_view(ids["device"])
+    assert (
+        live["mode"] == "control" and live["faces"]["2"]["action"]["label"] == "Schreibtischlampe"
+    )
+
+
+def test_a_failing_target_is_shown_in_the_history_not_swallowed(
+    control_agent: tuple[Agent, FakeAdapter],
+) -> None:
+    agent, adapter = control_agent
+    ids = setup_control_device(agent)
+    adapter.script = [RuntimeError("boom")]
+    agent.client.connect_device(ids["device"])
+    wait_for(lambda: agent.live_state(ids["device"]) == "ready")
+    agent.factory.last.push(b"\x02")
+    job = wait_for(lambda: next((j for j in agent.client.jobs() if j["status"] == "failed"), None))
+    assert job["error"] == "Unerwarteter Fehler in der Verbindung."
+    assert "boom" not in str(agent.client.jobs())
+
+
+def test_control_trackers_connect_on_their_own_when_the_agent_starts(tmp_path: Path) -> None:
+    """A control tracker is never the active tracker, yet it must work right after a restart."""
+    adapter = FakeAdapter()
+    first = Agent(
+        tmp_path, FakeTransportFactory(values={ORIENT: b"\x01"}), adapters={"fake": adapter}
+    )
+    first.runtime.start()
+    try:
+        ids = setup_control_device(first)
+    finally:
+        first.runtime.shutdown()
+    # a second start on the same data folder, with autostart switched on
+    second = Agent(
+        tmp_path,
+        FakeTransportFactory(values={ORIENT: b"\x01"}),
+        autostart=True,
+        adapters={"fake": adapter},
+    )
+    second.runtime.start()
+    try:
+        wait_for(lambda: second.live_state(ids["device"]) == "ready")
+    finally:
+        second.runtime.shutdown()
