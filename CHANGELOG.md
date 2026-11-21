@@ -25,6 +25,14 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Hilfe beim Verbinden)
+- Hue: verständliche Fehlermeldungen je Ursache (Zeitüberschreitung, abgelehnt, Name nicht auflösbar) und ausführliche Fehlersuche in der Anleitung; Home Assistant: Anleitung zu Adresse, Token und Fehlern; neue **Testverbindung (Probelauf)** zum Üben ohne Geräte.
+
+### Hinzugefügt (Verbindungsverlust mit Frist und Rückfragen, AP-36)
+- Neue Richtlinie `grace_then_stop` (jetzt Voreinstellung) mit `disconnect_grace_seconds` (300): Die Zeit läuft nach einem Verlust weiter und endet nach der Frist am Moment des Verlusts.
+- Rückfragen-Zentrale (`attention_items`, Migration 0004, `GET /attention`, `…/resolve`, `…/dismiss`) und Panel unter der Statusleiste mit den Antworten behalten, leer lassen, zuordnen, nichts tun.
+- Housekeeper-Thread im Agenten (alle 5 s) für zeitgesteuerte Regeln.
+
 ### Geändert (Würfel-Eingang, AP-35)
 - Der Basis-Wert **10** wird wie 0 als neutral erkannt (`BASE_VALUES`); ungültige Pakete nennen den Rohwert im Protokoll.
 - Vor dem Verbinden sucht der Agent den Würfel kurz (`[agent] scan_before_connect`, `scan_timeout_seconds`), mit klarer Meldung, wenn er nicht wirbt.

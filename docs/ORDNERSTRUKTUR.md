@@ -59,6 +59,7 @@ octaledger/
   src/octaledger/__main__.py
   src/octaledger/agent/__init__.py
   src/octaledger/agent/dispatcher.py
+  src/octaledger/agent/housekeeper.py
   src/octaledger/agent/main.py
   src/octaledger/agent/supervisor.py
   src/octaledger/api/__init__.py
@@ -68,6 +69,7 @@ octaledger/
   src/octaledger/api/schemas.py
   src/octaledger/api/security.py
   src/octaledger/application/__init__.py
+  src/octaledger/application/attention_service.py
   src/octaledger/application/catalog_service.py
   src/octaledger/application/data_service.py
   src/octaledger/application/device_service.py
@@ -84,6 +86,7 @@ octaledger/
   src/octaledger/core/secrets.py
   src/octaledger/core/settings.py
   src/octaledger/dashboard/__init__.py
+  src/octaledger/dashboard/attention.py
   src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/docs_reader.py
   src/octaledger/dashboard/forms.py
@@ -114,6 +117,8 @@ octaledger/
   src/octaledger/dashboard_client/__init__.py
   src/octaledger/dashboard_client/client.py
   src/octaledger/domain/__init__.py
+  src/octaledger/domain/attention.py
+  src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
   src/octaledger/domain/orientation.py
   src/octaledger/domain/state_machine.py
@@ -127,6 +132,7 @@ octaledger/
   src/octaledger/infrastructure/ble/transport.py
   src/octaledger/infrastructure/integrations/__init__.py
   src/octaledger/infrastructure/integrations/base.py
+  src/octaledger/infrastructure/integrations/demo.py
   src/octaledger/infrastructure/integrations/homeassistant.py
   src/octaledger/infrastructure/integrations/httpio.py
   src/octaledger/infrastructure/integrations/hue.py
@@ -138,12 +144,14 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0001_initial.sql
   src/octaledger/infrastructure/storage/migrations/0002_app_state.sql
   src/octaledger/infrastructure/storage/migrations/0003_integrations.sql
+  src/octaledger/infrastructure/storage/migrations/0004_attention.sql
   src/octaledger/infrastructure/storage/repositories.py
   tests/__init__.py
   tests/conftest.py
   tests/fake_adapter.py
   tests/fixtures/.gitkeep
   tests/gui/__init__.py
+  tests/gui/test_gui_attention.py
   tests/gui/test_gui_connections.py
   tests/gui/test_gui_control.py
   tests/gui/test_gui_core.py
@@ -163,12 +171,14 @@ octaledger/
   tests/integration/test_agent_runtime.py
   tests/integration/test_client_server.py
   tests/unit/__init__.py
+  tests/unit/test_adapter_demo_and_hints.py
   tests/unit/test_adapter_homeassistant.py
   tests/unit/test_adapter_hue.py
   tests/unit/test_adapter_mqtt.py
   tests/unit/test_adapter_webhook.py
   tests/unit/test_api.py
   tests/unit/test_api_security.py
+  tests/unit/test_attention.py
   tests/unit/test_ble_bleak_layer.py
   tests/unit/test_ble_protocol_and_fake.py
   tests/unit/test_cli.py
@@ -187,6 +197,7 @@ octaledger/
   tests/unit/test_gui_documentation.py
   tests/unit/test_integration_service.py
   tests/unit/test_integrations_storage.py
+  tests/unit/test_link_loss.py
   tests/unit/test_logging.py
   tests/unit/test_models.py
   tests/unit/test_orientation.py

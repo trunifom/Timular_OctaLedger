@@ -347,7 +347,7 @@ Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet
 Hier legen Sie fest, **wie OctaLedger Zeit erfasst**. Das Aussehen steht auf *Darstellung*.
 
 - **Grundeinstellungen:** **Zeitzone** (gilt sofort) und **Entprellung** (Voreinstellung 300 ms; gilt nach einem Neustart des Agenten).
-- **Erweiterte Einstellungen** (eingeklappt): **Erste Seite nach dem Verbinden**, **Bei Verbindungsverlust**, **Neutralwert** und
+- **Erweiterte Einstellungen** (eingeklappt): **Erste Seite nach dem Verbinden**, **Bei Verbindungsverlust** samt **Frist**, **Neutralwert** und
   **Protokollstufe**. Sie gelten nach einem **Neustart des Agenten** (`octaledger agent`) – ein Hinweis erinnert Sie daran. Die
   Neutralwert-Pause ist **experimentell**.
 - **Speichern** geschieht gemeinsam und wird geprüft: Ungültiges wird mit einer Erklärung abgelehnt, nichts wird halb gespeichert.
@@ -463,9 +463,12 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,
   Tracker schläft, Bluetooth kurz aus), versucht OctaLedger es selbstständig erneut – zuerst nach
   1 Sekunde, dann mit wachsenden Pausen (2, 4, 8 … höchstens 60 Sekunden), damit nichts blockiert.
-- **Zeit ohne Verbindung** wird nicht erfunden: Die laufende Zeit wird als **unsicher**
-  gekennzeichnet (oder beendet, je nach Einstellung). Nach der Rückkehr läuft sie auf derselben Seite
-  einfach weiter; Sie bestätigen oder korrigieren den unklaren Abschnitt im Zeitjournal.
+- **Zeit ohne Verbindung** wird nicht erfunden. Standardmäßig gilt eine **Frist von 5 Minuten**: Die Zeit läuft nach einem Verbindungsverlust
+  weiter (als **unsicher** markiert), unter der Statusleiste steht, wann sie endet. **Kommt der Würfel in der Frist zurück**, läuft alles
+  einfach weiter. **Kommt er nicht**, endet der Eintrag **genau am Moment des Verlusts**, und es erscheint auf jeder Seite eine Frage
+  mit vier Antworten: **Lücke behalten** (Sie haben weitergearbeitet: der Eintrag wird verlängert), **Lücke leer lassen**, **Anderer
+  Tätigkeit zuordnen** (z. B. Besprechung unterwegs) oder **Nichts tun**. Ohne Ihre Antwort wird nichts verändert oder gelöscht; jede Antwort steht
+  in der Prüfspur. Die Frist stellen Sie unter *App* → *Erweiterte Einstellungen* ein (0 = sofort beenden; oder „unbegrenzt weiterlaufen“ wählen).
 - **Bewusst stoppen:** Wenn Sie ein Gerät selbst stoppen, gibt es **keine** weiteren
   Verbindungsversuche. Auch dieser Zeitpunkt wird als Lücke gekennzeichnet.
 - **Nicht unterstütztes Gerät:** Bietet ein Gerät den erwarteten Dienst nicht an, versucht
@@ -629,7 +632,8 @@ festlegen. Ihre Daten werden **nie** im Programmordner gespeichert.
 | Zeitzone | In welcher Zeitzone Zeiten angezeigt werden (gespeichert wird immer UTC) | Ihre eigene wählen, z. B. `Europe/Zurich` |
 | Entprellung (ms) | So lange muss eine Seite oben liegen, bevor sie zählt; verhindert Fehlwechsel beim Drehen | 300 |
 | Erste Seite nach Verbindung | `observe_only`: nur merken, nicht automatisch starten. `adopt_current`: aktuelle Seite sofort als Start übernehmen | `observe_only` |
-| Bei Verbindungsverlust | `mark_uncertain`: Zeitraum als unsicher markieren, Sie bestätigen danach | `mark_uncertain` |
+| Bei Verbindungsverlust | `grace_then_stop`: weiterlaufen, nach der Frist am Moment des Verlusts beenden und nachfragen; `mark_uncertain`: unbegrenzt weiterlaufen und als unsicher markieren; `stop_session`: sofort beenden | `grace_then_stop` |
+| Frist bei Verbindungsverlust (Sekunden) | wie lange die Zeit nach einem Verlust weiterläuft (0–3600; 0 beendet sofort) | 300 |
 | Darstellung | Hell/Dunkel und Schriftgröße normal/groß | nach Geschmack |
 
 Ungültige Einstellungen werden **nicht stillschweigend ignoriert**: Das Programm nennt die
@@ -772,7 +776,8 @@ ein Licht schaltet. Mit zwei Würfeln kann einer Zeit erfassen und der andere st
 | Anbindung | Wofür | Gut zu wissen |
 |---|---|---|
 | **Home Assistant** | Lampen, Schalter, Szenen, Skripte, beliebige Dienste | Der Weg zu **Matter-Geräten und Google Home**: Was dort eingebunden ist, kann der Würfel schalten. Sie brauchen ein „langlebiges Zugriffstoken“ (Home Assistant, unten im Benutzerprofil). |
-| **Philips Hue** | Lampen, Räume, Szenen direkt über die Bridge | Ohne Cloud. Einmaliges Koppeln: Knopf an der Bridge drücken, dann in OctaLedger auf *Koppeln* klicken. |
+| **Philips Hue** | Lampen, Räume, Szenen direkt über die Bridge | Ohne Cloud. Einmaliges Koppeln: Knopf an der Bridge drücken, dann in OctaLedger auf *Koppeln* klicken. In der Hue-App ist **nichts** freizuschalten. Meldung „Zeitüberschreitung“: IP-Adresse prüfen (Probe: `http://<IP>/api/config` im Browser). |
+| **Testverbindung (Probelauf)** | zum Üben ohne Geräte | Nichts wird gesendet; jede Aktion wird bestätigt. Fehler lassen sich simulieren (Wiederholen, Fehlermeldung ausprobieren). |
 | **MQTT** | Nachrichten an einen Broker (Mosquitto, Zigbee2MQTT, Tasmota, ESPHome, Node-RED) | Thema und Inhalt, z. B. `zigbee2mqtt/schreibtischlampe/set` mit `{"state": "ON"}`. |
 | **Webhook** | beliebige Web-Adresse (Node-RED, ESPHome, eigene Skripte, IFTTT-ähnliche Dienste) | Die Notlösung für alles andere mit einfacher Web-Schnittstelle. |
 
@@ -814,6 +819,8 @@ OctaLedger spricht **kein Matter und kein Google Home direkt**; beides erreichen
 | Meldung | Was tun |
 |---|---|
 | „Das Ziel ist nicht erreichbar“ / „Der Broker ist nicht erreichbar“ | Adresse, Port und Netzwerk prüfen; ist das Gerät eingeschaltet und im selben Netz? |
+| „Hue: Zeitüberschreitung beim Koppeln“ | Die Adresse stimmt meist nicht oder PC und Bridge sind nicht im selben Netz (Gastnetz, VPN). Im Browser `http://<IP>/api/config` öffnen: erscheint Text mit „bridgeid“, ist die Adresse richtig. Die Anleitung der Verbindung (aufklappbar) nennt alle Schritte. |
+| „Home Assistant: wo bekomme ich Adresse und Token her?“ | Adresse = was im Browser in der Adresszeile von Home Assistant steht (Port 8123). Token: Profil (unten links) › Sicherheit › Langlebige Zugriffstoken. Details in der Anleitung der Verbindung. |
 | „Home Assistant lehnt das Zugriffstoken ab“ | In Home Assistant ein neues langlebiges Zugriffstoken erstellen und in der Verbindung eintragen. |
 | „Der Knopf auf der Hue Bridge wurde noch nicht gedrückt“ | Knopf an der Bridge drücken und **innerhalb von 30 Sekunden** erneut auf *Koppeln* klicken. |
 | „Benutzername oder Passwort sind falsch“ (MQTT) | Zugangsdaten des Brokers prüfen. |

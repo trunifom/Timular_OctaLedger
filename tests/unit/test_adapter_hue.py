@@ -267,7 +267,7 @@ def test_a_bridge_that_cannot_be_reached_for_pairing_is_retried_later() -> None:
     tls = HueAdapter(scheme="https", fetch_certificate=refuse)
     with pytest.raises(IntegrationConnectionError) as info:
         tls.pair({"host": "192.168.1.5"}, timeout=TIMEOUT)
-    assert "nicht erreichbar" in info.value.user_message
+    assert "nimmt kein Gerät" in info.value.user_message
 
 
 def test_pairing_with_a_confused_answer_fails_clearly(bridge: FakeBridge) -> None:

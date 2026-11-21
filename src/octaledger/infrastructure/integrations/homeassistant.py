@@ -87,6 +87,19 @@ SETUP_GUIDE: Final = """\
 3. **Verbindung testen.**
 4. Mit **Geräte der Verbindung auflisten** wählen Sie Lampen, Szenen und Skripte **nach Namen** aus.
 
+**Wo finde ich die Adresse?** Home Assistant läuft meist auf einem Mini-PC/Raspberry Pi (Home Assistant OS). Öffnen Sie
+Home Assistant im Browser: **genau die Adresse, die dort oben in der Adresszeile steht**, ist die richtige (z. B.
+`http://192.168.1.20:8123`). Der Standard-Port ist **8123**. Der Name `homeassistant.local` funktioniert unter Windows nicht
+immer – nehmen Sie dann die **IP-Adresse** (Router-Geräteliste). Mit Nabu Casa gilt die `https://….ui.nabu.casa`-Adresse.
+
+**Noch kein Home Assistant?** Dann brauchen Sie es nicht: Für Philips Hue gibt es die direkte Verbindung **Philips Hue**,
+für einfache Dinge einen **Webhook** und zum Üben die **Testverbindung (Probelauf)**.
+
+**Wenn es nicht klappt**
+- *„nicht erreichbar“:* Adresse und Port prüfen (im Browser öffnen), PC und Home Assistant im selben Netz?
+- *„Token abgelehnt“ (401):* Token neu erstellen und **vollständig** einfügen (kein Leerzeichen am Ende).
+- Matter-/Google-Geräte erscheinen erst in der Liste, wenn sie **in Home Assistant** eingebunden sind.
+
 **Tipps**
 - Legen Sie ein **eigenes Token nur für OctaLedger** an: Sie können es jederzeit löschen, ohne etwas anderes zu stören.
 - Matter oder Google Home einbinden? Das geschieht **in Home Assistant**; danach erscheinen die Geräte hier in der Liste.

@@ -31,6 +31,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import socket
 import ssl
 from collections.abc import Callable, Mapping
 from typing import Any, Final
@@ -104,6 +105,41 @@ def pinned_session(fingerprint: str | None) -> Session:
     return session
 
 
+def explain_connect_error(host: str, exc: OSError) -> str:
+    """Turn a low-level network error into a German explanation with the next step.
+
+    The raw exception class tells what really happened; "not reachable" alone does not help a
+    user who does not know where to look.
+    """
+    if isinstance(exc, socket.gaierror):
+        return (
+            f"Der Name „{host}“ lässt sich nicht auflösen. Tragen Sie die **IP-Adresse** "
+            "der Bridge ein (z. B. 192.168.1.5), nicht einen Namen."
+        )
+    if isinstance(exc, ConnectionRefusedError):
+        return (
+            f"Unter „{host}“ nimmt kein Gerät die Verbindung an. Das ist vermutlich **nicht** die "
+            "Hue Bridge – prüfen Sie die IP-Adresse (Hue-App › Einstellungen › Bridges › Info)."
+        )
+    if isinstance(exc, TimeoutError):
+        return (
+            f"Unter „{host}“ antwortet nichts (Zeitüberschreitung). Meist ist **die Adresse "
+            "falsch** "
+            "oder der PC ist **nicht im selben Netz** wie die Bridge (Gastnetz, VPN, anderes "
+            "Subnetz, Firewall). Öffnen Sie zur Probe im Browser `http://" + host + "/api/config`: "
+            "Antwortet eine Seite mit „bridgeid“, stimmt die Adresse."
+        )
+    if isinstance(exc, ssl.SSLError):
+        return (
+            f"Unter „{host}“ antwortet ein Gerät, aber nicht wie eine Hue Bridge (TLS-Fehler). "
+            "Bitte die Adresse prüfen."
+        )
+    return (
+        f"Die Hue Bridge unter „{host}“ ist nicht erreichbar ({type(exc).__name__}). "
+        "Bitte die Adresse prüfen."
+    )
+
+
 def _split_host(host: str) -> tuple[str, int]:
     name, _, port = host.partition(":")
     return name, int(port) if port else 443
@@ -149,6 +185,17 @@ SETUP_GUIDE: Final = """\
 
 **Sicherheit:** Beim Koppeln merkt sich OctaLedger den **Fingerabdruck des Zertifikats** der Bridge
 („Vertrauen beim ersten Mal“) und spricht danach nur noch mit genau dieser Bridge.
+
+**Wenn das Koppeln fehlschlägt**
+- *„Zeitüberschreitung“ / „antwortet nichts“:* Die **Adresse stimmt meist nicht** oder PC und Bridge sind nicht im
+  gleichen Netz. **Probe:** Öffnen Sie im Browser `http://<Adresse>/api/config`. Erscheint Text mit `"bridgeid"`, ist
+  die Adresse richtig. Die Adresse finden Sie auch, wenn Sie im Browser `https://discovery.meethue.com` öffnen
+  (das fragt Philips, nicht OctaLedger) oder in der Geräteliste Ihres Routers (Name „Philips-hue“).
+- PC am **WLAN-Gastnetz** oder per **VPN**? Dann erreicht er die Bridge nicht. Bridge am Router per **Kabel**, PC im selben Heimnetz.
+- *„Knopf noch nicht gedrückt“:* Erst die Taste an der Bridge drücken, dann **sofort** (30 Sekunden) auf Koppeln.
+- Es sind **keine weiteren Einstellungen in der Hue-App nötig**: Die lokale Schnittstelle der Bridge ist immer aktiv. Eine
+  Bridge **v1 (rund)** wird nicht unterstützt, nur die **v2 (eckig)**.
+- Zum Üben ohne echte Geräte gibt es die Verbindungsart **Testverbindung (Probelauf)**.
 """  # noqa: E501
 
 
@@ -326,7 +373,7 @@ class HueAdapter(Adapter):
             except OSError as exc:
                 raise IntegrationConnectionError(
                     f"Cannot read the bridge certificate: {type(exc).__name__}",
-                    user_message="Die Hue Bridge ist nicht erreichbar. Bitte die Adresse prüfen.",
+                    user_message=explain_connect_error(name, exc),
                 ) from exc
         body = {"devicetype": DEVICE_TYPE, "generateclientkey": True}
         response = self._request(host, fingerprint, "POST", "/api", None, body, timeout)
