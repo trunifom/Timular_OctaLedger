@@ -34,6 +34,11 @@ steuerung, Firmwareupdate oder Offlinebewegungshistorie.
 Ausgangswert kann dieselbe Meldung wie das Abonnement liefern: Duplikate tolerieren.
 Für zwei Clients Adapterressourcen und tatsächliche Parallelität praktisch testen.
 
+## Taste und Batterie (AP-37)
+
+- **Taste:** Characteristic `c7e70021-c847-11e6-8175-8c89a55d403c` (Community-Referenz `codingforfun/zeipy`), ein Byte: `0` = kurzer, `1` = langer Druck. OctaLedger **abonniert** sie nur (kein Schreiben), wenn der Würfel sie mit Notify/Indicate anbietet. **Nicht hardwarebestätigt:** UUID, Wertebedeutung und der Zeitpunkt der Meldung sind am echten Würfel zu prüfen (Seite *Würfel live*, „Letzte Bewegungen“). Unbekannte Werte werden als `invalid` mit Rohwert protokolliert. Gleiche Drücke innerhalb von 500 ms zählen einmal.
+- **Batterie:** wird beim Verbinden und danach alle 10 Minuten **gelesen**; unter der eingestellten Grenze (Voreinstellung 20 %) gibt es **einmal** eine Erinnerung.
+
 ## Erfahrungen aus der ersten Erprobung (nicht hardwarevalidiert)
 
 Die folgenden Beobachtungen stammen aus einer ersten Inbetriebnahme mit einem echten Würfel und sind **keine** Zusicherung:

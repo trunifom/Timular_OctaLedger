@@ -29,6 +29,7 @@ from octaledger.api.schemas import (
     AddressBody,
     ArchiveBody,
     AttentionResolve,
+    ButtonBody,
     CatalogCreate,
     CatalogUpdate,
     CorrectBody,
@@ -390,6 +391,17 @@ def build_router(ctx: AppContext) -> APIRouter:
         moment = now()
         flt = ReportFilter(start, end, device_id, activity_id, project_id)
         return [journal_out(e, moment) for e in ctx.reports.journal(flt)]
+
+    # --------------------------------------------------------------------- buttons
+    @router.get("/devices/{device_id}/buttons")
+    def device_buttons(device_id: str) -> dict[str, Any]:
+        """The actions assigned to the cube's short and long button press."""
+        return {"buttons": ctx.devices.get_buttons(device_id)}
+
+    @router.put("/devices/{device_id}/buttons/{press}")
+    def set_device_button(device_id: str, press: str, body: ButtonBody) -> dict[str, Any]:
+        """Assign an action (``pause_resume``, ``stop``, ``start_last``) or ``none``."""
+        return {"buttons": ctx.devices.set_button(device_id, press, body.action)}
 
     # ------------------------------------------------------------------- attention
     @router.get("/attention")

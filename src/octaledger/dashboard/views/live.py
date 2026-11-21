@@ -86,6 +86,7 @@ def describe_event(
         "disconnect": f"Die Verbindung ging verloren.{lost}",
         "reconnect": "Die Verbindung steht wieder.",
         "invalid": "Eine unverständliche Meldung wurde ignoriert.",
+        "button": "Die Taste des Würfels wurde gedrückt.",
     }.get(kind, f"Ereignis: {kind}")
 
 

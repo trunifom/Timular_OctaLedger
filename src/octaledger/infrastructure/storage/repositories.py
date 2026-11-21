@@ -39,6 +39,8 @@ from octaledger.core.errors import (
 from octaledger.domain.attention import AttentionItem, AttentionKind, AttentionStatus
 from octaledger.domain.models import (
     Activity,
+    ButtonAction,
+    ButtonPress,
     Correction,
     Device,
     EventKind,
@@ -1582,6 +1584,42 @@ class AttentionRepository:
         return cursor.rowcount
 
 
+class DeviceButtonRepository:
+    """What a press of the cube's button does, per device (no row = nothing happens)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    def get_all(self, device_id: str) -> dict[str, str]:
+        """Return ``press -> action`` for the presses that have an action."""
+        with _db_errors("read device buttons"):
+            rows = self._c.execute(
+                "SELECT press, action FROM device_buttons WHERE device_id = ?", (device_id,)
+            ).fetchall()
+        return {str(r["press"]): str(r["action"]) for r in rows}
+
+    def get(self, device_id: str, press: str) -> ButtonAction | None:
+        """Return the action of one press, or ``None`` for "nothing"."""
+        action = self.get_all(device_id).get(press)
+        return None if action is None else ButtonAction(action)
+
+    def set(self, device_id: str, press: ButtonPress, action: ButtonAction | None) -> None:
+        """Assign an action (``None`` removes the assignment)."""
+        with _db_errors("write device button"):
+            if action is None:
+                self._c.execute(
+                    "DELETE FROM device_buttons WHERE device_id = ? AND press = ?",
+                    (device_id, press.value),
+                )
+            else:
+                self._c.execute(
+                    "INSERT INTO device_buttons (device_id, press, action) VALUES (?, ?, ?) "
+                    "ON CONFLICT (device_id, press) DO UPDATE SET action = excluded.action",
+                    (device_id, press.value, action.value),
+                )
+
+
 class StateRepository:
     """Tiny persistent key/value store for application state (active tracker, pause)."""
 
@@ -1795,6 +1833,7 @@ class Repositories:
     actions: FaceActionRepository
     jobs: JobRepository
     attention: AttentionRepository
+    buttons: DeviceButtonRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -1815,6 +1854,7 @@ class Repositories:
             ("actions", FaceActionRepository(connection)),
             ("jobs", JobRepository(connection)),
             ("attention", AttentionRepository(connection)),
+            ("buttons", DeviceButtonRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

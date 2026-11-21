@@ -484,6 +484,11 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
 
+### Taste und Batterie des Würfels
+
+- **Taste:** Unter *Würfel verwalten* → Ihr Würfel → **Taste des Würfels** legen Sie fest, was ein **kurzer** und ein **langer** Druck tut: *Pause / Fortsetzen*, *Zeit beenden* oder *Letzte Tätigkeit starten*. **Voreinstellung: nichts.** Nur der **aktive** Tracker beeinflusst die Zeit. Ob Ihr Würfel die Taste wie beschrieben meldet, ist **noch nicht mit echter Hardware geprüft**: Drücken Sie sie und sehen Sie auf *Würfel live* nach, ob „Die Taste des Würfels wurde gedrückt“ erscheint.
+- **Batterie-Warnung:** Fällt die Batterie unter die Grenze (*App* → Erweiterte Einstellungen → *Batterie-Warnung*, Voreinstellung 20 %, 0 = aus), erscheint **einmal** ein Hinweis unter der Statusleiste („Verstanden“ schließt ihn). Ein leerer Würfel verhält sich wie ein Verbindungsverlust.
+
 ## 10. Zeiten korrigieren und löschen
 
 - **Nichts geht still verloren:** Jede Änderung an einer gebuchten Zeit (Tätigkeit, Projekt,

@@ -221,6 +221,8 @@ def _device_panel(
                 st.rerun()
 
         _calibration(client, device, activities, projects)
+        if device["mode"] == "time":
+            _button_section(client, device)
         _manage(client, device)
 
 
@@ -332,6 +334,43 @@ def _save_calibration(
 
 
 ASK_REMOVE_KEY = "devices_ask_remove"  # id of the cube whose removal is being confirmed
+
+
+BUTTON_ACTIONS = {
+    "none": "Nichts tun (Voreinstellung)",
+    "pause_resume": "Pause / Fortsetzen",
+    "stop": "Zeit beenden",
+    "start_last": "Letzte Tätigkeit starten",
+}
+PRESS_LABELS = {"short": "Kurzer Druck", "long": "Langer Druck"}
+
+
+def _button_section(client: ApiClient, device: dict[str, Any]) -> None:
+    """Assign actions to the cube's button (off by default; not hardware-confirmed)."""
+    did = device["id"]
+    with st.expander("Taste des Würfels", key=f"buttons_{did}"):
+        st.caption(
+            "Der Würfel hat eine Taste. Hier legen Sie fest, was ein **kurzer** und ein **langer** "
+            "Druck tut. Ohne Auswahl passiert **nichts**. **Noch nicht mit echter Hardware "
+            "geprüft:** Ob Ihr Würfel die Taste so meldet wie in der Community-Beschreibung, "
+            "zeigt die Seite *Würfel live* („Letzte Bewegungen“)."
+        )
+        ok, buttons = call(client.device_buttons, did)
+        if not ok or buttons is None:
+            return
+        for press, label in PRESS_LABELS.items():
+            current = buttons.get(press) or "none"
+            choice = st.selectbox(
+                label,
+                list(BUTTON_ACTIONS),
+                index=list(BUTTON_ACTIONS).index(current),
+                format_func=BUTTON_ACTIONS.__getitem__,
+                key=f"button_{press}_{did}",
+                help="Was dieser Tastendruck bewirkt. Nur der **aktive** Tracker beeinflusst die "
+                "Zeit. Voreinstellung: nichts.",
+            )
+            if choice != current and call(client.set_device_button, did, press, choice)[0]:
+                st.rerun()
 
 
 def _manage(client: ApiClient, device: dict[str, Any]) -> None:

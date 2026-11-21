@@ -64,6 +64,26 @@ class EventKind(StrEnum):
     RECONNECT = "reconnect"
     #: Packet that failed validation (kept for diagnostics, never creates a session).
     INVALID = "invalid"
+    #: The cube's button was pressed (``detail`` is ``short`` or ``long``).
+    BUTTON = "button"
+
+
+class ButtonPress(StrEnum):
+    """How the cube's button was pressed."""
+
+    SHORT = "short"
+    LONG = "long"
+
+
+class ButtonAction(StrEnum):
+    """What a button press does (no row = nothing happens)."""
+
+    #: Pause the running entry, or continue the paused one.
+    PAUSE_RESUME = "pause_resume"
+    #: End the running entry.
+    STOP = "stop"
+    #: Start the most recently used activity again.
+    START_LAST = "start_last"
 
 
 class DeviceMode(StrEnum):
@@ -373,6 +393,8 @@ class RawEvent:
             raise ValidationError(f"{self.kind.value} event requires raw_value")
         if not needs_value and self.raw_value is not None:
             raise ValidationError(f"{self.kind.value} event must not carry raw_value")
+        if self.kind is EventKind.BUTTON and self.detail not in tuple(p.value for p in ButtonPress):
+            raise ValidationError("button event needs detail short or long")
         if self.kind is EventKind.NEUTRAL and self.raw_value != 0:
             raise ValidationError("neutral event must carry raw_value 0")
         if self.kind is EventKind.FACE_CHANGE and self.raw_value == 0:

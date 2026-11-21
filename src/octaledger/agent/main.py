@@ -40,6 +40,7 @@ from octaledger.agent.supervisor import AgentSupervisor, DeviceStatus, Superviso
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.api.security import TOKEN_FILE_NAME, load_or_create_token
+from octaledger.application.battery_watch import BatteryWatch
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
@@ -166,8 +167,18 @@ class AgentRuntime:
             agent=self,
             integrations=integrations,
         )
+        self._battery_watch = BatteryWatch(
+            storage,
+            self.device_statuses,
+            lambda: self.context.settings.settings.notifications,
+            lambda device_id: self._device_name(device_id),
+        )
         self._housekeeper = Housekeeper(
-            [self.context.tracking.watchdog, self.context.attention.expire_old]
+            [
+                self.context.tracking.watchdog,
+                self.context.attention.expire_old,
+                self._battery_watch.check,
+            ]
         )
         self._loop: asyncio.AbstractEventLoop | None = None
         self._ble_thread: threading.Thread | None = None
@@ -346,6 +357,12 @@ class AgentRuntime:
         if supervisor is None:
             raise ApiUnavailableError("The BLE loop is not running")
         self._call(supervisor.stop_device(device_id))
+
+    def _device_name(self, device_id: str) -> str:
+        """Alias of a device for messages (empty if it no longer exists)."""
+        with self.context.storage.read() as repos:
+            device = repos.devices.get(device_id)
+        return device.alias if device else ""
 
     def device_statuses(self) -> list[DeviceStatus]:
         """Live status of all started devices (immutable snapshots)."""

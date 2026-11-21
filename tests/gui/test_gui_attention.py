@@ -124,3 +124,34 @@ def test_the_settings_page_offers_the_grace_period(api_server: RunningApi) -> No
     assert grace.value == 300 and "Voreinstellung: 300 Sekunden" in grace.help
     api_server.client.update_settings({"tracking": {"disconnect_grace_seconds": 120}})
     assert api_server.client.get_settings()["tracking"]["disconnect_grace_seconds"] == 120
+
+
+def test_button_section_and_battery_setting_are_on_the_pages(api_server: RunningApi) -> None:
+    device = api_server.client.register_device("Büro")
+    at = open_page(api_server, "devices")
+    assert at.selectbox(key=f"button_short_{device['id']}").value == "none"
+    assert "Nichts tun" in at.selectbox(key=f"button_long_{device['id']}").options[0]
+    assert at.selectbox(key=f"button_short_{device['id']}").help
+    at.selectbox(key=f"button_long_{device['id']}").select("stop").run()
+    assert api_server.client.device_buttons(device["id"])["long"] == "stop"
+    page = open_page(api_server, "settings")
+    battery = page.number_input(key="set_battery")
+    assert battery.value == 20 and "Voreinstellung: 20 %" in battery.help
+
+
+def test_a_battery_reminder_can_be_acknowledged(api_server: RunningApi) -> None:
+    from octaledger.domain.attention import AttentionItem, AttentionKind
+
+    with api_server.storage.transaction() as repos:
+        repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.REMINDER,
+                created_at=datetime.now(timezone.utc),
+                payload={"reason": "battery", "alias": "Büro", "percent": 12},
+            )
+        )
+    at = open_page(api_server, "journal")
+    assert any("Batterie von „Büro“ fast leer" in w.value for w in at.warning)
+    key = next(k for k in keys(at) if k.startswith("att_ack_"))
+    at.button(key=key).click().run()
+    assert api_server.client.attention()["items"] == []

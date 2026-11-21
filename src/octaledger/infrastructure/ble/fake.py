@@ -20,6 +20,7 @@ from octaledger.core.errors import BleConnectionError
 from octaledger.infrastructure.ble.protocol import (
     BATTERY_LEVEL_UUID,
     BATTERY_SERVICE_UUID,
+    BUTTON_CHARACTERISTIC_UUID,
     DEVICE_INFO_SERVICE_UUID,
     FIRMWARE_REVISION_UUID,
     MODEL_NUMBER_UUID,
@@ -36,8 +37,8 @@ from octaledger.infrastructure.ble.transport import (
 )
 
 
-def default_services(*, with_extras: bool = True) -> list[GattService]:
-    """Return the GATT layout of a compatible tracker (optionally with battery/info)."""
+def default_services(*, with_extras: bool = True, with_button: bool = False) -> list[GattService]:
+    """Return the GATT layout of a compatible tracker (optionally with battery/info/button)."""
     services = [
         GattService(
             ORIENTATION_SERVICE_UUID,
@@ -58,6 +59,13 @@ def default_services(*, with_extras: bool = True) -> list[GattService]:
                 ),
             ),
         ]
+    if with_button:
+        services.append(
+            GattService(
+                "c7e70020-c847-11e6-8175-8c89a55d403c",
+                (GattCharacteristic(BUTTON_CHARACTERISTIC_UUID, frozenset({"indicate"})),),
+            )
+        )
     return services
 
 
@@ -117,6 +125,17 @@ class FakeTransport:
         if not self._connected or callback is None:
             raise BleConnectionError("Cannot push: not connected or not subscribed")
         self.values[normalize_uuid(ORIENTATION_CHARACTERISTIC_UUID)] = payload
+        callback(payload)
+
+    def press_button(self, payload: bytes) -> None:
+        """Deliver a button notification (``\x00`` short, ``\x01`` long).
+
+        Raises:
+            BleConnectionError: If the link is down or the button is not subscribed.
+        """
+        callback = self._notify.get(normalize_uuid(BUTTON_CHARACTERISTIC_UUID))
+        if not self._connected or callback is None:
+            raise BleConnectionError("Cannot press: not connected or button not subscribed")
         callback(payload)
 
     def drop_link(self) -> None:

@@ -15,7 +15,12 @@ from zoneinfo import available_timezones
 
 import streamlit as st
 
-from octaledger.core.settings import LoggingSettings, Settings, TrackingSettings
+from octaledger.core.settings import (
+    LoggingSettings,
+    NotificationSettings,
+    Settings,
+    TrackingSettings,
+)
 from octaledger.dashboard.ui import call, page_help
 from octaledger.dashboard_client.client import ApiClient
 
@@ -35,6 +40,7 @@ NEUTRAL = {
 LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 DEFAULT_TRACKING = TrackingSettings()
 DEFAULT_LOGGING = LoggingSettings()
+DEFAULT_NOTIFICATIONS = NotificationSettings()
 DEFAULT_TIMEZONE = Settings().display.timezone
 
 
@@ -60,6 +66,7 @@ def render(client: ApiClient, tz: str) -> None:
     if not ok or settings is None:
         return
     display, tracking, logging_ = settings["display"], settings["tracking"], settings["logging"]
+    notifications = settings["notifications"]
     zones = sorted(available_timezones())
     if display["timezone"] not in zones:
         zones.insert(0, display["timezone"])
@@ -129,6 +136,17 @@ def render(client: ApiClient, tz: str) -> None:
                 help="Die Pausenregel ist noch nicht mit echter Hardware geprüft. "
                 "Voreinstellung: nur protokollieren.",
             )
+            battery = st.number_input(
+                "Batterie-Warnung (Prozent)",
+                min_value=0,
+                max_value=90,
+                value=int(notifications["battery_warning_percent"]),
+                step=5,
+                key="set_battery",
+                help="Einmal warnen, wenn die Batterie des Würfels unter diesen Wert fällt. 0 "
+                "schaltet die Warnung aus. Gilt sofort. "
+                f"Voreinstellung: {DEFAULT_NOTIFICATIONS.battery_warning_percent} %.",
+            )
             level = st.selectbox(
                 "Protokollstufe",
                 LOG_LEVELS,
@@ -154,6 +172,7 @@ def render(client: ApiClient, tz: str) -> None:
                 "neutral_policy": neutral,
             },
             "logging": {"level": level},
+            "notifications": {"battery_warning_percent": int(battery)},
         }
         saved, _ = call(client.update_settings, changes)
         if saved:
@@ -173,7 +192,7 @@ def render(client: ApiClient, tz: str) -> None:
                     "Agenten** (`octaledger agent`)."
                 )
 
-    _reset(client, display, tracking, logging_)
+    _reset(client, display, tracking, logging_, notifications)
     with st.expander("Technische Angaben (nur lesen)", key="set_technical"):
         agent = settings["agent"]
         st.markdown(
@@ -192,6 +211,7 @@ def _reset(
     display: dict[str, str],
     tracking: dict[str, object],
     logging_: dict[str, object],
+    notifications: dict[str, object],
 ) -> None:
     """The way back: every setting of this page to its default (looks are not touched)."""
     already_default = (
@@ -202,6 +222,8 @@ def _reset(
         and tracking["disconnect_grace_seconds"] == DEFAULT_TRACKING.disconnect_grace_seconds
         and tracking["neutral_policy"] == DEFAULT_TRACKING.neutral_policy.value
         and logging_["level"] == DEFAULT_LOGGING.level
+        and notifications["battery_warning_percent"]
+        == DEFAULT_NOTIFICATIONS.battery_warning_percent
     )
     if st.button(
         "Auf Voreinstellungen zurücksetzen",
@@ -214,6 +236,7 @@ def _reset(
         done = [
             call(client.reset_settings, "tracking")[0],
             call(client.reset_settings, "logging")[0],
+            call(client.reset_settings, "notifications")[0],
             call(client.update_settings, {"display": {"timezone": DEFAULT_TIMEZONE}})[0],
         ]
         if all(done):

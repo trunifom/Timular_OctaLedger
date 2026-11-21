@@ -279,6 +279,18 @@ class LoggingSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class NotificationSettings:
+    """What the app tells you about on its own (see the attention centre)."""
+
+    #: Warn once when the cube's battery falls below this percentage; 0 switches it off.
+    battery_warning_percent: int = 20
+
+    def __post_init__(self) -> None:
+        """Validate the range."""
+        _check_int("notifications", "battery_warning_percent", self.battery_warning_percent, 0, 90)
+
+
+@dataclass(frozen=True, slots=True)
 class Settings:
     """Complete application configuration (immutable)."""
 
@@ -286,6 +298,7 @@ class Settings:
     tracking: TrackingSettings = field(default_factory=TrackingSettings)
     display: DisplaySettings = field(default_factory=DisplaySettings)
     logging: LoggingSettings = field(default_factory=LoggingSettings)
+    notifications: NotificationSettings = field(default_factory=NotificationSettings)
 
 
 #: Section name -> settings class, the single source for parsing and serialising.
@@ -294,6 +307,7 @@ _SECTIONS: Final[dict[str, type]] = {
     "tracking": TrackingSettings,
     "display": DisplaySettings,
     "logging": LoggingSettings,
+    "notifications": NotificationSettings,
 }
 
 

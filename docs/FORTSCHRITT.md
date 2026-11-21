@@ -63,7 +63,9 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-34p | Planung der Erweiterungen: Recherche (Zeiterfassung, Würfel-BLE, Smarthome, Musik, Windows), Pflichtenheft §12 (F-21 bis F-63, A-18 bis A-35) und Umsetzungsplan AP-35 bis AP-50 | 2026-11-21 | 18:45 | d21c464 |
 | AP-34q | Planung des Musik-Modus: Pflichtenheft §12.6 (F-51 bis F-63, A-30 bis A-35) und Umsetzungsplan AP-48 bis AP-50 (Ziele PC, Home Assistant, Spotify, YouTube Music; Halterung hält an) | 2026-11-21 | 19:30 | a093ee3 |
 | AP-35 | Würfel-Eingang robuster: Basis-Werte 0/10 neutral, Rohwert in ungültigen Paketen, Scan vor dem Verbinden (Einstellungen `scan_before_connect`, `scan_timeout_seconds`) | 2026-11-21 | 20:30 | 1be2226 |
-| AP-36 | Verbindungsverlust mit Frist (`grace_then_stop`, Voreinstellung 300 s), Rückfragen-Zentrale (Migration 0004, API, Panel mit vier Antworten), Housekeeper-Thread | 2026-11-21 | 21:00 | _folgt_ |
+| AP-36 | Verbindungsverlust mit Frist (`grace_then_stop`, Voreinstellung 300 s), Rückfragen-Zentrale (Migration 0004, API, Panel mit vier Antworten), Housekeeper-Thread | 2026-11-21 | 21:00 | 47bc19b |
+| AP-36b | Hilfe beim Verbinden: Hue-Fehlertexte und Fehlersuche, Home-Assistant-Anleitung, Testverbindung (Probelauf) | 2026-11-21 | 21:30 | 2808811 |
+| AP-37 | Würfeltaste (kurz/lang, belegbar, Migration 0005) und Batterie-Warnung (alle 10 min lesen, einmal warnen); Taste nicht hardwarebestätigt | 2026-11-21 | 22:10 | _folgt_ |
 
 ## Offen
 

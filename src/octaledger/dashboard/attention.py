@@ -139,6 +139,33 @@ def _gap_question(client: ApiClient, item: dict[str, Any], tz: str) -> None:
             _assign_form(client, item_id)
 
 
+def _reminder(client: ApiClient, item: dict[str, Any]) -> None:
+    """A plain notice (for example a low battery) that is closed with one click."""
+    payload = item["payload"]
+    text = "Erinnerung"
+    if payload.get("reason") == "battery":
+        text = (
+            f"**Batterie von „{payload.get('alias', '')}“ fast leer** "
+            f"({payload.get('percent')} %). "
+            "Ein leerer Würfel verhält sich wie ein Verbindungsverlust – bitte bald laden."
+        )
+    message, action = st.columns([6, 2], vertical_alignment="center")
+    message.warning(text, icon=":material/battery_alert:")
+    if action.button(
+        "Verstanden",
+        key=f"att_ack_{item['id']}",
+        width="stretch",
+        help="Schließt den Hinweis. Er kommt erst wieder, wenn der Würfel zwischendurch "
+        "geladen wurde.",
+    ):
+        try:
+            client.dismiss_attention(item["id"])
+        except OctaLedgerError as error:
+            show_error(error)
+        else:
+            st.rerun(scope="app")
+
+
 @st.fragment(run_every="10s")
 def attention_panel(client: ApiClient, tz: str) -> None:
     """Render the waiting connections and open questions (refreshes itself)."""
@@ -157,3 +184,5 @@ def attention_panel(client: ApiClient, tz: str) -> None:
     for item in data["items"]:
         if item["kind"] == "gap":
             _gap_question(client, item, tz)
+        elif item["kind"] == "reminder":
+            _reminder(client, item)

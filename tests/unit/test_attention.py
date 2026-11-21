@@ -175,3 +175,21 @@ def test_housekeeper_stops_promptly_despite_a_long_interval() -> None:
     started = time.monotonic()
     keeper.stop()
     assert time.monotonic() - started < 2
+
+
+# ------------------------------------------------------------------ buttons via API
+
+
+def test_button_assignment_through_the_api(env: Env) -> None:
+    with env.storage.transaction() as repos:
+        device = repos.devices.add(Device(alias="Büro"))
+    path = f"/devices/{device.id}/buttons"
+    assert env.get(path).json() == {"buttons": {"short": None, "long": None}}
+    done = env.call("PUT", f"{path}/long", json={"action": "stop"})
+    assert done.status_code == 200 and done.json()["buttons"]["long"] == "stop"
+    assert (
+        env.call("PUT", f"{path}/long", json={"action": "none"}).json()["buttons"]["long"] is None
+    )
+    assert env.call("PUT", f"{path}/double", json={"action": "stop"}).status_code == 422
+    assert env.call("PUT", f"{path}/short", json={"action": "boom"}).status_code == 422
+    assert env.get(f"/devices/{'0' * 32}/buttons").status_code == 404

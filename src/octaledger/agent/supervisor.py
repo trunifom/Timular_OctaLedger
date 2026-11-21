@@ -56,11 +56,13 @@ from octaledger.domain.state_machine import (
 from octaledger.domain.time_rules import utc_now
 from octaledger.infrastructure.ble.protocol import (
     BATTERY_LEVEL_UUID,
+    BUTTON_CHARACTERISTIC_UUID,
     FIRMWARE_REVISION_UUID,
     MODEL_NUMBER_UUID,
     ORIENTATION_CHARACTERISTIC_UUID,
     DeviceCapabilities,
     decode_battery_level,
+    decode_button_payload,
     decode_orientation_payload,
     decode_text,
     discover_capabilities,
@@ -101,6 +103,10 @@ class SupervisorTuning:
 
 #: How many recent movements a worker remembers for the live view (memory only, never stored).
 LIVE_HISTORY_SIZE = 30
+#: Presses of the same kind closer together than this are one press (contact bounce).
+BUTTON_DEBOUNCE_MS = 500
+#: How often the battery level is read again while connected (read only).
+BATTERY_REFRESH_MS = 10 * 60 * 1000
 
 #: ``LiveEvent.kind`` of a value that arrived from the radio but is not yet accepted.
 RAW_KIND = "raw"
@@ -185,6 +191,9 @@ class DeviceWorker:
         self._loop: asyncio.AbstractEventLoop | None = None  # set when run() starts
         self._lost = False
         self._pending_invalid: list[str] = []
+        self._pending_buttons: list[tuple[str, int]] = []
+        self._last_button_ms: dict[str, int] = {}
+        self._battery_due_ms: int | None = None
         self._sequence = 0
         self._had_connection = False  # a link was established at least once
         self._dropped = 0
@@ -259,6 +268,21 @@ class DeviceWorker:
             self._record_invalid(str(exc))
             return
         self._buffer_value(value)
+
+    def _on_button(self, payload: bytes) -> None:
+        """Bleak callback: decode a button press; repeats within 500 ms are ignored."""
+        try:
+            press = decode_button_payload(payload).value
+        except ProtocolError as exc:
+            self._record_invalid(str(exc))
+            return
+        now = self._mono_ms()
+        last = self._last_button_ms.get(press)
+        if last is not None and now - last < BUTTON_DEBOUNCE_MS:
+            return
+        self._last_button_ms[press] = now
+        self._pending_buttons.append((press, now))
+        self._set(self._wake)
 
     def _buffer_value(self, value: int) -> None:
         if len(self._values) == self._values.maxlen:
@@ -366,6 +390,7 @@ class DeviceWorker:
         transport = self._factory.create(self._address)
         self._lost = False
         self._values.clear()
+        self._battery_due_ms = None
         self._raw_value = self._raw_at = None  # a new link: do not show a stale position
         self._sequence = 0
         connected_once = False
@@ -379,6 +404,7 @@ class DeviceWorker:
             self._machine.transition(S.SUBSCRIBING)
             self._debouncer.reset()
             await transport.start_notify(ORIENTATION_CHARACTERISTIC_UUID, self._on_notification)
+            await self._subscribe_button(transport, capabilities)
             self._machine.transition(S.BASELINE)
             if self._had_connection:  # only a *re*connect is reported, not the first success
                 await self._emit(EventKind.RECONNECT, None)
@@ -429,6 +455,7 @@ class DeviceWorker:
                 await asyncio.wait_for(self._wake.wait(), timeout=timeout)
             except TimeoutError:
                 await self._emit_orientation(self._debouncer.tick(self._mono_ms()))
+                await self._refresh_battery(transport, caps)
                 if (
                     self._machine.state is S.BASELINE
                     and self._debouncer.committed_value is None
@@ -448,12 +475,26 @@ class DeviceWorker:
             deadlines.append(pending)
         if self._machine.state is S.BASELINE and self._debouncer.committed_value is None:
             deadlines.append(baseline_deadline)
+        if self._battery_due_ms is not None:
+            deadlines.append(self._battery_due_ms)
         if not deadlines:
             return None
         return max(0.0, (min(deadlines) - now) / 1000)
 
+    async def _subscribe_button(self, transport: DeviceTransport, caps: DeviceCapabilities) -> None:
+        """Subscribe to the button when the cube offers it; failure never stops the cube."""
+        if not caps.has_button:
+            return
+        try:
+            await transport.start_notify(BUTTON_CHARACTERISTIC_UUID, self._on_button)
+        except BleConnectionError as exc:
+            logger.info("Button subscription skipped: %s", exc)
+
     async def _drain(self) -> None:
         """Feed buffered values (oldest first) to the debouncer and persist the results."""
+        while self._pending_buttons:
+            press, observed = self._pending_buttons.pop(0)
+            await self._emit(EventKind.BUTTON, None, observed, detail=press)
         while self._pending_invalid:
             await self._emit(EventKind.INVALID, None, detail=self._pending_invalid.pop(0))
         while self._values:
@@ -461,12 +502,25 @@ class DeviceWorker:
             await self._emit_orientation(self._debouncer.feed(value, observed_ms))
         await self._emit_orientation(self._debouncer.tick(self._mono_ms()))
 
+    async def _refresh_battery(self, transport: DeviceTransport, caps: DeviceCapabilities) -> None:
+        """Read the battery again every 10 minutes (read only) for the low-battery warning."""
+        if self._battery_due_ms is None or self._mono_ms() < self._battery_due_ms:
+            return
+        self._battery_due_ms = self._mono_ms() + BATTERY_REFRESH_MS
+        if not caps.has_battery:
+            return
+        try:
+            self._battery = decode_battery_level(await transport.read(BATTERY_LEVEL_UUID))
+        except (BleConnectionError, ProtocolError) as exc:
+            logger.debug("Battery refresh skipped: %s", exc)
+
     async def _read_optional(self, transport: DeviceTransport, caps: DeviceCapabilities) -> None:
         """Best-effort read of battery, model and firmware; failures are tolerated (F-18)."""
         model = firmware = None
         try:
             if caps.has_battery:
                 self._battery = decode_battery_level(await transport.read(BATTERY_LEVEL_UUID))
+                self._battery_due_ms = self._mono_ms() + BATTERY_REFRESH_MS
             if caps.has_model:
                 model = decode_text(await transport.read(MODEL_NUMBER_UUID))
             if caps.has_firmware:
@@ -489,6 +543,7 @@ class DeviceWorker:
         )
         try:
             await transport.stop_notify(ORIENTATION_CHARACTERISTIC_UUID)
+            await transport.stop_notify(BUTTON_CHARACTERISTIC_UUID)
             await transport.disconnect()
         except Exception:  # noqa: BLE001 - closing must never fail the worker
             logger.debug("Ignoring error while closing the transport", exc_info=True)

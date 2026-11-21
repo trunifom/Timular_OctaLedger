@@ -41,6 +41,7 @@ from octaledger.domain.link_loss import LinkAction, decide
 from octaledger.domain.models import (
     FACE_NUMBERS,
     Activity,
+    ButtonAction,
     DeviceMode,
     EventKind,
     Project,
@@ -320,6 +321,8 @@ class TrackingService:
             return self._on_neutral(repos, event)
         if kind is EventKind.DISCONNECT:
             return self._on_disconnect(repos, event)
+        if kind is EventKind.BUTTON:
+            return self._on_button(repos, event)
         return EventResult(Outcome.STORED)  # reconnect / invalid: diagnostics only
 
     def _mapping(self, repos: Repositories, event: RawEvent) -> tuple[str, str | None] | None:
@@ -410,6 +413,64 @@ class TrackingService:
                 self._settings.disconnect_grace_seconds,
             )
         return EventResult(Outcome.MARKED_UNCERTAIN, marked)
+
+    def _on_button(self, repos: Repositories, event: RawEvent) -> EventResult:
+        """Run the action assigned to a button press (nothing is assigned by default).
+
+        Only the **active** tracker's button gets here (see :meth:`record_event`). The actions
+        use the same rules as the manual operations, in this event's transaction.
+        """
+        action = repos.buttons.get(event.device_id, str(event.detail))
+        if action is None:
+            return EventResult(Outcome.STORED)
+        running = repos.sessions.get_running()
+        when = self._effective(repos, event.received_at)
+        if action is ButtonAction.STOP:
+            if running is None:
+                return EventResult(Outcome.STORED)
+            ended = repos.sessions.end(running.id, when)
+            self._clear_pause(repos)
+            return EventResult(Outcome.ENDED, ended)
+        if action is ButtonAction.PAUSE_RESUME:
+            if running is not None:
+                ended = repos.sessions.end(running.id, when)
+                repos.state.set(
+                    STATE_PAUSED,
+                    json.dumps(
+                        {"activity_id": running.activity_id, "project_id": running.project_id}
+                    ),
+                )
+                return EventResult(Outcome.ENDED, ended)
+            raw = repos.state.get(STATE_PAUSED)
+            if raw is None:
+                return EventResult(Outcome.STORED)
+            data = json.loads(raw)
+            return self._start_for_button(repos, data["activity_id"], data.get("project_id"), when)
+        # START_LAST: the most recently used activity, unless something is running already.
+        if running is not None:
+            return EventResult(Outcome.CONTINUED, running)
+        last = repos.sessions.list_all()
+        if not last:
+            return EventResult(Outcome.STORED)
+        latest = max(last, key=lambda s: s.started_at)
+        return self._start_for_button(repos, latest.activity_id, latest.project_id, when)
+
+    def _start_for_button(
+        self, repos: Repositories, activity_id: str, project_id: str | None, when: datetime
+    ) -> EventResult:
+        """Start a manual entry for a button press (the activity may have been deleted)."""
+        if repos.activities.get(activity_id) is None:
+            return EventResult(Outcome.STORED)
+        session = repos.sessions.add(
+            Session(
+                activity_id=activity_id,
+                project_id=project_id,
+                started_at=when,
+                source=SessionSource.MANUAL,
+            )
+        )
+        self._clear_pause(repos)
+        return EventResult(Outcome.STARTED, session)
 
     def _on_return(self, repos: Repositories, event: RawEvent) -> None:
         """The tracker is back: end the grace period or record when the gap ended."""

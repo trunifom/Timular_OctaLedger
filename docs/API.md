@@ -141,6 +141,8 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `DELETE /devices/{id}/faces/{1..8}` | Zuordnung einer Seite löschen | – | **Gerät** |
 | `GET /devices/{id}/observed-face` | zuletzt gesehene Seite (für das geführte Zuordnen) | – | `{"face", "received_at", "kind"}` oder `{"face": null}` |
 | `GET /devices/{id}/live` | Live-Ansicht: Position, Entprellung, Bewegungen, Wirkung | – | siehe unten |
+| `GET /devices/{id}/buttons` | Aktionen der Würfeltaste (kurz/lang) | – | `{"buttons": {"short": …\|null, "long": …\|null}}` |
+| `PUT /devices/{id}/buttons/{short\|long}` | Aktion einer Tastenart festlegen (`pause_resume`, `stop`, `start_last`) oder mit `none` löschen | `{"action"}` | wie oben; 422 bei unbekannter Taste/Aktion |
 | `PUT /devices/{id}/mode` | Modus umschalten: `time` oder `control` | `{"mode"}` | **Gerät** |
 | `POST /devices/{id}/activate` | Übergabe: diesen Würfel zum aktiven machen | – | `{"ended_session": …\|null}` |
 | `POST /devices/{id}/connect` | Bluetooth-Verbindung starten (Adresse nötig) | – | `{"started": true}` |

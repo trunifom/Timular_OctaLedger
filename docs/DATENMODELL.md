@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0004`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0005`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -63,6 +63,7 @@ audit_log      app_state     (allein stehend)
 | `integrations` | **Steuerungsmodus:** Verbindungen (Art, Name, Einstellungen ohne Geheimnisse) | 0003 |
 | `face_actions` | **Steuerungsmodus:** welche Aktion eine Seite auslöst | 0003 |
 | `integration_jobs` | **Steuerungsmodus:** Warteschlange („Outbox“) und Verlauf | 0003 |
+| `device_buttons` | welche Aktion ein kurzer/langer Tastendruck des Würfels auslöst (keine Zeile = nichts) | 0005 |
 | `attention_items` | **Rückfragen-Zentrale:** Fragen, die auf eine Entscheidung warten (Lücke nach Verbindungsverlust …) | 0004 |
 
 ## 3. Tabellen im Detail
@@ -123,6 +124,10 @@ Prüfspur: `session_id` (`CASCADE`), `field_name`, `old_value`, `new_value`, `re
 Schlüssel/Wert (`key` 1–100 Zeichen, `value` Text, meist JSON, `updated_at`): u. a. **der aktive Würfel** und **ob pausiert ist**. Überlebt Neustarts.
 
 Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stopped, session}`): Die Verbindung riss um `at`; `stopped` zeigt, ob die Frist schon abgelaufen und der Eintrag beendet ist. Der Schlüssel verschwindet bei Rückkehr in der Frist, nach einer Handlung des Anwenders oder wenn der Würfel nach der Frist zurückkommt; er überlebt einen Neustart des Agenten.
+
+### `device_buttons` (0005)
+
+`device_id` (löscht sich mit dem Würfel), `press` (`short`/`long`), `action` (`pause_resume`, `stop`, `start_last`). Ohne Zeile geschieht beim Druck nichts. **Nicht Teil der Sicherung** (wie die Verbindungen); nach einer Wiederherstellung die Tasten neu belegen. Migration 0005 baut außerdem `raw_events` neu auf, damit die Ereignisart `button` erlaubt ist; alle Zeilen werden unverändert übernommen.
 
 ### `attention_items` (0004)
 

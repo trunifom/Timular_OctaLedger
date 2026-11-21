@@ -623,6 +623,20 @@ class ApiClient:
         )
         return result
 
+    def device_buttons(self, device_id: str) -> dict[str, str | None]:
+        """The actions of the short and long button press (``None`` = nothing)."""
+        result: dict[str, Any] = self._get(f"/devices/{device_id}/buttons")
+        buttons: dict[str, str | None] = result["buttons"]
+        return buttons
+
+    def set_device_button(self, device_id: str, press: str, action: str) -> dict[str, str | None]:
+        """Assign an action to a button press (``none`` clears it)."""
+        result: dict[str, Any] = self._request(
+            "PUT", f"/devices/{device_id}/buttons/{press}", json={"action": action}
+        )
+        buttons: dict[str, str | None] = result["buttons"]
+        return buttons
+
     def attention(self) -> dict[str, Any]:
         """Open questions and connections that are lost but still inside the grace period."""
         result: dict[str, Any] = self._get("/attention")

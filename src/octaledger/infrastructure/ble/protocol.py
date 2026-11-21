@@ -22,11 +22,16 @@ from dataclasses import dataclass
 from typing import Final
 
 from octaledger.core.errors import ProtocolError, UnsupportedDeviceError
+from octaledger.domain.models import ButtonPress
 from octaledger.domain.orientation import decode_orientation
 
 #: Community-documented orientation service and characteristic (one byte, 0..8).
 ORIENTATION_SERVICE_UUID: Final = "c7e70010-c847-11e6-8175-8c89a55d403c"
 ORIENTATION_CHARACTERISTIC_UUID: Final = "c7e70012-c847-11e6-8175-8c89a55d403c"
+
+#: The cube's button (community reference, **not hardware-confirmed**): one byte,
+#: 0 = short press, 1 = long press.
+BUTTON_CHARACTERISTIC_UUID: Final = "c7e70021-c847-11e6-8175-8c89a55d403c"
 
 #: Standard Bluetooth SIG services/characteristics (optional extras, read-only).
 BATTERY_SERVICE_UUID: Final = "0000180f-0000-1000-8000-00805f9b34fb"
@@ -69,6 +74,7 @@ class DeviceCapabilities:
         orientation_mode: ``"notify"`` or ``"indicate"`` (notify preferred).
         can_read_orientation: Whether the initial value can be read before subscribing.
         has_battery / has_model / has_firmware: Optional read-only information.
+        has_button: Whether the button characteristic can be subscribed to (notify/indicate).
         service_uuids: Every service the device offered (for the compatibility report).
     """
 
@@ -78,6 +84,7 @@ class DeviceCapabilities:
     has_model: bool
     has_firmware: bool
     service_uuids: tuple[str, ...]
+    has_button: bool = False
 
 
 def _find(
@@ -137,6 +144,18 @@ def discover_capabilities(services: Iterable[GattService]) -> DeviceCapabilities
         has_model=_has_read(services, DEVICE_INFO_SERVICE_UUID, MODEL_NUMBER_UUID),
         has_firmware=_has_read(services, DEVICE_INFO_SERVICE_UUID, FIRMWARE_REVISION_UUID),
         service_uuids=offered,
+        has_button=_has_button(services),
+    )
+
+
+def _has_button(services: list[GattService]) -> bool:
+    """Whether any service offers the button characteristic with notify or indicate."""
+    wanted = normalize_uuid(BUTTON_CHARACTERISTIC_UUID)
+    return any(
+        normalize_uuid(c.uuid) == wanted
+        and {p.lower() for p in c.properties} & {"notify", "indicate"}
+        for s in services
+        for c in s.characteristics
     )
 
 
@@ -169,6 +188,20 @@ def decode_battery_level(payload: bytes) -> int:
             "Battery level must be one byte 0..100", details={"length": len(payload)}
         )
     return payload[0]
+
+
+def decode_button_payload(payload: bytes) -> ButtonPress:
+    """Decode one button notification: ``0`` is a short, ``1`` a long press.
+
+    Raises:
+        ProtocolError: For anything else; the message carries the raw bytes in hex.
+    """
+    if len(payload) != 1 or payload[0] not in (0, 1):
+        raise ProtocolError(
+            f"Unsupported button packet (raw=0x{payload.hex() or '-'})",
+            details={"length": len(payload)},
+        )
+    return ButtonPress.SHORT if payload[0] == 0 else ButtonPress.LONG
 
 
 def decode_text(payload: bytes) -> str:

@@ -201,6 +201,12 @@ class AttentionResolve(_Strict):
     project_id: str | None = Field(default=None, max_length=64)
 
 
+class ButtonBody(_Strict):
+    """The action of a button press (``none`` clears it)."""
+
+    action: str = Field(min_length=1, max_length=40)
+
+
 class EntriesRange(_Strict):
     """A period of entries (both ends optional; the end is exclusive)."""
 

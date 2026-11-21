@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Würfeltaste und Batterie-Warnung, AP-37)
+- Die Taste des Würfels wird abonniert (nur lesen): kurz/lang als Ereignis `button`; je Würfel belegbar mit Pause/Fortsetzen, Beenden, Letzte Tätigkeit starten (Voreinstellung: nichts). Migration 0005, `GET/PUT /devices/{id}/buttons`.
+- Batterie wird alle 10 Minuten gelesen; Einstellung `notifications.battery_warning_percent` (20) löst einmal pro Entladung eine Erinnerung aus.
+
 ### Hinzugefügt (Hilfe beim Verbinden)
 - Hue: verständliche Fehlermeldungen je Ursache (Zeitüberschreitung, abgelehnt, Name nicht auflösbar) und ausführliche Fehlersuche in der Anleitung; Home Assistant: Anleitung zu Adresse, Token und Fehlern; neue **Testverbindung (Probelauf)** zum Üben ohne Geräte.
 

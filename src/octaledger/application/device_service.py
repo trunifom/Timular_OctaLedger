@@ -20,9 +20,11 @@ from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from octaledger.application.tracking_service import STATE_ACTIVE_DEVICE
-from octaledger.core.errors import ConflictError, InvalidStateError
+from octaledger.core.errors import ConflictError, InvalidStateError, ValidationError
 from octaledger.domain.models import (
     FACE_NUMBERS,
+    ButtonAction,
+    ButtonPress,
     Device,
     DeviceMode,
     EventKind,
@@ -73,6 +75,38 @@ class DeviceService:
     def __init__(self, storage: Storage) -> None:
         """Create the service on top of ``storage``."""
         self._storage = storage
+
+    def get_buttons(self, device_id: str) -> dict[str, str | None]:
+        """Return the action of the short and the long press (``None`` = nothing).
+
+        Raises:
+            NotFoundError: If the device is not registered.
+        """
+        with self._storage.read() as repos:
+            repos.devices.require(device_id)
+            assigned = repos.buttons.get_all(device_id)
+        return {press.value: assigned.get(press.value) for press in ButtonPress}
+
+    def set_button(self, device_id: str, press: str, action: str | None) -> dict[str, str | None]:
+        """Assign (or clear, with ``None``) the action of a button press.
+
+        Raises:
+            NotFoundError: If the device is not registered.
+            ValidationError: For an unknown press or action.
+        """
+        try:
+            parsed_press = ButtonPress(press)
+            parsed_action = None if not action or action == "none" else ButtonAction(action)
+        except ValueError:
+            raise ValidationError(
+                f"Unknown button press or action: {press!r}/{action!r}",
+                user_message="Unbekannte Taste oder Aktion.",
+            ) from None
+        with self._storage.transaction() as repos:
+            repos.devices.require(device_id)
+            repos.buttons.set(device_id, parsed_press, parsed_action)
+        logger.info("Button %s of %s set to %s", press, device_id[:8], action or "none")
+        return self.get_buttons(device_id)
 
     def register(
         self,
