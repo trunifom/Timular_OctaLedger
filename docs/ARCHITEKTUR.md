@@ -98,7 +98,7 @@ Regeln der Nebenläufigkeit:
   thread-sicher. Im Callback gibt es nie langsame Aufrufe.
 * **Datenbankarbeit** läuft in `asyncio.to_thread`, strikt in Reihenfolge je Gerät. Der Agent ist der **einzige reguläre Schreiber**.
 * Die **API** erreicht die BLE-Seite ausschließlich über `AgentControl` (`run_coroutine_threadsafe`) – nie direkt.
-* Der **Housekeeper** ist ein Daemon-Thread nach demselben Muster: Er tickt alle 5 s (und sofort beim Start) und ruft nur Anwendungsdienste auf (`TrackingService.watchdog`, `AttentionService.expire_old`); die Entscheidungen liegen in reinen Regeln (`domain/link_loss.py`), der Thread ist nur der Taktgeber. Ein fehlschlagender Auftrag hält die anderen nicht auf.
+* Der **Housekeeper** ist ein Daemon-Thread nach demselben Muster: Er tickt alle 5 s (und sofort beim Start) und ruft nur Anwendungsdienste auf (`TrackingService.watchdog`, `AttentionService.expire_old`, `BatteryWatch.check`, `WorkdayService.tick`); die Entscheidungen liegen in reinen Regeln (`domain/link_loss.py`), der Thread ist nur der Taktgeber. Ein fehlschlagender Auftrag hält die anderen nicht auf.
 * Der **Dispatcher** ist ein eigener Daemon-Thread: Netzwerkanfragen dürfen den BLE-Loop nie aufhalten, und das Dashboard ist nicht beteiligt.
   Er arbeitet Aufträge **nacheinander in Erzeugungsreihenfolge** ab („an“ dann „aus“ bleibt „an“, dann „aus“), überlebt jeden Fehler und wartet
   über ein `threading.Event`, damit das Herunterfahren nicht auf ein Intervall wartet.

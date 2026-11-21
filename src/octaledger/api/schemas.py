@@ -199,6 +199,7 @@ class AttentionResolve(_Strict):
     action: str = Field(min_length=1, max_length=40)
     activity_id: str | None = Field(default=None, max_length=64)
     project_id: str | None = Field(default=None, max_length=64)
+    until: datetime | None = None
 
 
 class ButtonBody(_Strict):

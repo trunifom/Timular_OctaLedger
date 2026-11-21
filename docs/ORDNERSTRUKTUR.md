@@ -79,6 +79,7 @@ octaledger/
   src/octaledger/application/outbox.py
   src/octaledger/application/reporting_service.py
   src/octaledger/application/tracking_service.py
+  src/octaledger/application/workday_service.py
   src/octaledger/cli.py
   src/octaledger/core/__init__.py
   src/octaledger/core/errors.py
@@ -124,6 +125,7 @@ octaledger/
   src/octaledger/domain/orientation.py
   src/octaledger/domain/state_machine.py
   src/octaledger/domain/time_rules.py
+  src/octaledger/domain/workday.py
   src/octaledger/infrastructure/__init__.py
   src/octaledger/infrastructure/ble/__init__.py
   src/octaledger/infrastructure/ble/client.py
@@ -148,6 +150,8 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0004_attention.sql
   src/octaledger/infrastructure/storage/migrations/0005_buttons.sql
   src/octaledger/infrastructure/storage/repositories.py
+  src/octaledger/infrastructure/system/__init__.py
+  src/octaledger/infrastructure/system/idle.py
   tests/__init__.py
   tests/conftest.py
   tests/fake_adapter.py
@@ -213,6 +217,7 @@ octaledger/
   tests/unit/test_time_intervals.py
   tests/unit/test_time_rules.py
   tests/unit/test_tracking_service.py
+  tests/unit/test_workday.py
 ```
 
 ## Verantwortung der Ordner

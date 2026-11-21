@@ -19,9 +19,11 @@ from octaledger.application.export_service import ExportService
 from octaledger.application.integration_service import IntegrationService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
+from octaledger.application.workday_service import WorkdayService
 from octaledger.core.settings import SettingsStore
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.repositories import Storage
+from octaledger.infrastructure.system.idle import FixedInputProbe, InputProbe
 
 
 class AgentControl(Protocol):
@@ -74,10 +76,13 @@ class AppContext:
     agent: AgentControl | None = None
     integrations: IntegrationService | None = None
     data: DataService | None = None
+    probe: InputProbe = field(default_factory=FixedInputProbe)
     attention: AttentionService = field(init=False)
+    workday: WorkdayService = field(init=False)
 
     def __post_init__(self) -> None:
         """Build the attention and data-management services from the other services."""
         self.attention = AttentionService(self.storage)
+        self.workday = WorkdayService(self.storage, lambda: self.settings.settings, self.probe)
         if self.data is None:
             self.data = DataService(self.storage, self.exports, self.integrations, self.settings)

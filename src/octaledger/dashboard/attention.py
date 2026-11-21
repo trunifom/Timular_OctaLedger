@@ -16,11 +16,12 @@ from __future__ import annotations
 import html
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import streamlit as st
 
 from octaledger.core.errors import OctaLedgerError
-from octaledger.dashboard.ui import format_local, show_error
+from octaledger.dashboard.ui import format_local, from_local, show_error
 from octaledger.dashboard_client.client import ApiClient
 
 #: Session-state key that remembers which question currently shows the "assign" form.
@@ -40,7 +41,7 @@ def gap_text(payload: dict[str, Any], tz: str) -> str:
     return f"von {start} bis {format_local(returned, tz)} ({minutes} min)"
 
 
-def _answer(client: ApiClient, item_id: str, action: str, **extra: str | None) -> None:
+def _answer(client: ApiClient, item_id: str, action: str, **extra: Any) -> None:
     """Send an answer; on success refresh the whole app so journal and bar update."""
     try:
         client.resolve_attention(item_id, action, **extra)
@@ -139,10 +140,96 @@ def _gap_question(client: ApiClient, item: dict[str, Any], tz: str) -> None:
             _assign_form(client, item_id)
 
 
+def _idle_question(client: ApiClient, item: dict[str, Any], tz: str) -> None:
+    """Idle question: keep the time, end the entry where the idle time began, or pause."""
+    item_id = item["id"]
+    since = format_local(item["payload"]["idle_since"], tz)
+    with st.container(border=True, key=f"att_{item_id}"):
+        st.markdown(
+            f"**Keine Eingabe seit {html.escape(since)}** – die Zeit läuft noch. "
+            "**Was war in dieser Zeit?** (Es wird nur gemessen, wie lange nichts getippt oder "
+            "bewegt wurde, nichts sonst.)",
+            unsafe_allow_html=True,
+        )
+        keep, discard, pause = st.columns(3)
+        if keep.button(
+            "Zeit behalten",
+            key=f"att_idle_keep_{item_id}",
+            width="stretch",
+            icon=":material/check:",
+            help="Sie waren beschäftigt (Besprechung, Lesen): die Zeit zählt weiter.",
+        ):
+            _answer(client, item_id, "keep")
+        if discard.button(
+            "Leerlauf verwerfen",
+            key=f"att_idle_discard_{item_id}",
+            width="stretch",
+            icon=":material/stop:",
+            help="Beendet den Eintrag dort, wo die Pause begann. Der Leerlauf wird nicht gebucht.",
+        ):
+            _answer(client, item_id, "discard")
+        if pause.button(
+            "Als Pause buchen",
+            key=f"att_idle_pause_{item_id}",
+            width="stretch",
+            icon=":material/pause:",
+            help="Beendet den Eintrag, wo die Pause begann, und merkt die Tätigkeit zum "
+            "Fortsetzen.",
+        ):
+            _answer(client, item_id, "pause")
+
+
+def _auto_stop_question(client: ApiClient, item: dict[str, Any], tz: str) -> None:
+    """Auto-stop notice: leave as is, or extend to the time work really ended."""
+    item_id = item["id"]
+    ended = format_local(item["payload"]["ended_at"], tz)
+    with st.container(border=True, key=f"att_{item_id}"):
+        st.markdown(
+            f"**Ihr Eintrag wurde am Arbeitsende ({html.escape(ended)}) automatisch beendet.** "
+            "Haben Sie länger gearbeitet?",
+            unsafe_allow_html=True,
+        )
+        keep, extend = st.columns(2)
+        if keep.button(
+            "So lassen",
+            key=f"att_stop_keep_{item_id}",
+            width="stretch",
+            icon=":material/check:",
+            help="Das automatische Ende war richtig.",
+        ):
+            _answer(client, item_id, "keep")
+        if extend.button(
+            "Länger gearbeitet …",
+            key=f"att_stop_extend_{item_id}",
+            width="stretch",
+            icon=":material/schedule:",
+            help="Verlängert den Eintrag bis zu einer Uhrzeit, die Sie wählen.",
+        ):
+            st.session_state[ASSIGN_KEY] = item_id
+        if st.session_state.get(ASSIGN_KEY) == item_id:
+            moment = st.time_input(
+                "Gearbeitet bis",
+                key=f"att_until_{item_id}",
+                help="Uhrzeit (heute) in Ihrer Zeitzone, bis zu der Sie gearbeitet haben.",
+            )
+            if st.button(
+                "Eintrag verlängern",
+                key=f"att_stop_go_{item_id}",
+                icon=":material/check:",
+                help="Setzt das Ende des Eintrags auf diese Uhrzeit.",
+            ):
+                until = from_local(datetime.now(ZoneInfo(tz)).date(), moment, tz)
+                _answer(client, item_id, "extend", until=until)
+
+
 def _reminder(client: ApiClient, item: dict[str, Any]) -> None:
     """A plain notice (for example a low battery) that is closed with one click."""
     payload = item["payload"]
     text = "Erinnerung"
+    if payload.get("reason") == "no_timer":
+        text = "**Es läuft keine Zeiterfassung**, obwohl der Arbeitstag begonnen hat. Zeit starten?"
+    elif payload.get("reason") == "running_long":
+        text = f"**Ein Eintrag läuft seit {payload.get('hours')} Stunden.** Noch dabei?"
     if payload.get("reason") == "battery":
         text = (
             f"**Batterie von „{payload.get('alias', '')}“ fast leer** "
@@ -184,5 +271,9 @@ def attention_panel(client: ApiClient, tz: str) -> None:
     for item in data["items"]:
         if item["kind"] == "gap":
             _gap_question(client, item, tz)
+        elif item["kind"] == "idle":
+            _idle_question(client, item, tz)
+        elif item["kind"] == "auto_stop":
+            _auto_stop_question(client, item, tz)
         elif item["kind"] == "reminder":
             _reminder(client, item)

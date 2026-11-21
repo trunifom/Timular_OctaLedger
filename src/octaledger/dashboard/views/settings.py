@@ -11,6 +11,7 @@ nothing is applied half-way. Invalid values are refused with an explanation.
 
 from __future__ import annotations
 
+import dataclasses
 from zoneinfo import available_timezones
 
 import streamlit as st
@@ -20,6 +21,7 @@ from octaledger.core.settings import (
     NotificationSettings,
     Settings,
     TrackingSettings,
+    WorkSettings,
 )
 from octaledger.dashboard.ui import call, page_help
 from octaledger.dashboard_client.client import ApiClient
@@ -41,6 +43,16 @@ LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 DEFAULT_TRACKING = TrackingSettings()
 DEFAULT_LOGGING = LoggingSettings()
 DEFAULT_NOTIFICATIONS = NotificationSettings()
+DEFAULT_WORK = WorkSettings()
+WEEKDAYS = {
+    "1": "Montag",
+    "2": "Dienstag",
+    "3": "Mittwoch",
+    "4": "Donnerstag",
+    "5": "Freitag",
+    "6": "Samstag",
+    "7": "Sonntag",
+}
 DEFAULT_TIMEZONE = Settings().display.timezone
 
 
@@ -67,6 +79,7 @@ def render(client: ApiClient, tz: str) -> None:
         return
     display, tracking, logging_ = settings["display"], settings["tracking"], settings["logging"]
     notifications = settings["notifications"]
+    work = settings["work"]
     zones = sorted(available_timezones())
     if display["timezone"] not in zones:
         zones.insert(0, display["timezone"])
@@ -155,6 +168,61 @@ def render(client: ApiClient, tz: str) -> None:
                 help="INFO genügt im Alltag. DEBUG zeichnet zusätzlich alle Programmschritte auf "
                 f"(für die Fehlersuche). Voreinstellung: {DEFAULT_LOGGING.level}.",
             )
+        st.subheader("Arbeitstag")
+        st.caption(
+            "Alles hier ist nach der Installation **ausgeschaltet**. Es wird nie etwas gelöscht: "
+            "Sie werden immer gefragt."
+        )
+        with st.expander("Arbeitstag: Auto-Stopp, Leerlauf, Erinnerungen", key="set_work"):
+            workday_end = st.text_input(
+                "Arbeitsende (HH:MM, leer = aus)",
+                value=work["workday_end"],
+                key="set_workday_end",
+                max_chars=5,
+                placeholder="17:30",
+                help="Zu dieser Uhrzeit endet ein laufender Eintrag automatisch (als unsicher "
+                "markiert); danach fragt OctaLedger, ob Sie länger gearbeitet haben. Nur an "
+                "Arbeitstagen. Voreinstellung: leer (aus).",
+            )
+            days = st.multiselect(
+                "Arbeitstage",
+                list(WEEKDAYS),
+                default=[d for d in work["workdays"].split(",") if d in WEEKDAYS],
+                format_func=WEEKDAYS.__getitem__,
+                key="set_workdays",
+                help="An anderen Tagen gibt es keinen Auto-Stopp und keine Erinnerung. "
+                "Voreinstellung: Montag bis Freitag.",
+            )
+            idle = st.number_input(
+                "Leerlauf nach (Minuten, 0 = aus)",
+                min_value=0,
+                max_value=480,
+                value=int(work["idle_minutes"]),
+                step=5,
+                key="set_idle",
+                help="Misst nur, wie lange keine Taste und keine Maus bewegt wurde (nichts sonst). "
+                "Nach dieser Zeit fragt OctaLedger, was in der Zeit war. Lesen oder ein Video "
+                "schauen zählt als Leerlauf. Voreinstellung: 0 (aus).",
+            )
+            no_timer = st.text_input(
+                "Erinnerung „Zeit starten“ ab (HH:MM, leer = aus)",
+                value=work["reminder_no_timer_after"],
+                key="set_no_timer",
+                max_chars=5,
+                placeholder="09:00",
+                help="Läuft ab dieser Uhrzeit an einem Arbeitstag keine Zeiterfassung, erinnert "
+                "OctaLedger einmal. Voreinstellung: leer (aus).",
+            )
+            running_hours = st.number_input(
+                "Erinnerung „Noch dabei?“ nach (Stunden, 0 = aus)",
+                min_value=0,
+                max_value=24,
+                value=int(work["reminder_running_hours"]),
+                step=1,
+                key="set_running_hours",
+                help="Läuft ein einzelner Eintrag so lange, erinnert OctaLedger einmal. "
+                "Voreinstellung: 0 (aus).",
+            )
         submitted = st.form_submit_button(
             "💾 Einstellungen speichern",
             type="primary",
@@ -173,6 +241,13 @@ def render(client: ApiClient, tz: str) -> None:
             },
             "logging": {"level": level},
             "notifications": {"battery_warning_percent": int(battery)},
+            "work": {
+                "workday_end": workday_end,
+                "workdays": ",".join(days) or work["workdays"],
+                "idle_minutes": int(idle),
+                "reminder_no_timer_after": no_timer,
+                "reminder_running_hours": int(running_hours),
+            },
         }
         saved, _ = call(client.update_settings, changes)
         if saved:
@@ -192,7 +267,7 @@ def render(client: ApiClient, tz: str) -> None:
                     "Agenten** (`octaledger agent`)."
                 )
 
-    _reset(client, display, tracking, logging_, notifications)
+    _reset(client, display, tracking, logging_, notifications, work)
     with st.expander("Technische Angaben (nur lesen)", key="set_technical"):
         agent = settings["agent"]
         st.markdown(
@@ -212,6 +287,7 @@ def _reset(
     tracking: dict[str, object],
     logging_: dict[str, object],
     notifications: dict[str, object],
+    work: dict[str, object],
 ) -> None:
     """The way back: every setting of this page to its default (looks are not touched)."""
     already_default = (
@@ -222,6 +298,7 @@ def _reset(
         and tracking["disconnect_grace_seconds"] == DEFAULT_TRACKING.disconnect_grace_seconds
         and tracking["neutral_policy"] == DEFAULT_TRACKING.neutral_policy.value
         and logging_["level"] == DEFAULT_LOGGING.level
+        and work == dataclasses.asdict(DEFAULT_WORK)
         and notifications["battery_warning_percent"]
         == DEFAULT_NOTIFICATIONS.battery_warning_percent
     )
@@ -237,6 +314,7 @@ def _reset(
             call(client.reset_settings, "tracking")[0],
             call(client.reset_settings, "logging")[0],
             call(client.reset_settings, "notifications")[0],
+            call(client.reset_settings, "work")[0],
             call(client.update_settings, {"display": {"timezone": DEFAULT_TIMEZONE}})[0],
         ]
         if all(done):

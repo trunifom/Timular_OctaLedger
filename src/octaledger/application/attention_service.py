@@ -44,6 +44,15 @@ class AttentionService:
         with self._storage.read() as repos:
             return repos.attention.list_recent(limit)
 
+    def get(self, item_id: str) -> AttentionItem:
+        """Return one question.
+
+        Raises:
+            NotFoundError: If it does not exist.
+        """
+        with self._storage.read() as repos:
+            return repos.attention.require(item_id)
+
     def dismiss(self, item_id: str) -> AttentionItem:
         """Close a question without acting on it (the entry stays as it is).
 

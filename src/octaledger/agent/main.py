@@ -71,6 +71,7 @@ from octaledger.infrastructure.integrations.base import Adapter
 from octaledger.infrastructure.integrations.registry import default_adapters
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
+from octaledger.infrastructure.system.idle import WindowsInputProbe
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +167,7 @@ class AgentRuntime:
             log_lines=recent_log_lines,
             agent=self,
             integrations=integrations,
+            probe=WindowsInputProbe(),
         )
         self._battery_watch = BatteryWatch(
             storage,
@@ -177,6 +179,7 @@ class AgentRuntime:
             [
                 self.context.tracking.watchdog,
                 self.context.attention.expire_old,
+                self.context.workday.tick,
                 self._battery_watch.check,
             ]
         )

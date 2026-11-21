@@ -266,7 +266,9 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Rückfrage:** `{id, kind, status, created_at, resolved_at, resolution, session_id, payload}`. `kind` ist heute `gap` (Lücke nach Verbindungsverlust; `payload`: `device_id`, `lost_at`, `returned_at` oder `null`, `activity_id`, `project_id`); `idle`, `auto_stop`, `reminder`, `break_hint` sind für spätere Pakete reserviert. `status`: `open`, `resolved`, `dismissed`, `expired`.
 
-`keep` verlängert den beendeten Eintrag bis zur Rückkehr (ohne Rückkehr: bis jetzt), `discard` lässt die Lücke leer, `assign` bucht sie auf die angegebene Tätigkeit (Pflicht, sonst 422). Die Lücke überlappt nie den nächsten Eintrag; ist sie ganz belegt, antwortet die API 409. Eine schon beantwortete Rückfrage ergibt 409, eine unbekannte 404. Jede Antwort steht in der Prüfspur.
+**Antworten je Art** (`POST /attention/{id}/resolve`, Body `{action, …}`): `gap`: `keep`, `discard`, `assign` (mit `activity_id`); `idle` (Leerlauf; `payload.idle_since`): `keep` (Zeit zählt), `discard` (Eintrag endet zu Beginn des Leerlaufs), `pause` (wie discard und Pause merken); `auto_stop` (Auto-Stopp am Arbeitsende; `payload.ended_at`): `keep` oder `extend` mit `until` (ISO-Zeit, nach dem automatischen Ende, nicht in der Zukunft; 409, wenn die Zeit von einem anderen Eintrag belegt ist). `reminder` (Erinnerung, z. B. `payload.reason` = `battery`, `no_timer`, `running_long`) wird nur mit `…/dismiss` geschlossen (`resolve` ergibt 409).
+
+`keep` bei `gap` verlängert den beendeten Eintrag bis zur Rückkehr (ohne Rückkehr: bis jetzt), `discard` lässt die Lücke leer, `assign` bucht sie auf die angegebene Tätigkeit (Pflicht, sonst 422). Die Lücke überlappt nie den nächsten Eintrag; ist sie ganz belegt, antwortet die API 409. Eine schon beantwortete Rückfrage ergibt 409, eine unbekannte 404. Jede Antwort steht in der Prüfspur.
 
 Hinweis: Im **Steuerungsmodus** eines Würfels entstehen **keine** Sitzungen – seine Drehungen lösen Aktionen aus (Abschnitt 7).
 

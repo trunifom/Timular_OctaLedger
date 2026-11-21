@@ -193,3 +193,38 @@ def test_button_assignment_through_the_api(env: Env) -> None:
     assert env.call("PUT", f"{path}/double", json={"action": "stop"}).status_code == 422
     assert env.call("PUT", f"{path}/short", json={"action": "boom"}).status_code == 422
     assert env.get(f"/devices/{'0' * 32}/buttons").status_code == 404
+
+
+# --------------------------------------------------------- workday questions via API
+
+
+def test_idle_and_auto_stop_questions_are_answered_through_the_same_endpoint(env: Env) -> None:
+    from octaledger.domain.attention import AttentionItem, AttentionKind
+
+    activity = make_activity(env)
+    now = datetime.now(timezone.utc)
+    with env.storage.transaction() as repos:
+        from octaledger.domain.models import Session, SessionSource
+
+        session = repos.sessions.add(
+            Session(activity, now - timedelta(hours=2), source=SessionSource.MANUAL)
+        )
+        idle = repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.IDLE,
+                created_at=now,
+                session_id=session.id,
+                payload={"idle_since": (now - timedelta(minutes=30)).isoformat()},
+            )
+        )
+        reminder = repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.REMINDER, created_at=now, payload={"reason": "no_timer"}
+            )
+        )
+    assert env.post(f"/attention/{idle.id}/resolve", {"action": "fly"}).status_code == 422
+    done = env.post(f"/attention/{idle.id}/resolve", {"action": "discard"})
+    assert done.status_code == 200 and done.json()["resolution"] == "discard"
+    # a reminder is closed with "dismiss", not answered
+    assert env.post(f"/attention/{reminder.id}/resolve", {"action": "keep"}).status_code == 409
+    assert env.post(f"/attention/{reminder.id}/dismiss").json()["status"] == "dismissed"

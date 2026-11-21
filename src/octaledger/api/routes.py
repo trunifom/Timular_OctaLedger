@@ -77,6 +77,7 @@ from octaledger.core.settings import (
     settings_from_mapping,
     settings_to_mapping,
 )
+from octaledger.domain.attention import AttentionKind
 from octaledger.domain.models import DeviceMode
 from octaledger.domain.time_rules import ensure_utc, utc_now
 
@@ -428,12 +429,22 @@ def build_router(ctx: AppContext) -> APIRouter:
 
     @router.post("/attention/{item_id}/resolve")
     def resolve_attention(item_id: str, body: AttentionResolve) -> dict[str, Any]:
-        """Answer a gap question: ``keep``, ``discard`` or ``assign`` (with an activity)."""
-        return attention_out(
-            ctx.tracking.resolve_gap(
+        """Answer a question; the allowed answers depend on its kind (see API.md)."""
+        item = ctx.attention.get(item_id)
+        if item.kind is AttentionKind.GAP:
+            closed = ctx.tracking.resolve_gap(
                 item_id, body.action, activity_id=body.activity_id, project_id=body.project_id
             )
-        )
+        elif item.kind is AttentionKind.IDLE:
+            closed = ctx.workday.resolve_idle(item_id, body.action)
+        elif item.kind is AttentionKind.AUTO_STOP:
+            closed = ctx.workday.resolve_auto_stop(item_id, body.action, body.until)
+        else:
+            raise InvalidStateError(
+                f"Attention item {item_id} cannot be answered, only dismissed",
+                user_message="Diese Meldung wird nur mit „Verstanden“ geschlossen.",
+            )
+        return attention_out(closed)
 
     @router.post("/attention/{item_id}/dismiss")
     def dismiss_attention(item_id: str) -> dict[str, Any]:

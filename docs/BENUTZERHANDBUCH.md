@@ -484,6 +484,15 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
 
+### Arbeitstag: Auto-Stopp, Leerlauf, Erinnerungen
+
+Unter *App* → **Arbeitstag** (alles **nach der Installation aus**):
+
+- **Arbeitsende** (z. B. 17:30): Zu dieser Uhrzeit endet ein laufender Eintrag (als unsicher markiert). Danach fragt OctaLedger „Haben Sie länger gearbeitet?“: *So lassen* oder *Länger gearbeitet …* bis zu einer Uhrzeit. Nur an den **Arbeitstagen** (Voreinstellung Mo–Fr). Ein Eintrag, den Sie **nach** dem Arbeitsende starten, wird nicht sofort beendet.
+- **Leerlauf** (z. B. nach 10 Minuten): Gemessen wird **nur, wie lange keine Taste und keine Maus bewegt wurde** – nichts darüber, was Sie tun. Danach fragt OctaLedger: *Zeit behalten*, *Leerlauf verwerfen* (der Eintrag endet dort, wo die Pause begann) oder *Als Pause buchen*. Lesen oder ein Video schauen zählt als Leerlauf, darum ist die Funktion standardmäßig aus. Der Agent muss in Ihrer **eigenen Windows-Sitzung** laufen (nicht als Dienst), sonst gibt es keinen Wert.
+- **Erinnerungen:** „Zeit starten?“ (läuft ab einer Uhrzeit nichts) und „Noch dabei?“ (ein Eintrag läuft sehr lange); jede einmal.
+- Es wird **nie** etwas ohne Ihre Antwort gelöscht; jede Antwort steht in der Prüfspur. Nicht enthalten: Erkennung von Sperrbildschirm/Standby (nur die Eingabezeit zählt).
+
 ### Taste und Batterie des Würfels
 
 - **Taste:** Unter *Würfel verwalten* → Ihr Würfel → **Taste des Würfels** legen Sie fest, was ein **kurzer** und ein **langer** Druck tut: *Pause / Fortsetzen*, *Zeit beenden* oder *Letzte Tätigkeit starten*. **Voreinstellung: nichts.** Nur der **aktive** Tracker beeinflusst die Zeit. Ob Ihr Würfel die Taste wie beschrieben meldet, ist **noch nicht mit echter Hardware geprüft**: Drücken Sie sie und sehen Sie auf *Würfel live* nach, ob „Die Taste des Würfels wurde gedrückt“ erscheint.

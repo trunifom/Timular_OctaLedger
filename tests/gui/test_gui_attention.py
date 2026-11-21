@@ -155,3 +155,43 @@ def test_a_battery_reminder_can_be_acknowledged(api_server: RunningApi) -> None:
     key = next(k for k in keys(at) if k.startswith("att_ack_"))
     at.button(key=key).click().run()
     assert api_server.client.attention()["items"] == []
+
+
+def test_the_working_day_settings_are_off_by_default_and_save(api_server: RunningApi) -> None:
+    at = open_page(api_server, "settings")
+    assert at.text_input(key="set_workday_end").value == ""
+    assert "Voreinstellung" in at.text_input(key="set_workday_end").help
+    assert at.number_input(key="set_idle").value == 0
+    assert at.number_input(key="set_running_hours").value == 0
+    assert at.multiselect(key="set_workdays").value == ["1", "2", "3", "4", "5"]
+    assert all(w.help for w in (at.text_input(key="set_no_timer"), at.number_input(key="set_idle")))
+    api_server.client.update_settings({"work": {"workday_end": "17:30", "idle_minutes": 15}})
+    again = open_page(api_server, "settings")
+    assert again.text_input(key="set_workday_end").value == "17:30"
+    assert again.number_input(key="set_idle").value == 15
+    assert not again.button(key="set_reset").disabled  # something differs from the defaults
+
+
+def test_idle_and_auto_stop_questions_have_their_answers(api_server: RunningApi) -> None:
+    from octaledger.domain.attention import AttentionItem, AttentionKind
+
+    now = datetime.now(timezone.utc)
+    with api_server.storage.transaction() as repos:
+        repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.IDLE,
+                created_at=now,
+                payload={"idle_since": (now - timedelta(minutes=20)).isoformat()},
+            )
+        )
+        repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.AUTO_STOP,
+                created_at=now,
+                payload={"ended_at": (now - timedelta(hours=1)).isoformat()},
+            )
+        )
+    at = open_page(api_server, "journal")
+    labels = [b.label for b in at.button if b.key and b.key.startswith("att_")]
+    assert "Zeit behalten" in labels and "Als Pause buchen" in labels and "So lassen" in labels
+    assert all(b.help for b in at.button if b.key and b.key.startswith("att_"))

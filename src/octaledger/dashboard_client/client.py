@@ -648,9 +648,12 @@ class ApiClient:
         action: str,
         activity_id: str | None = None,
         project_id: str | None = None,
+        until: datetime | None = None,
     ) -> dict[str, Any]:
-        """Answer a gap question: ``keep``, ``discard`` or ``assign``."""
+        """Answer a question; the allowed actions depend on its kind."""
         body: dict[str, Any] = {"action": action}
+        if until is not None:
+            body["until"] = _time(until)
         if activity_id is not None:
             body["activity_id"] = activity_id
         if project_id is not None:

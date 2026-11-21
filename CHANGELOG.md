@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Arbeitstag, AP-38)
+- Einstellungen `work` (alles aus): Arbeitsende mit Auto-Stopp und Rückfrage, Arbeitstage, Leerlauf-Erkennung (`GetLastInputInfo`, nur die Dauer), Erinnerungen „Zeit starten?“ und „Noch dabei?“.
+- Rückfragen `idle` und `auto_stop` mit Antworten in der Oberfläche und über `POST /attention/{id}/resolve`.
+
 ### Hinzugefügt (Würfeltaste und Batterie-Warnung, AP-37)
 - Die Taste des Würfels wird abonniert (nur lesen): kurz/lang als Ereignis `button`; je Würfel belegbar mit Pause/Fortsetzen, Beenden, Letzte Tätigkeit starten (Voreinstellung: nichts). Migration 0005, `GET/PUT /devices/{id}/buttons`.
 - Batterie wird alle 10 Minuten gelesen; Einstellung `notifications.battery_warning_percent` (20) löst einmal pro Entladung eine Erinnerung aus.

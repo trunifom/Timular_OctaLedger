@@ -290,6 +290,69 @@ class NotificationSettings:
         _check_int("notifications", "battery_warning_percent", self.battery_warning_percent, 0, 90)
 
 
+def _check_clock(section: str, key: str, value: object) -> str:
+    """Validate ``HH:MM`` (24 h) or the empty text that switches a rule off."""
+    if not isinstance(value, str):
+        raise _fail(section, key, "Uhrzeit als Text erwartet (z. B. 17:30)", value)
+    text = value.strip()
+    if not text:
+        return ""
+    parts = text.split(":")
+    if (
+        len(parts) != 2
+        or not all(p.isdigit() and len(p) in (1, 2) for p in parts)
+        or not (0 <= int(parts[0]) <= 23 and 0 <= int(parts[1]) <= 59)
+    ):
+        raise _fail(section, key, "Uhrzeit im Format HH:MM erwartet (z. B. 17:30)", value)
+    return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+
+
+@dataclass(frozen=True, slots=True)
+class WorkSettings:
+    """The working day: automatic stop, idle detection and reminders (all off by default)."""
+
+    #: Time (``HH:MM``) at which a running entry ends; empty = no automatic stop.
+    workday_end: str = ""
+    #: Working days as comma-separated ISO weekday numbers (1 = Monday ... 7 = Sunday).
+    workdays: str = "1,2,3,4,5"
+    #: Ask after this many minutes without keyboard/mouse input; 0 = off.
+    idle_minutes: int = 0
+    #: Remind from this time (``HH:MM``) if no timer runs on a working day; empty = off.
+    reminder_no_timer_after: str = ""
+    #: Remind when one entry has been running this many hours; 0 = off.
+    reminder_running_hours: int = 0
+
+    def __post_init__(self) -> None:
+        """Validate every value and normalise the clock times."""
+        object.__setattr__(
+            self, "workday_end", _check_clock("work", "workday_end", self.workday_end)
+        )
+        object.__setattr__(
+            self,
+            "reminder_no_timer_after",
+            _check_clock("work", "reminder_no_timer_after", self.reminder_no_timer_after),
+        )
+        _check_int("work", "idle_minutes", self.idle_minutes, 0, 480)
+        _check_int("work", "reminder_running_hours", self.reminder_running_hours, 0, 24)
+        if not isinstance(self.workdays, str):
+            raise _fail(
+                "work", "workdays", "Wochentage als Text erwartet (z. B. 1,2,3,4,5)", self.workdays
+            )
+        days = [d.strip() for d in self.workdays.split(",") if d.strip()]
+        if not days or not all(d in {"1", "2", "3", "4", "5", "6", "7"} for d in days):
+            raise _fail(
+                "work",
+                "workdays",
+                "Zahlen von 1 (Montag) bis 7 (Sonntag), mit Komma getrennt",
+                self.workdays,
+            )
+        object.__setattr__(self, "workdays", ",".join(sorted(set(days))))
+
+    def workday_numbers(self) -> frozenset[int]:
+        """The working days as ISO weekday numbers."""
+        return frozenset(int(d) for d in self.workdays.split(","))
+
+
 @dataclass(frozen=True, slots=True)
 class Settings:
     """Complete application configuration (immutable)."""
@@ -299,6 +362,7 @@ class Settings:
     display: DisplaySettings = field(default_factory=DisplaySettings)
     logging: LoggingSettings = field(default_factory=LoggingSettings)
     notifications: NotificationSettings = field(default_factory=NotificationSettings)
+    work: WorkSettings = field(default_factory=WorkSettings)
 
 
 #: Section name -> settings class, the single source for parsing and serialising.
@@ -308,6 +372,7 @@ _SECTIONS: Final[dict[str, type]] = {
     "display": DisplaySettings,
     "logging": LoggingSettings,
     "notifications": NotificationSettings,
+    "work": WorkSettings,
 }
 
 
