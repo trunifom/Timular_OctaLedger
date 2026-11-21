@@ -8,11 +8,12 @@ else (storage, API, dashboard) needs to change, because adapters describe themse
 from __future__ import annotations
 
 from octaledger.infrastructure.integrations.base import Adapter
+from octaledger.infrastructure.integrations.homeassistant import HomeAssistantAdapter
 from octaledger.infrastructure.integrations.mqtt import MqttAdapter
 from octaledger.infrastructure.integrations.webhook import WebhookAdapter
 
 
 def default_adapters() -> dict[str, Adapter]:
     """Return one instance of every shipped adapter, keyed by its ``spec.kind``."""
-    adapters: list[Adapter] = [WebhookAdapter(), MqttAdapter()]
+    adapters: list[Adapter] = [WebhookAdapter(), MqttAdapter(), HomeAssistantAdapter()]
     return {adapter.spec.kind: adapter for adapter in adapters}

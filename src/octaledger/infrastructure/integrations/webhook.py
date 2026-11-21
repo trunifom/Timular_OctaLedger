@@ -25,43 +25,28 @@ characters (so a body is short; that is plenty for a switch command).
 from __future__ import annotations
 
 import json
-import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any, Final
-from urllib.parse import urlsplit
 
-import requests
-from requests import Response, Session
-from requests.exceptions import ConnectionError as RequestsConnectionError
-from requests.exceptions import ConnectTimeout, ReadTimeout, RequestException
-from urllib3.exceptions import (
-    ConnectTimeoutError,
-    MaxRetryError,
-    NameResolutionError,
-    NewConnectionError,
-)
+from requests import Response
 
-from octaledger.core.errors import IntegrationConnectionError, IntegrationError, ValidationError
+from octaledger.core.errors import IntegrationError, ValidationError
 from octaledger.infrastructure.integrations.base import (
     ActionSpec,
     Adapter,
     AdapterSpec,
     FieldSpec,
 )
-
-logger = logging.getLogger(__name__)
+from octaledger.infrastructure.integrations.httpio import (
+    SessionFactory,
+    check_base_url,
+    new_session,
+    send,
+)
 
 METHODS: Final = ("GET", "POST", "PUT", "PATCH", "DELETE")
 CONTENT_TYPES: Final = (("application/json", "JSON"), ("text/plain", "Text"))
 _HEADER_NAME: Final = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
-
-SessionFactory = Callable[[], Session]
-
-
-def _new_session() -> Session:
-    session = requests.Session()
-    session.trust_env = False  # never route a request to the user's own network via a proxy
-    return session
 
 
 class WebhookAdapter(Adapter):
@@ -149,7 +134,7 @@ class WebhookAdapter(Adapter):
         ),
     )
 
-    def __init__(self, session_factory: SessionFactory = _new_session) -> None:
+    def __init__(self, session_factory: SessionFactory = new_session) -> None:
         """Create the adapter (``session_factory`` is replaceable for tests)."""
         self._session_factory = session_factory
 
@@ -158,7 +143,7 @@ class WebhookAdapter(Adapter):
     def validate_config(self, values: Mapping[str, Any]) -> dict[str, Any]:
         """Check the settings: a plain http(s) base address and a valid header name."""
         config = super().validate_config(values)
-        config["base_url"] = _check_base_url(config["base_url"])
+        config["base_url"] = check_base_url(config["base_url"])
         header = config.get("auth_header")
         if header and not set(header) <= _HEADER_NAME:
             raise ValidationError(
@@ -272,7 +257,7 @@ class WebhookAdapter(Adapter):
         content_type: str,
         timeout: float,
     ) -> Response:
-        """Send one request; translate failures by whether the request reached the target."""
+        """Send one request; failures are classified by :func:`httpio.send`."""
         url = str(config["base_url"]).rstrip("/") + path
         headers = {"User-Agent": "OctaLedger"}
         value = secrets.get("auth_value")
@@ -280,81 +265,12 @@ class WebhookAdapter(Adapter):
             headers[str(config.get("auth_header") or "Authorization")] = value
         if body is not None:
             headers["Content-Type"] = content_type
-        session = self._session_factory()
-        try:
-            return session.request(
-                method,
-                url,
-                data=None if body is None else body.encode("utf-8"),
-                headers=headers,
-                timeout=(timeout, timeout),
-                allow_redirects=False,
-                verify=bool(config.get("verify_tls", True)),
-                stream=True,  # the answer body is never read
-            )
-        except RequestsConnectionError as exc:
-            if _not_sent(exc):
-                raise IntegrationConnectionError(
-                    "Cannot connect to the target",
-                    user_message="Das Ziel ist nicht erreichbar. Bitte Adresse, Netzwerk und "
-                    "Gerät prüfen.",
-                ) from exc
-            raise IntegrationError(
-                "Connection broke while talking to the target",
-                user_message="Die Verbindung brach ab. Die Aktion wurde möglicherweise ausgeführt.",
-            ) from exc
-        except ConnectTimeout as exc:
-            raise IntegrationConnectionError(
-                "Connect timeout",
-                user_message="Das Ziel antwortet nicht (Zeitlimit beim Verbinden).",
-            ) from exc
-        except ReadTimeout as exc:
-            raise IntegrationError(
-                "Read timeout after sending",
-                user_message="Das Ziel hat nicht rechtzeitig geantwortet. Die Aktion wurde "
-                "möglicherweise ausgeführt und wird nicht wiederholt.",
-            ) from exc
-        except RequestException as exc:
-            logger.warning("Webhook request failed: %s", type(exc).__name__)
-            raise IntegrationError(
-                f"Request failed: {type(exc).__name__}",
-                user_message="Die Anfrage konnte nicht gesendet werden. Bitte die Adresse prüfen.",
-            ) from exc
-        finally:
-            session.close()
-
-
-def _not_sent(exc: RequestsConnectionError) -> bool:
-    """Whether a connection error happened *before* anything was sent to the target."""
-    reason = exc.args[0] if exc.args else None
-    if isinstance(reason, MaxRetryError):
-        reason = reason.reason
-    return isinstance(reason, NewConnectionError | NameResolutionError | ConnectTimeoutError)
-
-
-def _check_base_url(value: str) -> str:
-    """Accept only ``http(s)://host[:port][/prefix]`` without credentials, query or fragment."""
-    parts = urlsplit(value)
-    if (
-        parts.scheme not in ("http", "https")
-        or not parts.hostname
-        or parts.username
-        or parts.password
-        or parts.query
-        or parts.fragment
-    ):
-        raise ValidationError(
-            f"Invalid base address {value!r}",
-            user_message="Die Basisadresse muss mit http:// oder https:// beginnen und darf weder "
-            "Benutzername, noch Abfrage-Teil enthalten.",
-            details={"field": "base_url"},
+        return send(
+            self._session_factory,
+            method,
+            url,
+            headers=headers,
+            data=None if body is None else body.encode("utf-8"),
+            timeout=timeout,
+            verify=bool(config.get("verify_tls", True)),
         )
-    try:
-        _ = parts.port  # raises ValueError for an out-of-range port
-    except ValueError:
-        raise ValidationError(
-            f"Invalid port in {value!r}",
-            user_message="Die Basisadresse enthält einen ungültigen Port.",
-            details={"field": "base_url"},
-        ) from None
-    return value.rstrip("/")

@@ -1592,7 +1592,7 @@ laufende Zeit blockiert, manuelle Zeit nicht, Wiederholung, unbekanntes Gerät, 
 
 ### 31.11 Webhook-Adapter (`infrastructure.integrations.webhook`, AP-27)
 
-Der allgemeine Adapter für „weitere Standards“: eine *Verbindung* ist eine Basisadresse (`http(s)://host:port[/prefix]`) mit
+Der allgemeine Adapter für „weitere Standards“ (seit AP-29 nutzt er die gemeinsame HTTP-Logik aus `httpio`, siehe §31.15): eine *Verbindung* ist eine Basisadresse (`http(s)://host:port[/prefix]`) mit
 optionalem Zugang, eine *Aktion* ist **eine Anfrage an einen Pfad** (Methode GET/POST/PUT/PATCH/DELETE, Inhaltstyp JSON oder
 Text, optionaler Inhalt). Er deckt Node-RED, ESPHome, IFTTT-ähnliche Dienste und eigene Skripte ab.
 
@@ -1663,3 +1663,45 @@ veröffentlicht**), kein MQTT-Broker, **fehlende Bestätigung wird nicht wiederh
 Veröffentlichung, TLS (Umhüllung mit der gewählten Prüfung, kein TLS ohne Anforderung, fehlgeschlagener Handshake dauerhaft; mit
 einer Attrappe, da ohne Zertifikat kein echter Handshake möglich ist), Auslieferung mit dem Programm und **ein eingereihter Auftrag
 wird über den Dienst veröffentlicht**. Nicht geprüft: Mosquitto, Home Assistant oder ein echter Hub, ein echter TLS-Handshake.
+
+### 31.15 Gemeinsame HTTP-Logik (`infrastructure.integrations.httpio`, AP-29)
+
+Webhook und Home Assistant sprechen beide HTTP. Damit die **Einstufung eines Fehlers** (Grundlage der Wiederholungsregel) nur an
+**einer** geprüften Stelle steht, liegt sie in `httpio`: `send()` führt eine Anfrage aus und meldet *sicher nicht angekommen*
+(nicht verbindbar, Name unbekannt, Zeitlimit **beim Verbinden**; erkannt über die Ursache des Fehlers) als
+`IntegrationConnectionError`, alles andere (Abbruch mitten in der Verbindung, Zeitlimit **nach** dem Senden) als
+`IntegrationError`. Sichere Voreinstellungen für alle: **keine Weiterleitungen**, **keine Umgebungs-Proxys**, **immer ein
+Zeitlimit**, die Antwort wird nur gelesen, wenn ein Adapter es verlangt, und dann **begrenzt** (`read_limited`, 4 MiB).
+`check_base_url()` prüft Basisadressen (nur http/https, ohne Zugangsdaten, Abfrage oder Anker, gültiger Port).
+
+### 31.16 Home-Assistant-Adapter (`infrastructure.integrations.homeassistant`, AP-29)
+
+Home Assistant ist die **Zentrale** für die Standards, die OctaLedger nicht selbst spricht: Alles, was dort eingebunden ist
+(Matter-Geräte, Google-Home-Anbindung, Zigbee, Hue, KNX), kann eine Würfelseite über einen **Dienstaufruf** schalten. Eine
+*Verbindung* ist die Adresse von Home Assistant und ein **langlebiges Zugriffstoken** (Geheimnis, nur als Bearer-Kopf gesendet).
+Aktionen: **Einschalten** (bei Lampen optional mit Helligkeit in %), **Ausschalten**, **Umschalten** (nicht idempotent),
+**Szene aktivieren**, **Skript ausführen** (nicht idempotent) und **beliebiger Dienst** (`bereich.dienst` mit Gerät und JSON-Daten,
+nicht idempotent). Einschalten/Ausschalten/Umschalten nutzen `homeassistant.turn_on/turn_off/toggle`, das für fast alle Arten von
+Geräten funktioniert; mit Helligkeit wird `light.turn_on` mit `brightness_pct` aufgerufen.
+
+**Sicherheit:** `bereich` und `dienst` sind auf `[a-z0-9_]` beschränkt und die Geräte-Kennung auf das Format `bereich.name`, sodass
+**kein Wert den Anfragepfad verändern kann** (kein `../`). Szene/Skript müssen mit `scene.`/`script.` beginnen, eine Helligkeit gibt
+es nur für `light.…`, zusätzliche Daten müssen ein JSON-Objekt sein. Das Token steht nie in einer Meldung (auch eine abgelehnte
+Anmeldung nennt es nicht); ohne gespeichertes Token wird **nichts gesendet**. 401/403 verweisen darauf, ein neues Zugriffstoken zu
+erstellen, 404 beim Dienstaufruf auf „Bereich“ und „Dienst“.
+
+**Entdecken:** `GET /api/states` liefert Lampen, Schalter, Szenen, Skripte, Hilfsschalter, Ventilatoren, Rollläden und Mediengeräte
+(`{"light": [{"id", "name"}]}`, nach Anzeigename sortiert, höchstens 200 je Art, leere Arten fehlen, Sensoren u. a. werden nicht
+aufgelistet; ungültige Einträge werden übersprungen), damit die Oberfläche eine Auswahl statt einer Texteingabe bieten kann. `check`
+fragt die API-Wurzel, die nur mit gültigem Token antwortet.
+
+### 31.17 Tests (AP-29)
+
+`tests/unit/test_adapter_homeassistant.py` (42, **gegen einen lokalen Nachbau der REST-Schnittstelle**): Token als Geheimnis und
+Adressprüfung, fehlerhafte Geräte-Kennungen, Szene/Skript-Präfix, Helligkeit nur für Lampen und im Bereich, **Bereich/Dienst können
+den Pfad nicht verändern**, JSON-Daten, unbekannte Felder/Aktionen, **jede der Aktionen ruft den passenden Dienst mit dem richtigen
+Inhalt auf**, ohne Token wird nichts gesendet, falsches Token nennt es nicht, unbekannter Dienst, Fehlerantwort dauerhaft,
+nicht erreichbar wird wiederholt, **Zeitlimit nach dem Senden nicht**, Weiterleitung nicht befolgt, Prüfung ohne Nebenwirkung,
+Entdecken (sortiert, begrenzt, tolerant gegen seltsame Antworten), die gemeinsame Sitzung ignoriert die Umgebung, eine riesige
+Antwort wird abgeschnitten, Auslieferung mit dem Programm und **ein eingereihter Auftrag erreicht Home Assistant über den Dienst**.
+Nicht geprüft: ein echter Home Assistant (Versionen und Fehlertexte können abweichen), Matter-/Google-Home-Geräte dahinter.
