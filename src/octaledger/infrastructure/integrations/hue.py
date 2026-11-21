@@ -137,6 +137,21 @@ _LIGHT_FIELDS: Final = (
 )
 
 
+SETUP_GUIDE: Final = """\
+**Wofür:** Philips-Hue-Lampen, -Räume und -Szenen direkt über die **Bridge** im Heimnetz, ohne Cloud.
+
+1. **Adresse der Bridge** eintragen (IP-Adresse): in der Hue-App unter *Einstellungen → Bridges → Info* oder
+   in der Geräteliste Ihres Routers.
+2. **Verbindung anlegen.**
+3. **Koppeln:** Drücken Sie die **große Taste in der Mitte der Bridge** und klicken Sie **innerhalb von
+   30 Sekunden** hier auf **Koppeln**. Erscheint „Taste noch nicht gedrückt“, einfach nochmal versuchen.
+4. Mit **Geräte der Verbindung auflisten** wählen Sie Lampen, Räume und Szenen nach Namen.
+
+**Sicherheit:** Beim Koppeln merkt sich OctaLedger den **Fingerabdruck des Zertifikats** der Bridge
+(„Vertrauen beim ersten Mal“) und spricht danach nur noch mit genau dieser Bridge.
+"""  # noqa: E501
+
+
 class HueAdapter(Adapter):
     """Controls a Hue Bridge (see the module docstring)."""
 
@@ -147,6 +162,7 @@ class HueAdapter(Adapter):
             "Schaltet Hue-Lampen, Räume und Szenen direkt über die Bridge in Ihrem Heimnetz, ohne "
             "Cloud. Einmaliges Koppeln per Knopf an der Bridge."
         ),
+        setup_guide=SETUP_GUIDE,
         config_fields=(
             FieldSpec(
                 "host",
@@ -159,12 +175,14 @@ class HueAdapter(Adapter):
             FieldSpec(
                 "fingerprint",
                 "Zertifikat-Fingerabdruck",
+                advanced=True,
                 help="Wird beim Koppeln automatisch gesetzt (SHA-256 des Bridge-Zertifikats) und "
                 "schützt vor einer untergeschobenen Bridge. Nicht von Hand ändern.",
             ),
             FieldSpec(
                 "app_key",
                 "Anwendungsschlüssel",
+                advanced=True,
                 kind="password",
                 help="Entsteht beim Koppeln automatisch; muss nicht eingegeben werden.",
             ),

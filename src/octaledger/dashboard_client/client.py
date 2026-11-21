@@ -584,6 +584,55 @@ class ApiClient:
         result: dict[str, Any] = self._post("/backup")
         return result
 
+    # ------------------------------------------------------------ data management
+
+    def data_overview(self) -> dict[str, Any]:
+        """How much is stored (entries, events, cubes, activities ...)."""
+        result: dict[str, Any] = self._get("/data/overview")
+        return result
+
+    def preview_entries(self, start: str | None = None, end: str | None = None) -> dict[str, Any]:
+        """What deleting the entries of a period would touch (changes nothing)."""
+        result: dict[str, Any] = self._post("/data/entries/preview", _period(start, end))
+        return result
+
+    def delete_entries(
+        self,
+        expected_count: int,
+        start: str | None = None,
+        end: str | None = None,
+        include_events: bool = False,
+    ) -> dict[str, Any]:
+        """Delete the entries of a period (after an automatic safety backup)."""
+        body = _period(start, end)
+        body.update(expected_count=expected_count, include_events=include_events)
+        result: dict[str, Any] = self._post("/data/entries/delete", body)
+        return result
+
+    def factory_reset(self, confirm_text: str, reset_settings: bool = True) -> dict[str, Any]:
+        """Delete everything (needs the typed confirmation text)."""
+        result: dict[str, Any] = self._post(
+            "/data/reset", {"confirm_text": confirm_text, "reset_settings": reset_settings}
+        )
+        return result
+
+    def remove_device_with_options(self, device_id: str, delete_data: bool) -> dict[str, Any]:
+        """Remove a cube; ``delete_data`` also removes everything recorded with it."""
+        result: dict[str, Any] = self._post(
+            f"/devices/{device_id}/remove", {"delete_data": delete_data}
+        )
+        return result
+
+    def unpair_device(self, device_id: str) -> dict[str, Any]:
+        """Stop the connection and forget the Bluetooth address (cube and data stay)."""
+        result: dict[str, Any] = self._post(f"/devices/{device_id}/unpair")
+        return result
+
+    def reset_settings(self, section: str | None = None) -> dict[str, Any]:
+        """Restore default settings of one section (or all)."""
+        result: dict[str, Any] = self._post("/settings/reset", {"section": section})
+        return result
+
     def inspect_restore(self, content: str) -> dict[str, Any]:
         """Validate a backup without changing anything."""
         result: dict[str, Any] = self._post("/restore/inspect", {"content": content})
@@ -619,3 +668,8 @@ class ApiClient:
         """Database integrity check result."""
         result: dict[str, Any] = self._get("/diagnostics/integrity")
         return result
+
+
+def _period(start: str | None, end: str | None) -> dict[str, Any]:
+    """Request body for a period (``None`` leaves a side open)."""
+    return {"start": start, "end": end}

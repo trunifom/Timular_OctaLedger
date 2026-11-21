@@ -145,6 +145,8 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `POST /devices/{id}/activate` | Übergabe: diesen Würfel zum aktiven machen | – | `{"ended_session": …\|null}` |
 | `POST /devices/{id}/connect` | Bluetooth-Verbindung starten (Adresse nötig) | – | `{"started": true}` |
 | `POST /devices/{id}/disconnect` | Verbindung absichtlich beenden (kein Wiederverbinden) | – | `{"stopped": true}` |
+| `POST /devices/{id}/unpair` | Koppeln aufheben: Verbindung beenden und Bluetooth-Adresse vergessen; Würfel und Daten bleiben | – | **Gerät** |
+| `POST /devices/{id}/remove` | Würfel entfernen; `delete_data=true` löscht auch alles, was mit ihm erfasst wurde (nach automatischer Sicherung) | `{"delete_data"?: false}` | `{"sessions","raw_events","safety_backup"}` |
 | `POST /devices/{id}/address` | Adresse aus einer Suche speichern | `{"platform_address"}` | **Gerät** |
 | `POST /scan` | Bluetooth-Suche (nur auf Anforderung, verbindet nie selbst) | `{"seconds"?: 5.0}` | Liste von Treffern |
 
@@ -290,12 +292,27 @@ Die CSV beginnt mit einer BOM (Excel), das Trennzeichen ist standardmäßig `;`.
 Sicherung des bisherigen Stands** an (`pre_restore_backup`). Ohne `confirm: true` antwortet `restore` mit **409**. Geheimnisse
 (`secrets.json`) sind **nicht** Teil der Sicherung.
 
+### Daten löschen (Datenverwaltung)
+
+Löschen ist unwiderruflich und folgt deshalb immer demselben Muster: **erst Vorschau, dann Bestätigung mit der gezeigten Zahl, vor dem Löschen eine automatische Sicherung** (Datei im Sicherungsordner, Name in der
+Antwort), alles in **einer** Transaktion, eine Zusammenfassung in der Prüfspur. Laufende Einträge werden von Sammeloperationen **nie** gelöscht. „Rückgängig“ heißt: die genannte Sicherung wiederherstellen.
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `GET /data/overview` | Wie viel ist gespeichert? | – | `{"sessions","running_sessions","raw_events","devices","activities","projects","integrations","first_session","last_session"}` |
+| `POST /data/entries/preview` | Was würde das Löschen eines Zeitraums treffen? (ändert nichts) | `{"start"?, "end"?}` (Ende ausgeschlossen) | `{"count","with_note","first","last","running_left_out"}` |
+| `POST /data/entries/delete` | Einträge eines Zeitraums löschen | `{"start"?, "end"?, "expected_count", "include_events"?}` | `{"sessions","raw_events","safety_backup"}` |
+| `POST /data/reset` | **alles** löschen (Einträge, Würfel, Tätigkeiten, Projekte, Verbindungen, Zugangsdaten; Einstellungen auf Standard) | `{"confirm_text": "ALLES LÖSCHEN", "reset_settings"?: true}` | `{"counts","safety_backup","settings_reset"}` |
+
+`expected_count` muss die Zahl aus der Vorschau sein; hat sie sich geändert, antwortet die API mit **409** und löscht nichts. Beim Zurücksetzen muss der Bestätigungstext **genau** stimmen (sonst **409**).
+
 ## 12. Einstellungen und Diagnose
 
 | Methode und Pfad | Zweck | Antwort |
 |---|---|---|
 | `GET /settings` | aktuelle Einstellungen als verschachtelte Abschnitte | Objekt je Abschnitt |
 | `PUT /settings` | prüfen und speichern (Teilabschnitte behalten die übrigen Werte): `{"settings": {"abschnitt": {"schluessel": wert}}}` | gespeicherte Einstellungen |
+| `POST /settings/reset` | Standardwerte wiederherstellen: `{"section"?}` – ein Abschnitt (`agent`, `tracking`, `display`, `logging`) oder, ohne Angabe, alle | gespeicherte Einstellungen |
 | `GET /diagnostics/logs?limit=200` | die letzten (bereits geschwärzten) Protokollzeilen (1–1000) | `{"lines": […]}` |
 | `GET /diagnostics/integrity` | Integritätsprüfung der Datenbank | `{"ok": true, "problems": []}` |
 

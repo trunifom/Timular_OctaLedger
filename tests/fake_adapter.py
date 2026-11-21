@@ -21,12 +21,14 @@ class FakeAdapter(Adapter):
 
     spec = AdapterSpec(
         kind="fake",
+        setup_guide="1. Adresse eintragen. 2. Testen.",
         title="Testverbindung",
         description="Nur für Tests",
         config_fields=(
             FieldSpec("host", "Adresse", required=True),
             FieldSpec("port", "Port", kind="int", minimum=1, maximum=65535, default=80),
             FieldSpec("password", "Passwort", kind="password", required=True),
+            FieldSpec("note", "Notiz", advanced=True, help="Nur ein Beispiel für ein Zusatzfeld."),
         ),
         actions=(
             ActionSpec(

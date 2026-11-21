@@ -58,6 +58,8 @@ class FieldSpec:
         choices: ``(value, label)`` pairs for ``choice`` fields.
         minimum: Lower bound of an ``int`` field.
         maximum: Upper bound of an ``int`` field.
+        advanced: Shown only in the collapsed "Erweiterte Einstellungen" of the form; the
+            field must have a sensible default so the basic form is enough for most users.
         choices_from: Names of the discovery categories (see :meth:`Adapter.discover`) a text field
             can be filled from; the dashboard then offers a pick list instead of free text.
     """
@@ -73,6 +75,7 @@ class FieldSpec:
     minimum: int | None = None
     maximum: int | None = None
     choices_from: tuple[str, ...] = ()
+    advanced: bool = False
 
     @property
     def secret(self) -> bool:
@@ -109,6 +112,9 @@ class AdapterSpec:
     pair_help: str = ""
     #: Whether :meth:`Adapter.discover` can list lights, scenes ... to choose from.
     can_discover: bool = False
+    #: German step-by-step instructions (Markdown): where to get the address and the
+    #: credentials, what to click. Shown next to the form so no outside manual is needed.
+    setup_guide: str = ""
 
     def action(self, action_id: str) -> ActionSpec:
         """Return the action with ``action_id``.

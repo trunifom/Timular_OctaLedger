@@ -159,6 +159,24 @@ def _tls_context(verify: bool) -> ssl.SSLContext:
     return context
 
 
+SETUP_GUIDE: Final = """\
+**Wofür:** Nachrichten an einen MQTT-Broker senden (Mosquitto, Zigbee2MQTT, Tasmota, ESPHome, Node-RED).
+
+1. **Adresse des Brokers** eintragen (Name oder IP, ohne `mqtt://`), meist mit **Port 1883**.
+2. **Benutzername und Passwort**: die Zugangsdaten **des Brokers** (nicht die eines Cloud-Kontos). Bei einem
+   Mosquitto-Add-on in Home Assistant sind es ein Benutzer aus Home Assistant; ohne Anmeldung am Broker
+   lassen Sie beide Felder leer.
+3. **Verschlüsselung (TLS)** brauchen Sie nur, wenn der Broker es verlangt (meist Port **8883**): unter
+   *Erweiterte Einstellungen* einschalten.
+4. **Verbindung testen**, dann pro Würfelseite **Thema** und **Inhalt** festlegen.
+
+**Beispiele**
+- Zigbee2MQTT-Lampe: Thema `zigbee2mqtt/schreibtischlampe/set`, Inhalt `{"state": "ON"}`.
+- Bevorzugen Sie `ON` und `OFF` vor `TOGGLE`: Umschalten wirkt bei jedem Senden erneut.
+- Themen dürfen keine Platzhalter (`+`, `#`) enthalten und nicht mit `$` beginnen.
+"""  # noqa: E501
+
+
 class MqttAdapter(Adapter):
     """Publishes MQTT messages (see the module docstring)."""
 
@@ -170,6 +188,7 @@ class MqttAdapter(Adapter):
             "Der Standard des Smarthomes: Home Assistant, Zigbee2MQTT, Tasmota, ESPHome und "
             "Node-RED verstehen ihn."
         ),
+        setup_guide=SETUP_GUIDE,
         config_fields=(
             FieldSpec(
                 "host",
@@ -201,6 +220,7 @@ class MqttAdapter(Adapter):
             FieldSpec(
                 "use_tls",
                 "Verschlüsselt verbinden (TLS)",
+                advanced=True,
                 kind="bool",
                 default=False,
                 help="Für Port 8883 oder wenn der Broker TLS verlangt.",
@@ -208,6 +228,7 @@ class MqttAdapter(Adapter):
             FieldSpec(
                 "verify_tls",
                 "Zertifikat prüfen",
+                advanced=True,
                 kind="bool",
                 default=True,
                 help="Bei TLS das Zertifikat des Brokers prüfen. Nur ausschalten bei einem selbst "
@@ -238,6 +259,7 @@ class MqttAdapter(Adapter):
                     FieldSpec(
                         "qos",
                         "Zustellung (QoS)",
+                        advanced=True,
                         kind="choice",
                         default="1",
                         choices=(
@@ -250,6 +272,7 @@ class MqttAdapter(Adapter):
                     FieldSpec(
                         "retain",
                         "Nachricht behalten (retain)",
+                        advanced=True,
                         kind="bool",
                         default=False,
                         help="Der Broker merkt sich die Nachricht für später verbindende "

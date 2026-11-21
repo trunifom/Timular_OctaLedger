@@ -823,6 +823,18 @@ class JobRepository:
 # ------------------------------------------------------------------------------- events
 
 
+@dataclass(frozen=True, slots=True)
+class RangeStats:
+    """What a bulk deletion of sessions would touch (shown before anything is deleted)."""
+
+    count: int
+    with_note: int
+    first: datetime | None
+    last: datetime | None
+    #: A running session exists; it is never deleted by a bulk operation.
+    running_left_out: bool
+
+
 class RawEventRepository:
     """Persistence of unmodified tracker observations."""
 
@@ -932,6 +944,34 @@ class RawEventRepository:
                     "purge", "raw_event", None, f"{cursor.rowcount} before {to_db_time(cutoff)}"
                 )
         return cursor.rowcount
+
+    def delete_range(
+        self,
+        start: datetime | None,
+        end: datetime | None,
+        audit: AuditLogRepository | None = None,
+    ) -> int:
+        """Delete events received in ``[start, end)`` (``None`` leaves a side open)."""
+        clauses, params = [], []
+        if start is not None:
+            clauses.append("received_at >= ?")
+            params.append(to_db_time(start))
+        if end is not None:
+            clauses.append("received_at < ?")
+            params.append(to_db_time(end))
+        where = " AND ".join(clauses) or "1=1"
+        with _savepoint(self._c, "delete_events_range"):
+            with _db_errors("delete events in range"):
+                cursor = self._c.execute(f"DELETE FROM raw_events WHERE {where}", params)  # noqa: S608
+            if audit is not None and cursor.rowcount:
+                audit.add("delete", "raw_events", None, f"{cursor.rowcount} events in range")
+        return int(cursor.rowcount)
+
+    def delete_all_of_device(self, device_id: str) -> int:
+        """Delete every event of a device (used when removing it)."""
+        with _db_errors("delete events of a device"):
+            cursor = self._c.execute("DELETE FROM raw_events WHERE device_id = ?", (device_id,))
+        return int(cursor.rowcount)
 
 
 # ----------------------------------------------------------------------------- sessions
@@ -1267,6 +1307,95 @@ class SessionRepository:
                 f"{session.ended_at and to_db_time(session.ended_at)} "
                 f"activity={session.activity_id} reason={reason.strip()}",
             )
+
+    # ------------------------------------------------------------- bulk (data management)
+
+    @staticmethod
+    def _range_clause(
+        start: datetime | None, end: datetime | None, device_id: str | None = None
+    ) -> tuple[str, list[str]]:
+        """SQL condition for *finished* sessions that started in ``[start, end)``.
+
+        Running sessions are never part of a bulk operation: they are still being recorded.
+        """
+        clauses = ["ended_at IS NOT NULL"]
+        params: list[str] = []
+        if start is not None:
+            clauses.append("started_at >= ?")
+            params.append(to_db_time(start))
+        if end is not None:
+            clauses.append("started_at < ?")
+            params.append(to_db_time(end))
+        if device_id is not None:
+            clauses.append("device_id = ?")
+            params.append(device_id)
+        return " AND ".join(clauses), params
+
+    def range_stats(self, start: datetime | None = None, end: datetime | None = None) -> RangeStats:
+        """Count the finished sessions that started in ``[start, end)`` (preview of a deletion).
+
+        ``None`` leaves that side open. Also reports how many sessions have a note, the
+        first and the last start, and whether a running session was left out.
+        """
+        where, params = self._range_clause(start, end)
+        with _db_errors("count sessions in range"):
+            row = self._c.execute(
+                "SELECT COUNT(*) AS n, COALESCE(SUM(note IS NOT NULL AND note <> ''), 0) AS notes, "
+                f"MIN(started_at) AS first, MAX(started_at) AS last FROM sessions WHERE {where}",  # noqa: S608
+                params,
+            ).fetchone()
+            running = self._c.execute(
+                "SELECT COUNT(*) FROM sessions WHERE ended_at IS NULL"
+            ).fetchone()[0]
+        return RangeStats(
+            count=int(row["n"]),
+            with_note=int(row["notes"]),
+            first=_opt_time(row["first"]),
+            last=_opt_time(row["last"]),
+            running_left_out=int(running) > 0,
+        )
+
+    def delete_range(
+        self,
+        start: datetime | None,
+        end: datetime | None,
+        audit: AuditLogRepository,
+        device_id: str | None = None,
+    ) -> int:
+        """Delete finished sessions that started in ``[start, end)`` (and their corrections).
+
+        One summary entry (not one per session) goes into the audit log.
+
+        Returns:
+            Number of deleted sessions.
+        """
+        where, params = self._range_clause(start, end, device_id)
+        with _savepoint(self._c, "delete_sessions_range"):
+            with _db_errors("delete sessions in range"):
+                cursor = self._c.execute(f"DELETE FROM sessions WHERE {where}", params)  # noqa: S608
+            if cursor.rowcount:
+                audit.add(
+                    "delete",
+                    "sessions",
+                    device_id,
+                    f"{cursor.rowcount} sessions, range "
+                    f"{start and to_db_time(start)}..{end and to_db_time(end)}",
+                )
+        return int(cursor.rowcount)
+
+    def delete_all_of_device(self, device_id: str, audit: AuditLogRepository) -> int:
+        """Delete every session of a device, a running one included (used when removing it)."""
+        with _savepoint(self._c, "delete_device_sessions"):
+            with _db_errors("delete sessions of a device"):
+                cursor = self._c.execute("DELETE FROM sessions WHERE device_id = ?", (device_id,))
+            if cursor.rowcount:
+                audit.add("delete", "sessions", device_id, f"{cursor.rowcount} sessions of device")
+        return int(cursor.rowcount)
+
+    def count_all(self) -> int:
+        """Total number of sessions (running one included)."""
+        with _db_errors("count sessions"):
+            return int(self._c.execute("SELECT COUNT(*) FROM sessions").fetchone()[0])
 
 
 # ------------------------------------------------------------------------------- audit

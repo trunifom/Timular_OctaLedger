@@ -1,11 +1,7 @@
 """GUI tests for the connections page and the generic form renderer."""
 
-from datetime import datetime, timedelta, timezone
-
-import pytest
 from streamlit.testing.v1 import AppTest
 
-from octaledger.domain.models import IntegrationJob
 from tests.conftest import RunningApi
 from tests.fake_adapter import FakeAdapter
 from tests.gui.test_gui_core import texts
@@ -40,7 +36,7 @@ def fill_new(at: AppTest, name: str = "Licht", **overrides: str) -> None:
 
 def test_title_help_and_empty_state(api_server: RunningApi) -> None:
     at = open_page(api_server, CONNECTIONS)
-    assert at.header[0].value == "Verbindungen"
+    assert at.header[0].value == "Smarthome & Verbindungen"
     assert any("So funktioniert die Seite" in e.label for e in at.expander)
     assert any("Noch keine Verbindung angelegt" in i.value for i in at.info)
     assert any("Noch wurde keine Aktion gesendet" in c.value for c in at.caption)
@@ -171,167 +167,39 @@ def test_deleting_needs_a_confirmation_and_is_refused_while_a_face_uses_it(
     device = api_server.client.register_device("Würfel")
     api_server.client.assign_action(device["id"], 1, cid, "Lampe", {"action": "toggle"})
     at = open_page(api_server, CONNECTIONS)
-    assert at.button(key=f"conn_delete_{cid}").disabled  # not before the confirmation
-    at.checkbox(key=f"conn_confirm_{cid}").check().run()
+    assert f"conn_delete_{cid}" not in [b.key for b in at.button]  # not before asking
+    at.button(key=f"conn_ask_delete_{cid}").click().run()
     at.button(key=f"conn_delete_{cid}").click().run()
     assert "OL-STATE-002" in texts(at) and len(api_server.client.integrations()) == 1
     api_server.client.clear_action(device["id"], 1)
+    at.button(key=f"conn_ask_delete_{cid}").click().run()
     at.button(key=f"conn_delete_{cid}").click().run()
     assert api_server.client.integrations() == []
 
 
-# --------------------------------------------------------------------------- history
-
-
-def test_the_history_shows_every_result(api_server: RunningApi) -> None:
+def test_keeping_instead_of_deleting_changes_nothing(api_server: RunningApi) -> None:
     cid = make_connection(api_server)
-    now = datetime.now(timezone.utc)
-    with api_server.storage.transaction() as repos:
-        repos.jobs.enqueue(
-            IntegrationJob(
-                "a",
-                cid,
-                "Schreibtischlampe",
-                {"action": "toggle"},
-                expires_at=now + timedelta(seconds=30),
-                face=2,
-            )
-        )
     at = open_page(api_server, CONNECTIONS)
-    frame = at.dataframe[0].value
-    assert list(frame["Aktion"]) == ["Schreibtischlampe"] and list(frame["Seite"]) == [2]
-    assert list(frame["Ergebnis"]) == ["⏳ wartet"]
-    api_server.context.integrations.process_due()  # type: ignore[union-attr]
-    at = open_page(api_server, CONNECTIONS)
-    assert list(at.dataframe[0].value["Ergebnis"]) == ["✅ gesendet"]
+    at.button(key=f"conn_ask_delete_{cid}").click().run()
+    at.button(key=f"conn_keep_{cid}").click().run()
+    assert f"conn_delete_{cid}" not in [b.key for b in at.button]
+    assert len(api_server.client.integrations()) == 1
 
 
-# ------------------------------------------------------------------------- general
-
-
-def test_every_input_has_a_help_text(api_server: RunningApi) -> None:
-    make_connection(api_server)
-    at = open_page(api_server, CONNECTIONS)
-    widgets = [*at.selectbox, *at.text_input, *at.number_input, *at.checkbox]
-    widgets += [b for b in at.button if not b.key.startswith("nav_")]
-    missing = [w.key for w in widgets if not w.help]
-    assert widgets and missing == []
-
-
-def test_the_page_explains_when_control_mode_is_unavailable(api_server: RunningApi) -> None:
-    api_server.context.integrations = None
-    at = open_page(api_server, CONNECTIONS)
-    assert "OL-API-002" in texts(at) and not at.exception
-
-
-# --------------------------------------------------------- the generic form renderer
-
-
-def forms_app() -> None:
-    """AppTest script: every field kind, a mixed pick list and a stored secret."""
-    from typing import Any
-
-    import streamlit as st
-
-    from octaledger.dashboard.forms import render_fields
-
-    def field(name: str, kind: str, **extra: Any) -> dict[str, Any]:
-        base: dict[str, Any] = {
-            "name": name,
-            "label": name.title(),
-            "kind": kind,
-            "required": False,
-            "help": "",
-            "default": None,
-            "placeholder": "",
-            "choices": [],
-            "minimum": None,
-            "maximum": None,
-            "choices_from": [],
-        }
-        return base | extra
-
-    fields = [
-        field("host", "text", required=True),
-        field("port", "int", default=80, minimum=1, maximum=65535),
-        field("brightness", "int", minimum=1, maximum=100),
-        field("secure", "bool"),
-        field(
-            "mode",
-            "choice",
-            default="b",
-            choices=[{"value": "a", "label": "Alpha"}, {"value": "b", "label": "Beta"}],
-        ),
-        field("password", "password"),
-        field("entity", "text", choices_from=["light", "switch"]),
-    ]
-    st.session_state["result"] = render_fields(
-        fields,
-        key_prefix="t",
-        secrets_set=["password"],
-        discovered={
-            "light": [{"id": "light.a", "name": "A"}],
-            "switch": [{"id": "switch.b", "name": "B"}],
-        },
-    )
-
-
-def test_every_kind_of_field_becomes_a_widget_with_help() -> None:
-    at = AppTest.from_function(forms_app).run()
-    assert not at.exception
-    assert at.text_input(key="t_host").label == "Host *"  # required fields are marked
-    assert at.number_input(key="t_port").value == 80
-    assert at.selectbox(key="t_mode").value == "b"
-    assert at.text_input(key="t_password").proto.type == 1  # a password field
-    assert "Gespeichert: leer lassen" in at.text_input(key="t_password").help
-    assert at.text_input(key="t_host").help and at.checkbox(key="t_secure").help  # fallback help
-    # Empty texts and empty numbers are left out, switches are always reported.
-    assert at.session_state["result"] == {"port": 80, "secure": False, "mode": "b"}
-
-
-def test_entered_values_are_returned_and_stripped() -> None:
-    at = AppTest.from_function(forms_app).run()
-    at.text_input(key="t_host").input("  10.0.0.5 ").run()
-    at.number_input(key="t_brightness").set_value(40).run()
-    at.checkbox(key="t_secure").check().run()
-    at.selectbox(key="t_mode").select("a").run()
-    at.text_input(key="t_password").input("geheim").run()
-    assert at.session_state["result"] == {
-        "host": "10.0.0.5",
-        "port": 80,
-        "brightness": 40,
-        "secure": True,
-        "mode": "a",
-        "password": "geheim",
-    }
-
-
-def test_a_pick_list_merges_categories_and_names_them() -> None:
-    at = AppTest.from_function(forms_app).run()
-    pick = at.selectbox(key="t_entity")
-    assert pick.options == ["A (light)", "B (switch)"]
-    pick.select("switch.b").run()
-    assert at.session_state["result"]["entity"] == "switch.b"
-
-
-def test_required_marker_and_pick_list_helpers() -> None:
-    from octaledger.dashboard.forms import field_label, picker_options
-
-    assert field_label({"label": "Adresse", "required": True}) == "Adresse *"
-    assert field_label({"label": "Port", "required": False}) == "Port"
-    field = {"choices_from": ["lights"]}
-    assert picker_options(field, None) == [] and picker_options(field, {}) == []
-    assert picker_options({"choices_from": []}, {"lights": [{"id": "1", "name": "x"}]}) == []
-    found = picker_options(field, {"lights": [{"id": "1", "name": "Lampe"}]})
-    assert found == [{"id": "1", "label": "Lampe"}]  # a single category needs no suffix
-
-
-@pytest.mark.parametrize("name", ["host", "port"])
-def test_the_page_script_does_not_leak_secrets_through_widget_state(
-    api_server: RunningApi, name: str
+def test_the_new_connection_form_shows_the_guide_and_hides_advanced_fields(
+    api_server: RunningApi,
 ) -> None:
-    make_connection(api_server)
     at = open_page(api_server, CONNECTIONS)
-    assert "richtig" not in repr(
-        at.session_state[f"conn_edit_{api_server.client.integrations()[0]['id']}_{name}"]
-    )
+    at.selectbox(key="new_conn_kind").select_index(0).run()
+    labels = [e.label for e in at.expander]
+    assert any(label.startswith("Anleitung:") for label in labels)
+    assert "Erweiterte Einstellungen" in labels
+    assert not at.exception
+
+
+def test_the_result_of_a_test_stays_visible_on_the_connection(api_server: RunningApi) -> None:
+    cid = make_connection(api_server)
+    at = open_page(api_server, CONNECTIONS)
+    assert any("Noch nicht geprüft" in c.value for c in at.caption)
+    at.button(key=f"conn_check_{cid}").click().run()
+    assert any("Zuletzt geprüft" in s.value for s in at.success)

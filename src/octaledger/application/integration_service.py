@@ -219,6 +219,11 @@ class IntegrationService:
             self._secrets.update(integration_id, secrets)
         return self.get(integration_id)
 
+    def forget_secrets(self, integration_ids: list[str]) -> None:
+        """Forget the stored credentials of connections that no longer exist (factory reset)."""
+        for integration_id in integration_ids:
+            self._secrets.delete(integration_id)
+
     def delete(self, integration_id: str) -> None:
         """Delete a connection, its queued jobs and its secrets.
 

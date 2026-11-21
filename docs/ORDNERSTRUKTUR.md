@@ -65,6 +65,7 @@ octaledger/
   src/octaledger/api/security.py
   src/octaledger/application/__init__.py
   src/octaledger/application/catalog_service.py
+  src/octaledger/application/data_service.py
   src/octaledger/application/device_service.py
   src/octaledger/application/export_service.py
   src/octaledger/application/integration_service.py
@@ -166,6 +167,7 @@ octaledger/
   tests/unit/test_control_mode.py
   tests/unit/test_cube.py
   tests/unit/test_dashboard_client.py
+  tests/unit/test_data_service.py
   tests/unit/test_database.py
   tests/unit/test_device_catalog_services.py
   tests/unit/test_dispatcher.py

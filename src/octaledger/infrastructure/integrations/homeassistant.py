@@ -76,6 +76,23 @@ _ENTITY_FIELD: Final = FieldSpec(
 )
 
 
+SETUP_GUIDE: Final = """\
+**Wofür:** Der Hub für Lampen, Schalter, Szenen und Skripte – und der Weg zu **Matter**- und
+**Google-Home**-Geräten: Was in Home Assistant eingebunden ist, kann der Würfel schalten.
+
+1. **Adresse** von Home Assistant eintragen, z. B. `http://homeassistant.local:8123` (mit Port).
+2. **Zugriffstoken** erstellen: In Home Assistant unten links auf Ihren **Benutzernamen** klicken (Profil) →
+   Tab **Sicherheit** → ganz unten **Langlebige Zugriffstoken** → **Token erstellen** → Namen „OctaLedger“
+   vergeben → Token kopieren (es wird **nur einmal** angezeigt) und hier einfügen.
+3. **Verbindung testen.**
+4. Mit **Geräte der Verbindung auflisten** wählen Sie Lampen, Szenen und Skripte **nach Namen** aus.
+
+**Tipps**
+- Legen Sie ein **eigenes Token nur für OctaLedger** an: Sie können es jederzeit löschen, ohne etwas anderes zu stören.
+- Matter oder Google Home einbinden? Das geschieht **in Home Assistant**; danach erscheinen die Geräte hier in der Liste.
+"""  # noqa: E501
+
+
 class HomeAssistantAdapter(Adapter):
     """Calls services of a Home Assistant (see the module docstring)."""
 
@@ -86,6 +103,7 @@ class HomeAssistantAdapter(Adapter):
             "Schaltet Geräte, Szenen und Skripte über Ihren Home Assistant. Der Weg zu Matter-"
             "Geräten und Google Home, sofern Sie diese dort eingebunden haben."
         ),
+        setup_guide=SETUP_GUIDE,
         config_fields=(
             FieldSpec(
                 "base_url",
@@ -106,6 +124,7 @@ class HomeAssistantAdapter(Adapter):
             FieldSpec(
                 "verify_tls",
                 "Zertifikat prüfen (https)",
+                advanced=True,
                 kind="bool",
                 default=True,
                 help="Bei https das Zertifikat prüfen. Nur ausschalten, wenn Home Assistant ein "

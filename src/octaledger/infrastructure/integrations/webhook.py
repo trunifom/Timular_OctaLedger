@@ -49,6 +49,25 @@ CONTENT_TYPES: Final = (("application/json", "JSON"), ("text/plain", "Text"))
 _HEADER_NAME: Final = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
 
 
+SETUP_GUIDE: Final = """\
+**Wofür:** Eine beliebige Web-Adresse aufrufen, zum Beispiel Node-RED, ESPHome, IFTTT-ähnliche Dienste,
+eigene Skripte oder ein **Home-Assistant-Webhook**.
+
+1. **Basisadresse** eintragen, z. B. `http://192.168.1.20:1880` (mit `http://` oder `https://`, ohne Pfad).
+2. Nur wenn das Ziel einen Zugang verlangt: unter *Erweiterte Einstellungen* den Namen des Kopfes
+   (meist `Authorization`) und den **Zugangswert** eintragen, z. B. `Bearer MEIN-TOKEN`.
+3. **Verbindung testen** prüft nur, ob das Ziel antwortet. Was eine Anfrage bewirkt, sehen Sie erst mit
+   **Ausprobieren**.
+4. Den **Pfad** und die Methode wählen Sie später pro Würfelseite (z. B. `/licht/an`).
+
+**Gut zu wissen**
+- Bei einem **Home-Assistant-Webhook** lautet der Pfad `/api/webhook/<ID>`. Die ID ist das Geheimnis, behandeln
+  Sie sie wie ein Passwort. Home Assistant antwortet fast immer mit „OK“, **auch bei falscher ID**: Der Test
+  kann einen Fehler dort nicht erkennen.
+- Weiterleitungen werden nicht befolgt: tragen Sie die endgültige Adresse ein.
+"""  # noqa: E501
+
+
 class WebhookAdapter(Adapter):
     """Sends HTTP requests (see the module docstring for the safety rules)."""
 
@@ -60,6 +79,7 @@ class WebhookAdapter(Adapter):
             "ESPHome, IFTTT oder ein eigenes Skript. Die Notlösung für jedes Gerät mit einfacher "
             "Web-Schnittstelle."
         ),
+        setup_guide=SETUP_GUIDE,
         config_fields=(
             FieldSpec(
                 "base_url",
@@ -72,6 +92,7 @@ class WebhookAdapter(Adapter):
             FieldSpec(
                 "auth_header",
                 "Name des Zugangs-Kopfes",
+                advanced=True,
                 default="Authorization",
                 help="Nur nötig, wenn das Ziel einen Zugang verlangt (meist „Authorization“).",
             ),
@@ -85,6 +106,7 @@ class WebhookAdapter(Adapter):
             FieldSpec(
                 "verify_tls",
                 "Zertifikat prüfen (https)",
+                advanced=True,
                 kind="bool",
                 default=True,
                 help="Bei https das Zertifikat des Ziels prüfen. Nur ausschalten, wenn das Ziel "
@@ -116,6 +138,7 @@ class WebhookAdapter(Adapter):
                     FieldSpec(
                         "content_type",
                         "Inhaltstyp",
+                        advanced=True,
                         kind="choice",
                         default="application/json",
                         choices=CONTENT_TYPES,

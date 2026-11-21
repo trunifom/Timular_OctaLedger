@@ -75,7 +75,9 @@ def render_fields(
     """
     current = values or {}
     entered: dict[str, Any] = {}
-    for field in fields:
+
+    def draw(field: Mapping[str, Any]) -> None:
+        """Draw one field and remember its value in ``entered``."""
         name = str(field["name"])
         key = f"{key_prefix}_{name}"
         label = field_label(field)
@@ -139,6 +141,26 @@ def render_fields(
                     key=key,
                     help=help_text,
                 )
+
         if kind == "bool" or (value is not None and str(value).strip() != ""):
             entered[name] = value.strip() if isinstance(value, str) else value
+
+    basic = [field for field in fields if not field.get("advanced")]
+    extra = [field for field in fields if field.get("advanced")]
+    for field in basic:
+        draw(field)
+    if extra:
+        # Open the expander on its own when a stored value differs from the default, so a
+        # deviation is never hidden from the user.
+        deviates = any(
+            current.get(str(f["name"]), f.get("default")) not in (None, "", f.get("default"))
+            for f in extra
+        )
+        with st.expander("Erweiterte Einstellungen", expanded=deviates, key=f"{key_prefix}_adv"):
+            st.caption(
+                "Meist können Sie alles hier unverändert lassen: Die Voreinstellungen passen für "
+                "die üblichen Fälle."
+            )
+            for field in extra:
+                draw(field)
     return entered

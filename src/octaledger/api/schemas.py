@@ -192,6 +192,39 @@ class RestoreBody(_Strict):
     confirm: bool = False
 
 
+class EntriesRange(_Strict):
+    """A period of entries (both ends optional; the end is exclusive)."""
+
+    start: datetime | None = None
+    end: datetime | None = None
+
+
+class EntriesDelete(EntriesRange):
+    """Delete the entries of a period; ``expected_count`` is the number the user was shown."""
+
+    expected_count: int = Field(ge=0)
+    include_events: bool = False
+
+
+class DeviceRemove(_Strict):
+    """Remove a cube; ``delete_data`` also deletes everything recorded with it."""
+
+    delete_data: bool = False
+
+
+class ResetBody(_Strict):
+    """Factory reset: the confirmation text must be typed exactly."""
+
+    confirm_text: str
+    reset_settings: bool = True
+
+
+class SettingsReset(_Strict):
+    """Restore default settings: one section, or all when ``section`` is omitted."""
+
+    section: str | None = Field(default=None, max_length=40)
+
+
 class SettingsBody(_Strict):
     """Full or partial settings as nested sections (validated like the settings file)."""
 
@@ -333,6 +366,7 @@ def field_out(spec: FieldSpec) -> dict[str, Any]:
         "minimum": spec.minimum,
         "maximum": spec.maximum,
         "choices_from": list(spec.choices_from),
+        "advanced": spec.advanced,
     }
 
 
@@ -356,6 +390,7 @@ def adapter_out(spec: AdapterSpec) -> dict[str, Any]:
         "can_pair": spec.can_pair,
         "pair_help": spec.pair_help,
         "can_discover": spec.can_discover,
+        "setup_guide": spec.setup_guide,
     }
 
 

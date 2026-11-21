@@ -757,3 +757,72 @@ def test_control_mode_endpoints_say_so_when_it_is_unavailable(env: Env) -> None:
     device = env.post("/devices", {"alias": "Würfel"}).json()
     unavailable = env.call("DELETE", f"/devices/{device['id']}/actions/1")
     assert unavailable.status_code == 503
+
+
+# ------------------------------------------------------------------ data management
+
+
+def seed_entries(env: Env, count: int = 3) -> str:
+    activity = make_activity(env, "Daten")
+    for i in range(count):
+        response = env.post(
+            "/sessions",
+            {"activity_id": activity, "start": iso(-10 + 2 * i), "end": iso(-9 + 2 * i)},
+        )
+        assert response.status_code == 201
+    return activity
+
+
+def test_data_overview_counts_what_is_stored(env: Env) -> None:
+    seed_entries(env)
+    body = env.get("/data/overview").json()
+    assert body["sessions"] == 3 and body["activities"] == 1 and body["devices"] == 0
+
+
+def test_preview_then_delete_with_the_shown_count_and_a_safety_backup(env: Env) -> None:
+    seed_entries(env)
+    preview = env.post("/data/entries/preview", {}).json()
+    assert preview["count"] == 3 and not preview["running_left_out"]
+    done = env.post("/data/entries/delete", {"expected_count": 3})
+    assert done.status_code == 200
+    assert done.json()["sessions"] == 3 and done.json()["safety_backup"].endswith(".json")
+    assert env.get("/data/overview").json()["sessions"] == 0
+
+
+def test_delete_with_a_wrong_count_is_a_conflict_and_changes_nothing(env: Env) -> None:
+    seed_entries(env)
+    response = env.post("/data/entries/delete", {"expected_count": 2})
+    assert response.status_code == 409
+    assert "Anzahl hat sich geändert" in response.json()["error"]["message"]
+    assert env.get("/data/overview").json()["sessions"] == 3
+
+
+def test_reset_needs_the_exact_confirmation_text(env: Env) -> None:
+    seed_entries(env)
+    refused = env.post("/data/reset", {"confirm_text": "ja"})
+    assert refused.status_code == 409 and "ALLES LÖSCHEN" in refused.json()["error"]["message"]
+    assert env.get("/data/overview").json()["activities"] == 1
+    done = env.post("/data/reset", {"confirm_text": "ALLES LÖSCHEN"})
+    assert done.status_code == 200 and done.json()["counts"]["sessions"] == 3
+    assert env.get("/data/overview").json()["activities"] == 0
+
+
+def test_remove_a_cube_with_its_data_and_unpair_a_cube(env: Env, agent: FakeAgent) -> None:
+    device = env.post("/devices", {"alias": "Würfel", "platform_address": "AA:BB"}).json()
+    unpaired = env.post(f"/devices/{device['id']}/unpair")
+    assert unpaired.status_code == 200 and unpaired.json()["has_address"] is False
+    assert device["id"] in agent.stopped
+    removed = env.post(f"/devices/{device['id']}/remove", {"delete_data": True})
+    assert removed.status_code == 200
+    assert env.get("/devices").json() == []
+    assert env.post("/devices/nope/unpair").status_code == 404
+
+
+def test_settings_can_be_reset_per_section_or_completely(env: Env) -> None:
+    env.call("PUT", "/settings", json={"settings": {"tracking": {"debounce_ms": 900}}})
+    assert env.get("/settings").json()["tracking"]["debounce_ms"] == 900
+    assert env.post("/settings/reset", {"section": "nope"}).status_code == 422
+    reset = env.post("/settings/reset", {"section": "tracking"})
+    assert reset.json()["tracking"]["debounce_ms"] == 300
+    env.call("PUT", "/settings", json={"settings": {"tracking": {"debounce_ms": 900}}})
+    assert env.post("/settings/reset", {}).json()["tracking"]["debounce_ms"] == 300

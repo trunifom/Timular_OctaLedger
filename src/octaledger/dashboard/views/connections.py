@@ -1,4 +1,4 @@
-"""Connections page: link the cube to things it can control (smart home, MQTT, web addresses).
+"""Smart home and connections page: link the cube to things it can control.
 
 A *connection* says **where** actions go (an MQTT broker, Home Assistant, a Hue bridge, a web
 address). *What* a cube face does is chosen later per face in the setup assistant. This page:
@@ -32,17 +32,21 @@ STATUS_TEXT = {
     "expired": "⌛ verfallen",
 }
 FLASH_KEY = "connections_flash"
+CHECK_KEY = "connections_checked"  # {connection id: (ok, message)} of the last test
+ASK_DELETE_KEY = "connections_ask_delete"  # id of the connection being deleted
 
 
 def render(client: ApiClient, tz: str) -> None:
     """Render the connections page."""
-    st.header("Verbindungen")
+    st.header("Smarthome & Verbindungen")
     page_help(
-        "So funktioniert die Seite „Verbindungen“",
+        "So funktioniert die Seite „Smarthome & Verbindungen“",
         "Hier verbinden Sie OctaLedger mit Dingen, die der Würfel **steuern** soll, zum Beispiel "
         "Licht über **Home Assistant**, **Philips Hue**, einen **MQTT-Broker** oder eine beliebige "
         "**Web-Adresse**. Matter-Geräte und Google Home erreichen Sie über Home Assistant.\n\n"
-        "1. **Verbindung anlegen** (unten): Art wählen, Angaben eintragen.\n"
+        "1. **Verbindung anlegen** (unten): Art wählen, die **Anleitung** lesen, Angaben "
+        "eintragen. Es genügen die **Grundeinstellungen**; seltener nötige Dinge stehen in den "
+        "eingeklappten **Erweiterten Einstellungen** (mit sinnvollen Voreinstellungen).\n"
         "2. **Testen**: prüft die Verbindung, ohne etwas zu schalten.\n"
         "3. **Seiten zuordnen**: dort stellen Sie den Würfel auf *Steuerung* und geben jeder Seite "
         "eine Aktion.\n\n"
@@ -57,7 +61,10 @@ def render(client: ApiClient, tz: str) -> None:
         return
     by_kind = {spec["kind"]: spec for spec in specs}
     if not connections:
-        st.info("Noch keine Verbindung angelegt. Wählen Sie unten, womit der Würfel sprechen soll.")
+        st.info(
+            "Noch keine Verbindung angelegt. Wählen Sie unten die Art (z. B. Home Assistant oder "
+            "Philips Hue); die Anleitung führt Sie in wenigen Schritten durch die Einrichtung."
+        )
     for connection in connections:
         spec = by_kind.get(connection["kind"])
         if spec is None:
@@ -87,15 +94,25 @@ def _summary(connection: dict[str, Any], spec: dict[str, Any]) -> str:
 
 def _connection_panel(client: ApiClient, connection: dict[str, Any], spec: dict[str, Any]) -> None:
     cid = connection["id"]
-    state = "✅" if connection["enabled"] else "⏸"
+    state = "●" if connection["enabled"] else "⏸"
     with st.container(border=True, key=f"conn_{cid}"):
         st.markdown(f"**{state} {connection['name']}** · {spec['title']}")
+        last = st.session_state.get(CHECK_KEY, {}).get(cid)
+        if last is not None:
+            (st.success if last[0] else st.error)(
+                ("Zuletzt geprüft: " if last[0] else "Letzter Test fehlgeschlagen: ") + last[1]
+            )
+        else:
+            st.caption(
+                "Noch nicht geprüft. Mit „Verbindung testen“ sehen Sie, ob sie erreichbar ist."
+            )
         st.caption(_summary(connection, spec) or "Keine Angaben.")
         if not connection["enabled"]:
             st.caption("Ausgeschaltet: es werden keine Aktionen gesendet.")
         overview, trial, settings = st.tabs(["Prüfen", "Ausprobieren", "Einstellungen"])
         with overview:
             _check_and_pair(client, connection, spec)
+            _guide(spec, expanded=False, key=f"conn_guide_{cid}")
         with trial:
             _try_action(client, connection, spec)
         with settings:
@@ -114,8 +131,9 @@ def _check_and_pair(client: ApiClient, connection: dict[str, Any], spec: dict[st
         "geschaltet.",
     ):
         ok, message = call(client.check_integration, cid)
+        st.session_state.setdefault(CHECK_KEY, {})[cid] = (bool(ok), message or "")
         if ok:
-            st.success(message)
+            st.rerun()
     if spec["can_pair"] and columns[1].button(
         "Koppeln",
         key=f"conn_pair_{cid}",
@@ -129,6 +147,14 @@ def _check_and_pair(client: ApiClient, connection: dict[str, Any], spec: dict[st
             st.rerun()
     if spec["can_pair"] and spec["pair_help"]:
         st.caption(spec["pair_help"])
+
+
+def _guide(spec: dict[str, Any], *, expanded: bool, key: str) -> None:
+    """The step-by-step instructions of a kind of connection (where to find address and token)."""
+    if not spec.get("setup_guide"):
+        return
+    with st.expander(f"Anleitung: {spec['title']} einrichten", expanded=expanded, key=key):
+        st.markdown(spec["setup_guide"])
 
 
 def _try_action(client: ApiClient, connection: dict[str, Any], spec: dict[str, Any]) -> None:
@@ -214,23 +240,42 @@ def _settings(client: ApiClient, connection: dict[str, Any], spec: dict[str, Any
         ok, _ = call(client.update_integration, cid, enabled=not enabled)
         if ok:
             st.rerun()
-    confirm = st.checkbox(
-        f"Ja, „{connection['name']}“ löschen",
-        key=f"conn_confirm_{cid}",
-        help="Löschen ist nur möglich, solange keine Würfelseite diese Verbindung nutzt.",
-    )
     if right.button(
-        "Löschen",
-        key=f"conn_delete_{cid}",
+        "Löschen …",
+        key=f"conn_ask_delete_{cid}",
         icon=":material/delete:",
         width="stretch",
-        disabled=not confirm,
-        help="Entfernt die Verbindung samt gespeicherten Zugangsdaten.",
+        help="Fragt noch einmal nach, bevor die Verbindung samt Zugangsdaten entfernt wird.",
     ):
-        ok, _ = call(client.delete_integration, cid)
-        if ok:
-            st.session_state[FLASH_KEY] = f"„{connection['name']}“ wurde gelöscht."
-            st.rerun()
+        st.session_state[ASK_DELETE_KEY] = cid
+    if st.session_state.get(ASK_DELETE_KEY) == cid:
+        with st.container(border=True):
+            st.warning(
+                f"„{connection['name']}“ und die Zugangsdaten werden entfernt. Das geht nur, "
+                "solange keine Würfelseite diese Verbindung nutzt.",
+                icon="⚠️",
+            )
+            yes, no = st.columns(2)
+            if yes.button(
+                "Verbindung löschen",
+                key=f"conn_delete_{cid}",
+                type="primary",
+                width="stretch",
+                help="Löscht die Verbindung endgültig.",
+            ):
+                st.session_state.pop(ASK_DELETE_KEY, None)
+                ok, _ = call(client.delete_integration, cid)
+                if ok:
+                    st.session_state[FLASH_KEY] = f"„{connection['name']}“ wurde gelöscht."
+                    st.rerun()
+            if no.button(
+                "Behalten",
+                key=f"conn_keep_{cid}",
+                width="stretch",
+                help="Bricht ab; es wird nichts gelöscht.",
+            ):
+                st.session_state.pop(ASK_DELETE_KEY, None)
+                st.rerun()
 
 
 def _new_connection(client: ApiClient, specs: list[dict[str, Any]]) -> None:
@@ -246,6 +291,7 @@ def _new_connection(client: ApiClient, specs: list[dict[str, Any]]) -> None:
         help="Womit der Würfel sprechen soll. Alle Arten lassen sich später einzeln testen.",
     )
     st.caption(spec["description"])
+    _guide(spec, expanded=True, key="new_conn_guide")
     name = st.text_input(
         "Name der Verbindung",
         key=f"new_conn_name_{spec['kind']}",

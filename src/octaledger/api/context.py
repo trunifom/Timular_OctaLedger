@@ -12,6 +12,7 @@ from typing import Protocol
 
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.catalog_service import CatalogService
+from octaledger.application.data_service import DataService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
 from octaledger.application.integration_service import IntegrationService
@@ -56,6 +57,7 @@ class AppContext:
         log_lines: Returns the recent, already redacted log lines for the diagnostics page.
         agent: Control of the BLE side; ``None`` when the API runs without an agent (tests).
         integrations: Control mode (connections, face actions); ``None`` if not available.
+        data: Data management (deleting entries, removing cubes, reset); built automatically.
     """
 
     storage: Storage
@@ -70,3 +72,9 @@ class AppContext:
     log_lines: Callable[[], list[str]] = field(default=_no_logs)
     agent: AgentControl | None = None
     integrations: IntegrationService | None = None
+    data: DataService | None = None
+
+    def __post_init__(self) -> None:
+        """Build the data-management service from the other services when none was given."""
+        if self.data is None:
+            self.data = DataService(self.storage, self.exports, self.integrations, self.settings)

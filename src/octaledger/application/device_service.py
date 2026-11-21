@@ -200,6 +200,15 @@ class DeviceService:
                 )
             )
 
+    def forget_address(self, device_id: str) -> Device:
+        """Unpair: forget the stored Bluetooth address, keep the cube and all its data.
+
+        The cube can be paired again later (page *Geräte*); nothing recorded is touched.
+        """
+        with self._storage.transaction() as repos:
+            current = repos.devices.require(device_id)
+            return repos.devices.update(replace(current, platform_address=None))
+
     def remove(self, device_id: str) -> None:
         """Remove a device that has no recorded events or sessions.
 

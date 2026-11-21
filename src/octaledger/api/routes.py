@@ -32,7 +32,10 @@ from octaledger.api.schemas import (
     CatalogUpdate,
     CorrectBody,
     DeviceCreate,
+    DeviceRemove,
     DeviceRename,
+    EntriesDelete,
+    EntriesRange,
     ExportCsvBody,
     FaceAssign,
     IntegrationCreate,
@@ -41,10 +44,12 @@ from octaledger.api.schemas import (
     ModeBody,
     ProbeBody,
     ReasonBody,
+    ResetBody,
     RestoreBody,
     RestoreInspectBody,
     ScanBody,
     SettingsBody,
+    SettingsReset,
     SplitBody,
     StartBody,
     activity_out,
@@ -61,13 +66,21 @@ from octaledger.api.schemas import (
     tracking_status_out,
 )
 from octaledger.api.security import parse_bearer, verify_token
+from octaledger.application.data_service import DataService
 from octaledger.application.reporting_service import ReportFilter
 from octaledger.core.errors import ApiUnavailableError, InvalidStateError, ValidationError
-from octaledger.core.settings import settings_from_mapping, settings_to_mapping
+from octaledger.core.settings import (
+    Settings,
+    settings_from_mapping,
+    settings_to_mapping,
+)
 from octaledger.domain.models import DeviceMode
 from octaledger.domain.time_rules import ensure_utc, utc_now
 
 logger = logging.getLogger(__name__)
+
+#: The text a user must type to confirm a factory reset (also checked by the dashboard).
+RESET_CONFIRMATION = "ALLES LÖSCHEN"
 
 
 def build_router(ctx: AppContext) -> APIRouter:
@@ -525,6 +538,94 @@ def build_router(ctx: AppContext) -> APIRouter:
             "pre_restore_backup": result.pre_restore_backup.name,
         }
 
+    # ------------------------------------------------------------- data management
+    def data_service() -> DataService:
+        """The data-management service (always present, see ``AppContext``)."""
+        assert ctx.data is not None
+        return ctx.data
+
+    def stats_out(stats: Any) -> dict[str, Any]:
+        """Serialise a deletion preview."""
+        return {
+            "count": stats.count,
+            "with_note": stats.with_note,
+            "first": iso(stats.first),
+            "last": iso(stats.last),
+            "running_left_out": stats.running_left_out,
+        }
+
+    @router.get("/data/overview")
+    def data_overview() -> dict[str, Any]:
+        """How much of everything is stored."""
+        o = data_service().overview()
+        return {
+            "sessions": o.sessions,
+            "running_sessions": o.running_sessions,
+            "raw_events": o.raw_events,
+            "devices": o.devices,
+            "activities": o.activities,
+            "projects": o.projects,
+            "integrations": o.integrations,
+            "first_session": iso(o.first_session),
+            "last_session": iso(o.last_session),
+        }
+
+    @router.post("/data/entries/preview")
+    def preview_entries(body: EntriesRange) -> dict[str, Any]:
+        """What deleting the entries of a period would touch (changes nothing)."""
+        return stats_out(data_service().preview_entries(body.start, body.end))
+
+    @router.post("/data/entries/delete")
+    def delete_entries(body: EntriesDelete) -> dict[str, Any]:
+        """Delete the entries of a period after an automatic safety backup."""
+        result = data_service().delete_entries(
+            body.start,
+            body.end,
+            expected_count=body.expected_count,
+            include_events=body.include_events,
+        )
+        return {
+            "sessions": result.sessions,
+            "raw_events": result.raw_events,
+            "safety_backup": result.safety_backup,
+        }
+
+    @router.post("/data/reset")
+    def factory_reset(body: ResetBody) -> dict[str, Any]:
+        """Delete everything (needs the exact confirmation text), after a safety backup."""
+        if body.confirm_text.strip() != RESET_CONFIRMATION:
+            raise InvalidStateError(
+                "Reset requires the confirmation text",
+                user_message=f"Bitte tippen Sie zur Bestätigung genau „{RESET_CONFIRMATION}“.",
+            )
+        result = data_service().factory_reset(reset_settings=body.reset_settings)
+        return {
+            "counts": result.counts,
+            "safety_backup": result.safety_backup,
+            "settings_reset": result.settings_reset,
+        }
+
+    @router.post("/devices/{device_id}/remove")
+    def remove_device_with_options(device_id: str, body: DeviceRemove) -> dict[str, Any]:
+        """Remove a cube; ``delete_data`` also removes everything recorded with it."""
+        if ctx.agent is not None:
+            ctx.agent.stop_device(device_id)
+        result = data_service().remove_device(device_id, delete_data=body.delete_data)
+        return {
+            "sessions": result.sessions,
+            "raw_events": result.raw_events,
+            "safety_backup": result.safety_backup,
+        }
+
+    @router.post("/devices/{device_id}/unpair")
+    def unpair_device(device_id: str) -> dict[str, Any]:
+        """Stop the connection and forget the Bluetooth address; the cube and its data stay."""
+        ctx.devices.get(device_id)  # 404 for unknown devices
+        if ctx.agent is not None:
+            ctx.agent.stop_device(device_id)
+        ctx.devices.forget_address(device_id)
+        return device_out(ctx.devices.get(device_id))
+
     # ----------------------------------------------------------------------- settings
     @router.get("/settings")
     def get_settings() -> dict[str, Any]:
@@ -543,6 +644,24 @@ def build_router(ctx: AppContext) -> APIRouter:
                 )
             merged[section].update(values)
         new = settings_from_mapping(merged)  # validates everything, rejects unknown keys
+        ctx.settings.update(new)
+        return settings_to_mapping(new)
+
+    @router.post("/settings/reset")
+    def reset_settings(body: SettingsReset) -> dict[str, Any]:
+        """Restore the default settings of one section, or of all sections."""
+        defaults = settings_to_mapping(Settings())
+        if body.section is None:
+            new = Settings()
+        else:
+            if body.section not in defaults:
+                raise ValidationError(
+                    f"Unknown settings section {body.section!r}",
+                    user_message=f"Unbekannter Einstellungsbereich: {body.section}.",
+                )
+            merged = settings_to_mapping(ctx.settings.settings)
+            merged[body.section] = defaults[body.section]
+            new = settings_from_mapping(merged)
         ctx.settings.update(new)
         return settings_to_mapping(new)
 
