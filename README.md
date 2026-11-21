@@ -27,8 +27,9 @@ Details und Nachweise: [docs/FORTSCHRITT.md](docs/FORTSCHRITT.md), [docs/TESTPLA
   *unsicher* markiert und nach Rückkehr von Ihnen bestätigt – es wird keine Historie erfunden.
 - **Zwei Tracker:** beide registrierbar, nur der aktive erzeugt Zeiten; ausdrückliche Übergabe ohne
   doppelte Zeit.
-- **Dashboard (Streamlit, 8 Bereiche in 3 Menügruppen):** *Alltag* (Übersicht, Zeitjournal, Statistik), *Einrichten*
-  (Geräte, Verwaltung), *System* (Daten, Einstellungen, Diagnose). **Statusleiste auf jeder Seite** (läuft
+- **Dashboard (Streamlit, 11 Bereiche in 4 Menügruppen):** *Start* (Startseite: Erklärung, geführte
+  Einrichtung mit einem Klick, Handbuch zum Nachlesen), *Alltag* (Übersicht, **Würfel live**, Zeitjournal,
+  Statistik), *Einrichten* (Geräte, **Seiten zuordnen**, Verwaltung), *System* (Daten, Einstellungen, Diagnose). **Statusleiste auf jeder Seite** (läuft
   etwas? Tracker verbunden? etwas zu tun?), *Erste Schritte*-Checkliste, Schnellstart-Kacheln, Hilfetext an
   jedem Feld, Hell-/Dunkel-Umschalter, zwei Schriftgrößen, lokale Schrift Inter (WCAG-AA-Kontrast). Konzept
   und Recherche: [docs/GUI_KONZEPT.md](docs/GUI_KONZEPT.md).

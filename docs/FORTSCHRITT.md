@@ -38,17 +38,17 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-19 | Agent-Laufzeit (`agent.main`), erweiterte CLI, Start-Skripte, CI; End-to-End-Tests; Thread-Sicherheit im Worker | 2026-11-20 | 22:48 | 78184d2 |
 | AP-20 | Abschlussdokumentation: Benutzerhandbuch neu geordnet, Installation, Softwaredoku, Testplan mit Abnahmestatus, README, Grenzen; `constraints-tested.txt` | 2026-11-20 | 22:57 | 4099b39 |
 | AP-21 | GUI-Überarbeitung auf Basis der UX-Recherche: gruppiertes Menü, Statusleiste, neue Übersicht, Design-System mit lokaler Schrift (`docs/GUI_KONZEPT.md`) | 2026-11-20 | 23:26 | 709bb86 |
-| AP-21a | Fehlerbehebung GUI: Seitenmodule in `views/` (Streamlit-Automenü entfernt), Streamlit-Design an Hell/Dunkel angepasst (lesbare Felder, Tabellen, Tabs, Buttons) | 2026-11-21 | 12:40 | _folgt_ |
-| AP-21b | Speichern von Dateien wiederholt kurz, wenn Windows das Ziel sperrt (`WinError 5`) | 2026-11-21 | 12:40 | _folgt_ |
-| AP-22 | Live-Daten: Rohwert, wartender Wert und Verlauf im Agenten (`DeviceStatus`, `LiveEvent`), Endpunkt `GET /devices/{id}/live`, Client `live_view`; Würfel-Erkennung am Namen im Scanner | 2026-11-21 | 13:10 | _folgt_ |
-| AP-23 | Seite „Würfel live“: schematische Würfelgrafik (SVG), Fluss Funk → Prüfung → Software, Verlauf in Sätzen (`dashboard.cube`, `views.live`) | 2026-11-21 | 14:00 | _folgt_ |
-| AP-24 | Assistent „Seiten zuordnen“: Würfelbild mit Live-Anzeige, Seite auswählen, vorhandene oder neue Tätigkeit zuordnen, Sprung zur nächsten freien Seite (`views.faces`) | 2026-11-21 | 14:40 | _folgt_ |
+| AP-21a | Fehlerbehebung GUI: Seitenmodule in `views/` (Streamlit-Automenü entfernt), Streamlit-Design an Hell/Dunkel angepasst (lesbare Felder, Tabellen, Tabs, Buttons) | 2026-11-21 | 12:40 | 2e601af |
+| AP-21b | Speichern von Dateien wiederholt kurz, wenn Windows das Ziel sperrt (`WinError 5`) | 2026-11-21 | 12:40 | 4433caa |
+| AP-22 | Live-Daten: Rohwert, wartender Wert und Verlauf im Agenten (`DeviceStatus`, `LiveEvent`), Endpunkt `GET /devices/{id}/live`, Client `live_view`; Würfel-Erkennung am Namen im Scanner | 2026-11-21 | 13:10 | 3fb93f0 |
+| AP-23 | Seite „Würfel live“: schematische Würfelgrafik (SVG), Fluss Funk → Prüfung → Software, Verlauf in Sätzen (`dashboard.cube`, `views.live`) | 2026-11-21 | 14:00 | ee7d4fa |
+| AP-24 | Assistent „Seiten zuordnen“: Würfelbild mit Live-Anzeige, Seite auswählen, vorhandene oder neue Tätigkeit zuordnen, Sprung zur nächsten freien Seite (`views.faces`) | 2026-11-21 | 14:40 | 16573f2 |
 | AP-24a | Tests laufen im temporären Profilordner (nicht im echten Benutzerprofil, kein Konflikt mit laufendem Agent) | 2026-11-21 | 14:20 | bcb5d20 |
-| AP-25 | Startseite (Willkommen, geführte Einrichtung mit einem Klick, Handbuch zum Nachlesen), Standardseite, Suchergebnis auch ohne Tracker auf der Geräte-Seite (`views.start`, `docs_reader`) | 2026-11-21 | 15:30 | _folgt_ |
+| AP-25 | Startseite (Willkommen, geführte Einrichtung mit einem Klick, Handbuch zum Nachlesen), Standardseite, Suchergebnis auch ohne Tracker auf der Geräte-Seite (`views.start`, `docs_reader`) | 2026-11-21 | 15:30 | 8e515a6 |
 
 ## Offen
 
-Alle Arbeitspakete (AP-00 bis AP-20) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
+Alle Arbeitspakete (AP-00 bis AP-25) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
 kann** oder bewusst nicht im Umfang liegt:
 
 | ID | Thema | Wer | Hinweis |
