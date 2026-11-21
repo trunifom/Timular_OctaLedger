@@ -9,11 +9,17 @@ from __future__ import annotations
 
 from octaledger.infrastructure.integrations.base import Adapter
 from octaledger.infrastructure.integrations.homeassistant import HomeAssistantAdapter
+from octaledger.infrastructure.integrations.hue import HueAdapter
 from octaledger.infrastructure.integrations.mqtt import MqttAdapter
 from octaledger.infrastructure.integrations.webhook import WebhookAdapter
 
 
 def default_adapters() -> dict[str, Adapter]:
     """Return one instance of every shipped adapter, keyed by its ``spec.kind``."""
-    adapters: list[Adapter] = [WebhookAdapter(), MqttAdapter(), HomeAssistantAdapter()]
+    adapters: list[Adapter] = [
+        WebhookAdapter(),
+        MqttAdapter(),
+        HomeAssistantAdapter(),
+        HueAdapter(),
+    ]
     return {adapter.spec.kind: adapter for adapter in adapters}

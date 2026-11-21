@@ -1705,3 +1705,44 @@ nicht erreichbar wird wiederholt, **Zeitlimit nach dem Senden nicht**, Weiterlei
 Entdecken (sortiert, begrenzt, tolerant gegen seltsame Antworten), die gemeinsame Sitzung ignoriert die Umgebung, eine riesige
 Antwort wird abgeschnitten, Auslieferung mit dem Programm und **ein eingereihter Auftrag erreicht Home Assistant über den Dienst**.
 Nicht geprüft: ein echter Home Assistant (Versionen und Fehlertexte können abweichen), Matter-/Google-Home-Geräte dahinter.
+
+### 31.18 Philips-Hue-Adapter (`infrastructure.integrations.hue`, AP-30)
+
+Steuert die **Hue Bridge im Heimnetz** über deren lokale Schnittstelle (CLIP API v2, `https://<bridge>/clip/v2`): kein Cloud-Konto,
+nichts verlässt das Heimnetz. Eine *Verbindung* ist die Adresse der Bridge; der **Anwendungsschlüssel** entsteht einmalig durch
+das **Koppeln** (runden Knopf auf der Bridge drücken, dann „Koppeln“) und liegt als Geheimnis im Speicher (nicht erforderlich beim
+Anlegen, `pair` setzt ihn). Aktionen: **Lampe schalten**, **Raum oder Zone schalten** (die Lampengruppe des Raums) und **Szene
+aktivieren**; Lampe und Raum können einschalten, ausschalten oder umschalten, beim Einschalten optional mit **Helligkeit** (1–100 %)
+und **Farbtemperatur** (2000–6500 K, umgerechnet in Mirek und auf den Bereich der Bridge begrenzt). Helligkeit/Farbtemperatur zusammen
+mit „aus“ oder „umschalten“ wird abgelehnt.
+
+**Zertifikat-Anheftung (Vertrauen beim ersten Mal):** Statt die Prüfung abzuschalten, merkt sich das Koppeln den **SHA-256-Fingerabdruck**
+des Bridge-Zertifikats (als Einstellung `fingerprint`, kein Geheimnis) und jede spätere Anfrage spricht nur mit einem Server, der genau
+dieses Zertifikat vorzeigt (`PinnedAdapter`: `assert_fingerprint`, Hostname-Prüfung aus, weil die Bridge per IP angesprochen wird). Ohne
+gespeicherten Fingerabdruck **sendet der Adapter über https nichts** („bitte erneut koppeln“). Das Vertrauen entsteht einmal im
+Heimnetz beim Koppeln; ein Angreifer im Heimnetz *während des Koppelns* könnte es erschleichen (gleiches Vertrauen wie beim Knopfdruck).
+
+**Weitere Regeln:** Kennungen von Lampe, Raum und Szene müssen echte UUIDs sein (sie werden Teil des Pfades, kein `../`), die Adresse
+nur ein Name oder eine IP (optional mit Port), Fehler, die die Bridge **innerhalb einer 200-Antwort** meldet (`errors`), werden nicht
+verschluckt, `401/403` führen zum erneuten Koppeln, `404` zur Auswahl über „Entdecken“, jede andere Antwort ist dauerhaft; wiederholt wird
+nur, was sicher nicht ankam (siehe §31.15). **Umschalten** liest zuerst den Zustand und setzt dann das Gegenteil (zwei Anfragen; schlägt
+das Schreiben fehl, wird es nicht wiederholt). **Entdecken** listet Lampen, Räume (mit der Kennung ihrer *Lampengruppe*) und Szenen nach
+Namen (Einträge ohne Kennung werden übersprungen). Konstruktor-Schalter `scheme`/`pin`/`session_for`/`fetch_certificate` machen die
+Nahtstellen für Tests austauschbar.
+
+**Grenzen:** keine anderen Gruppen als Räume/Zonen, keine Farbe (nur Helligkeit und Farbtemperatur), keine Sensoren, kein Ereignisstrom,
+**keine automatische Suche der Bridge** (die Adresse wird von Hand eingetragen; der Cloud-Suchdienst von Hue würde Daten aus dem Heimnetz
+senden).
+
+### 31.19 Tests (AP-30)
+
+`tests/unit/test_adapter_hue.py` (46, **gegen einen lokalen Nachbau der Bridge** über einfaches HTTP): Adressen, Fingerabdruck
+(normalisiert/geprüft), Schlüssel als Geheimnis und beim Anlegen nicht verlangt, **Kennungen müssen UUIDs sein**, Aktionsregeln,
+Koppeln (ohne Knopf mit Erklärung, mit Knopf liefert den Schlüssel als Geheimnis, mit Anheftung wird der Fingerabdruck gemerkt,
+Bridge nicht erreichbar wird wiederholt, verwirrende Antwort), **SHA-256 gegen den bekannten Wert**, die Sitzung heftet nur `https` an,
+**ohne Fingerabdruck wird nichts gesendet (nicht einmal eine Sitzung)**, Prüfung ohne Nebenwirkung, abgelehnter Schlüssel nennt ihn nicht,
+Lampe mit Helligkeit und Farbtemperatur (Mirek-Umrechnung an den Grenzen), Ausschalten, **Umschalten liest zuerst und kehrt um**, Raum und
+Szene, **Fehler in einer 200-Antwort werden gemeldet**, unbekannte Lampe, 429/500/503 dauerhaft, nicht erreichbar wird wiederholt,
+Entdecken (sortiert, Gruppen-Kennung, Einträge ohne Kennung übersprungen), Auslieferung und **Koppeln und Schalten über den Dienst**.
+Nicht geprüft: eine echte Bridge, ein echter TLS-Handshake mit der Anheftung (dafür fehlt ein Test-Zertifikat; mit der Test-Bibliothek
+`trustme` ließe sich das ergänzen).

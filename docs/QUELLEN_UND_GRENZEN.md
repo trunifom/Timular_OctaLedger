@@ -49,3 +49,9 @@
   vorhanden und nicht zugesagt (Pflichtenheft §2).
 - **Zugangsdaten der Verbindungen** liegen im Benutzerprofil in `secrets.json`, **unverschlüsselt** (wie das
   API-Token), und werden nie gesichert. Wer Ihr Benutzerprofil lesen kann, kann sie lesen.
+- **Philips Hue: Zertifikat der Bridge.** Die Bridge nutzt ein Zertifikat einer eigenen Zertifizierungsstelle, das ein
+  normaler Check nicht prüfen kann. OctaLedger merkt sich deshalb beim Koppeln den **SHA-256-Fingerabdruck** des
+  Bridge-Zertifikats („Vertrauen beim ersten Mal“) und spricht später nur noch mit genau diesem Zertifikat. Das Vertrauen
+  entsteht also einmal im Heimnetz beim Koppeln (wie das Drücken des echten Knopfes). Die Anheftung selbst wurde **nicht mit
+  einem echten TLS-Handshake oder einer echten Bridge** getestet, nur an ihren Nahtstellen (Fingerabdruck, Konfiguration der
+  Verbindung, Verweigerung ohne Fingerabdruck).

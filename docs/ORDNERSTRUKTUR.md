@@ -107,6 +107,7 @@ octaledger/
   src/octaledger/infrastructure/integrations/base.py
   src/octaledger/infrastructure/integrations/homeassistant.py
   src/octaledger/infrastructure/integrations/httpio.py
+  src/octaledger/infrastructure/integrations/hue.py
   src/octaledger/infrastructure/integrations/mqtt.py
   src/octaledger/infrastructure/integrations/registry.py
   src/octaledger/infrastructure/integrations/webhook.py
@@ -134,6 +135,7 @@ octaledger/
   tests/integration/test_client_server.py
   tests/unit/__init__.py
   tests/unit/test_adapter_homeassistant.py
+  tests/unit/test_adapter_hue.py
   tests/unit/test_adapter_mqtt.py
   tests/unit/test_adapter_webhook.py
   tests/unit/test_api.py
