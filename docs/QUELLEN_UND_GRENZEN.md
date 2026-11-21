@@ -30,6 +30,9 @@
 | `pystray` | Tray-Symbol (Extra `tray`) | LGPL-3.0 (belegt) | nur optional und dynamisch geladen; seit 2023 wenig gepflegt (Wartungsrisiko); bei einer gebündelten Auslieferung LGPL-Hinweise beilegen |
 | `pillow` | Symbolbild für das Tray | HPND (PIL-Lizenz) | kommt ohnehin mit Streamlit |
 | `holidays` | gesetzliche Feiertage offline (Extra `holidays`) | MIT (belegt) | Regionen/Unterteilungen und halbe Feiertage je Betrieb prüfen; eigene Abwesenheiten überschreiben die Liste |
+| `fpdf2` | PDF-Bericht (Extra `pdf`) | **LGPL-3.0-only** (aus den Paket-Metadaten der installierten Version 2.9.0; die frühere Planung nannte fälschlich BSD-2) | nur optional und dynamisch geladen; Standardschriften (Latin-1): Anführungszeichen, Gedankenstriche und „€“ werden ersetzt, andere Zeichen erscheinen als „?“ |
+| `icalendar` | Kalender-Import (Extra `ics`) | BSD-2-Clause | – |
+| `recurring-ical-events` | Terminserien im Fenster (Extra `ics`) | **LGPL-3.0-or-later** | nur optional und dynamisch geladen |
 | `winotify` | Windows-Hinweise (Extra `toast`) | MIT (belegt) | ohne eigene AppUserModelID erscheint ggf. ein Interpreter-Name als Absender [U] |
 
 ## Pausenregeln (nur Orientierung)

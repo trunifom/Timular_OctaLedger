@@ -15,9 +15,11 @@ Conventions
 
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import date, datetime, timedelta
 from typing import Annotated, Any
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Header, Query
 
@@ -45,12 +47,15 @@ from octaledger.api.schemas import (
     EntriesRange,
     ExportCsvBody,
     FaceAssign,
+    IcsApplyBody,
+    IcsPreviewBody,
     IntegrationCreate,
     IntegrationUpdate,
     ManualSession,
     ModeBody,
     ProbeBody,
     ReasonBody,
+    RenderBody,
     ResetBody,
     RestoreBody,
     RestoreInspectBody,
@@ -71,6 +76,7 @@ from octaledger.api.schemas import (
     billing_out,
     budget_out,
     device_out,
+    ics_preview_out,
     integration_out,
     iso,
     job_out,
@@ -85,6 +91,13 @@ from octaledger.api.schemas import (
 )
 from octaledger.api.security import parse_bearer, verify_token
 from octaledger.application.data_service import DataService
+from octaledger.application.ics_import import IcsEntry, ics_available
+from octaledger.application.report_render import (
+    build_document,
+    pdf_available,
+    render_html,
+    render_pdf,
+)
 from octaledger.application.reporting_service import ReportFilter
 from octaledger.core.errors import ApiUnavailableError, InvalidStateError, ValidationError
 from octaledger.core.settings import (
@@ -94,7 +107,8 @@ from octaledger.core.settings import (
 )
 from octaledger.domain.attention import AttentionKind
 from octaledger.domain.models import DeviceMode
-from octaledger.domain.time_rules import ensure_utc, utc_now
+from octaledger.domain.time_rules import ensure_utc, local_day_bounds, utc_now
+from octaledger.infrastructure.system.holidays_provider import holidays_available
 from octaledger.infrastructure.system.toast import toast_available
 
 logger = logging.getLogger(__name__)
@@ -496,7 +510,13 @@ def build_router(ctx: AppContext) -> APIRouter:
     @router.get("/system/capabilities")
     def capabilities() -> dict[str, Any]:
         """Which optional extras are installed (tray icon, toast messages)."""
-        return {"tray": tray_available(), "toast": toast_available()}
+        return {
+            "tray": tray_available(),
+            "toast": toast_available(),
+            "pdf": pdf_available(),
+            "ics": ics_available(),
+            "holidays": holidays_available(),
+        }
 
     # --------------------------------------------------------------------- buttons
     @router.get("/devices/{device_id}/buttons")
@@ -613,6 +633,52 @@ def build_router(ctx: AppContext) -> APIRouter:
         """Report for a window and filters."""
         flt = ReportFilter(start, end, device_id, activity_id, project_id)
         return report_out(ctx.reports.report(flt, tz or display_tz()))
+
+    @router.post("/reports/render")
+    def render_report(body: RenderBody) -> dict[str, Any]:
+        """A printable report (``html`` or ``pdf``, the latter as base64) for local days."""
+        zone = body.tz or display_tz()
+        tz = ZoneInfo(zone)
+        start = local_day_bounds(body.first, tz)[0]
+        end = local_day_bounds(body.last, tz)[1]
+        settings = ctx.settings.settings
+        report = ctx.reports.report(ReportFilter(start, end), zone)
+        balance = ctx.reports.balance(
+            body.first, body.last, zone, holiday_region=settings.work.holiday_region
+        )
+        doc = build_document(
+            report,
+            tz,
+            first=body.first,
+            last=body.last,
+            author=settings.report.author,
+            organization=settings.report.organization,
+            balance=balance,
+        )
+        stem = f"zeitbericht-{body.first.isoformat()}-{body.last.isoformat()}"
+        if body.format == "html":
+            return {"format": "html", "filename": f"{stem}.html", "content": render_html(doc)}
+        if body.format == "pdf":
+            pdf = base64.b64encode(render_pdf(doc)).decode("ascii")
+            return {"format": "pdf", "filename": f"{stem}.pdf", "content": pdf}
+        raise ValidationError(
+            f"Unknown report format {body.format!r}",
+            user_message="Das Format muss html oder pdf sein.",
+        )
+
+    @router.post("/import/ics/preview")
+    def ics_preview(body: IcsPreviewBody) -> dict[str, Any]:
+        """Read appointments from a calendar file as proposals; nothing is booked."""
+        zone = ZoneInfo(body.tz or display_tz())
+        return ics_preview_out(ctx.ics.preview(body.content, body.first, body.last, zone))
+
+    @router.post("/import/ics/apply", status_code=201)
+    def ics_apply(body: IcsApplyBody) -> dict[str, Any]:
+        """Book the confirmed appointments (all or nothing)."""
+        created = ctx.ics.apply(
+            [IcsEntry(e.start, e.end, e.activity_id, e.project_id, e.note) for e in body.entries]
+        )
+        return {"created": len(created)}
 
     @router.get("/reports/balance")
     def balance(first: date, last: date, tz: str | None = None) -> dict[str, Any]:

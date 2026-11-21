@@ -26,6 +26,8 @@ dependencies = [
 tray = ["pystray>=0.19.5", "pillow>=10"]  # LGPL-3.0 (pystray), loaded dynamically
 toast = ["winotify>=1.1"]  # MIT
 holidays = ["holidays>=0.50"]  # MIT, offline public holidays
+pdf = ["fpdf2>=2.8"]  # LGPL-3.0 (!), loaded only when a PDF is requested
+ics = ["icalendar>=6", "recurring-ical-events>=3"]  # BSD-2-Clause / LGPL-3.0
 dev = [
   "pytest>=8,<10",
   "ruff>=0.9,<1",
@@ -69,4 +71,10 @@ files = ["src/octaledger"]
 # plotly ships neither type stubs nor a py.typed marker; only its imports are exempted.
 [[tool.mypy.overrides]]
 module = ["plotly", "plotly.*"]
+ignore_missing_imports = true
+
+# Optional extras (tray, toast, pdf, ics, holidays) may or may not be installed and some ship no
+# type information; only their imports are exempted.
+[[tool.mypy.overrides]]
+module = ["pystray", "winotify", "fpdf", "fpdf.*", "icalendar", "icalendar.*", "recurring_ical_events", "holidays"]
 ignore_missing_imports = true

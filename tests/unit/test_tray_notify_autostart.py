@@ -379,7 +379,7 @@ def test_the_pystray_wrapper_is_inert_without_the_package(
 
 def test_capabilities_and_autostart_endpoints(api_env: ApiEnv) -> None:  # noqa: F811
     caps = api_env.get("/system/capabilities").json()
-    assert set(caps) == {"tray", "toast"}
+    assert set(caps) >= {"tray", "toast"}
     registry = FakeRunKey()
     api_env.context.autostart = Autostart(registry, available=True)
     assert api_env.get("/system/autostart").json()["enabled"] is False

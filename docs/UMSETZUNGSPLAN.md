@@ -57,9 +57,9 @@ Dieser Plan beruht auf dem **bestehenden Code** (Stand AP-34) und einer Recherch
 | Toast | `winotify` | 1.1.0 | MIT | einfach; Aktionsknöpfe nur als Start-/URL-Knöpfe, kein Rückruf **[U]** |
 | Toast | `windows-toasts` | 1.3.1 | **auf PyPI nicht angegeben** | Lizenzdatei **vor** der Nutzung prüfen; WinRT-Pakete nötig **[U]** |
 | Feiertage | `holidays` | 0.109 | MIT | offline; CH mit Kantonen, DE/AT mit Ländern **[U]**; halbe/kantonale Feiertage als manuelle Overrides |
-| PDF | `fpdf2` | 7.3.2 | BSD-2-Clause | reines Python; Umlaute nur mit eingebetteter TTF |
-| ICS | `icalendar` | 7.0.x | BSD-2-Clause **[U]** | Version/Lizenz vor Festlegung erneut prüfen |
-| ICS-Serien | `recurring-ical-events` | – | – | **[U]** nicht abgefragt |
+| PDF | `fpdf2` | 2.9.0 (installiert) | **LGPL-3.0-only** (Korrektur: die Recherche nannte BSD-2; die Paket-Metadaten sagen LGPL) | reines Python; optionales Extra, nur dynamisch geladen |
+| ICS | `icalendar` | 7.3.2 (installiert) | BSD-2-Clause (Paket-Metadaten) | – |
+| ICS-Serien | `recurring-ical-events` | 3.8.2 (installiert) | **LGPL-3.0-or-later** (Paket-Metadaten) | optionales Extra, nur dynamisch geladen |
 
 Empfehlung der Recherche für **Toast**: `windows-toasts`, falls die Lizenz bestätigt wird, sonst `winotify` (MIT); beide hinter dem `Notifier`-Protokoll (3.3). Für **PDF** empfahl die Recherche `fpdf2` mit gebündelter TTF und Diagrammen als PNG; dieser Plan beginnt trotzdem mit dem **Browser-Druck** (keine Abhängigkeit) und nimmt `fpdf2` als Extra hinzu.
 

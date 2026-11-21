@@ -401,6 +401,24 @@ class WorkSettings:
 
 
 @dataclass(frozen=True, slots=True)
+class ReportSettings:
+    """Header lines of printed reports (empty by default; nothing is ever invented)."""
+
+    author: str = ""
+    organization: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate the lengths and normalise whitespace."""
+        for key in ("author", "organization"):
+            value = getattr(self, key)
+            if not isinstance(value, str) or len(value.strip()) > 100:
+                raise _fail("report", key, "höchstens 100 Zeichen", value)
+            if not value.strip().isprintable() and value.strip():
+                raise _fail("report", key, "enthält Steuerzeichen", value)
+            object.__setattr__(self, key, value.strip())
+
+
+@dataclass(frozen=True, slots=True)
 class Settings:
     """Complete application configuration (immutable)."""
 
@@ -411,6 +429,7 @@ class Settings:
     notifications: NotificationSettings = field(default_factory=NotificationSettings)
     work: WorkSettings = field(default_factory=WorkSettings)
     tray: TraySettings = field(default_factory=TraySettings)
+    report: ReportSettings = field(default_factory=ReportSettings)
 
 
 #: Section name -> settings class, the single source for parsing and serialising.
@@ -422,6 +441,7 @@ _SECTIONS: Final[dict[str, type]] = {
     "notifications": NotificationSettings,
     "work": WorkSettings,
     "tray": TraySettings,
+    "report": ReportSettings,
 }
 
 

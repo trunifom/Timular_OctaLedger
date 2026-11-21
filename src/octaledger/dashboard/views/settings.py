@@ -296,6 +296,22 @@ def render(client: ApiClient, tz: str) -> None:
                 "Nur eine Orientierung – keine Rechtsberatung und kein automatischer Abzug "
                 "(Quellen und Stand: docs/QUELLEN_UND_GRENZEN.md). Voreinstellung: aus.",
             )
+        with st.expander("Bericht (Kopfzeile)", key="set_report"):
+            author = st.text_input(
+                "Name im Bericht",
+                value=settings["report"]["author"],
+                key="set_report_author",
+                max_chars=100,
+                help="Erscheint in der Kopfzeile gedruckter Berichte. Voreinstellung: leer "
+                "(dann steht dort kein Name).",
+            )
+            organization = st.text_input(
+                "Firma im Bericht",
+                value=settings["report"]["organization"],
+                key="set_report_org",
+                max_chars=100,
+                help="Erscheint in der Kopfzeile gedruckter Berichte. Voreinstellung: leer.",
+            )
         submitted = st.form_submit_button(
             "💾 Einstellungen speichern",
             type="primary",
@@ -320,6 +336,7 @@ def render(client: ApiClient, tz: str) -> None:
                 "quiet_end": quiet_end,
             },
             "tray": {"enabled": bool(tray)},
+            "report": {"author": author, "organization": organization},
             "work": {
                 "workday_end": workday_end,
                 "workdays": ",".join(days) or work["workdays"],
@@ -349,7 +366,16 @@ def render(client: ApiClient, tz: str) -> None:
                 )
 
     _autostart(client)
-    _reset(client, display, tracking, logging_, notifications, work, settings["tray"])
+    _reset(
+        client,
+        display,
+        tracking,
+        logging_,
+        notifications,
+        work,
+        settings["tray"],
+        settings["report"],
+    )
     with st.expander("Technische Angaben (nur lesen)", key="set_technical"):
         agent = settings["agent"]
         st.markdown(
@@ -402,6 +428,7 @@ def _reset(
     notifications: dict[str, object],
     work: dict[str, object],
     tray: dict[str, object],
+    report: dict[str, object],
 ) -> None:
     """The way back: every setting of this page to its default (looks are not touched)."""
     already_default = (
@@ -415,6 +442,8 @@ def _reset(
         and work == dataclasses.asdict(DEFAULT_WORK)
         and notifications == dataclasses.asdict(DEFAULT_NOTIFICATIONS)
         and tray["enabled"] == DEFAULT_TRAY.enabled
+        and not report["author"]
+        and not report["organization"]
     )
     if st.button(
         "Auf Voreinstellungen zurücksetzen",
@@ -430,6 +459,7 @@ def _reset(
             call(client.reset_settings, "notifications")[0],
             call(client.reset_settings, "work")[0],
             call(client.reset_settings, "tray")[0],
+            call(client.reset_settings, "report")[0],
             call(client.update_settings, {"display": {"timezone": DEFAULT_TIMEZONE}})[0],
         ]
         if all(done):

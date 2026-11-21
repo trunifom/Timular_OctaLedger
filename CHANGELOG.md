@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Bericht und Kalender-Import, AP-42)
+- Druckbarer Bericht (HTML ohne Skripte; PDF mit dem Extra `pdf`) mit denselben Summen wie die Statistik; Kopfzeile aus `report.author/organization`.
+- Kalender-Import (.ics, Extra `ics`) als Vorschläge mit Bestätigung, atomar gebucht; Grenzen 2 MiB, 90 Tage, 1000 Termine.
+- **Korrektur:** `fpdf2` ist LGPL-3.0 (nicht BSD-2 wie geplant) und `recurring-ical-events` LGPL-3.0; beide bleiben optionale, dynamisch geladene Extras.
+
 ### Hinzugefügt (Tags, Vorlagen, Budgets, AP-41)
 - Tags je Eintrag (Filter im Journal), Standard-Tags und Notizvorlage je Tätigkeit, Budget/Stundensatz/abrechenbar je Projekt mit Warnung bei 80 % und 100 %, Auswertung „Projekte & Budget“. Migration 0007.
 - CSV-Export: neue Spalten `tags`, `billable`, `amount` (am Ende). Beträge nur im Bericht berechnet und gerundet.

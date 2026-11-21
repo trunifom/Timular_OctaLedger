@@ -77,9 +77,11 @@ octaledger/
   src/octaledger/application/data_service.py
   src/octaledger/application/device_service.py
   src/octaledger/application/export_service.py
+  src/octaledger/application/ics_import.py
   src/octaledger/application/integration_service.py
   src/octaledger/application/notifier.py
   src/octaledger/application/outbox.py
+  src/octaledger/application/report_render.py
   src/octaledger/application/reporting_service.py
   src/octaledger/application/tag_service.py
   src/octaledger/application/tracking_service.py
@@ -117,6 +119,7 @@ octaledger/
   src/octaledger/dashboard/views/faces.py
   src/octaledger/dashboard/views/faces_actions.py
   src/octaledger/dashboard/views/journal.py
+  src/octaledger/dashboard/views/journal_ics.py
   src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
   src/octaledger/dashboard/views/settings.py
@@ -124,6 +127,7 @@ octaledger/
   src/octaledger/dashboard/views/statistics.py
   src/octaledger/dashboard/views/statistics_balance.py
   src/octaledger/dashboard/views/statistics_budget.py
+  src/octaledger/dashboard/views/statistics_report.py
   src/octaledger/dashboard_client/__init__.py
   src/octaledger/dashboard_client/client.py
   src/octaledger/domain/__init__.py
@@ -225,6 +229,7 @@ octaledger/
   tests/unit/test_logging.py
   tests/unit/test_models.py
   tests/unit/test_orientation.py
+  tests/unit/test_report_and_ics.py
   tests/unit/test_reporting_service.py
   tests/unit/test_repositories.py
   tests/unit/test_secret_store.py

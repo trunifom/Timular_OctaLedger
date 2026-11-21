@@ -77,6 +77,11 @@ Der Steuerungsmodus sendet Befehle an Geräte und Dienste; das schafft neue Risi
   echter TLS-Handshake mit einer Bridge wurde **noch nicht** getestet.
 * **TLS-Prüfung** ist bei Webhook und MQTT standardmäßig an; Abschalten ist nur für selbst erzeugte Zertifikate vorgesehen und im Hilfetext erklärt.
 
+### 5a. Fremde Dateien: Kalender-Import und Berichte (AP-42)
+
+- Eine **.ics-Datei** ist fremde Eingabe. OctaLedger liest sie **nur**, nie führt es etwas daraus aus und öffnet nie eine Adresse oder einen Anhang aus der Datei. Grenzen: höchstens 2 MiB, ein Zeitfenster von höchstens 90 Tagen (so kann eine Serie ohne Enddatum nicht unbegrenzt wachsen), höchstens 1000 Termine; jeder Parserfehler wird zu einer verständlichen Meldung. Termine sind nur **Vorschläge**: Gebucht wird erst nach Ihrer Bestätigung, alle gewählten zusammen in einer Transaktion (Überschneidungen brechen alles ab).
+- Der **HTML-Bericht** enthält keine Skripte; jeder Text (Namen, Notizen, Kopfzeile) wird maskiert. Das PDF wird nur auf Wunsch erzeugt und nicht auf der Platte abgelegt.
+
 ## 6. Daten, Sicherungen, Export
 
 * Datenbank und Dateien liegen im **Benutzerprofil**, nie im Projektordner. Wiederherstellung: vollständig geprüft, automatische Sicherung des alten Stands, **eine** Transaktion.

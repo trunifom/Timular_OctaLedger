@@ -256,6 +256,16 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Journalzeile** = Sitzung plus `activity_name`, `project_name`, `device_alias`.
 
+### Bericht und Kalender-Import (AP-42)
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `POST /reports/render` | druckbarer Bericht für lokale Tage (gleiche Summen wie die Statistik) | `{"first","last","format": "html"\|"pdf","tz"?}` | `{format, filename, content}`; `content` ist bei `pdf` base64; 422 bei anderem Format, 400/503 ohne Zusatzpaket `pdf` |
+| `POST /import/ics/preview` | Termine einer Kalenderdatei als **Vorschläge** lesen (bucht nichts, speichert nichts) | `{"content": "<ICS-Text, ≤ 2 MiB>", "first","last","tz"?}` | `{proposals: [{index, start, end, title, overlaps}], skipped: {Grund: Anzahl}}` |
+| `POST /import/ics/apply` | die bestätigten Termine buchen (alle oder keinen) | `{"entries": [{"start","end","activity_id","project_id"?,"note"?}]}` (≤ 200) | `{created}`, 201; 409 bei Überschneidung, 422 bei Zukunft/leer |
+
+`GET /system/capabilities` nennt jetzt auch `pdf`, `ics` und `holidays`.
+
 ### Tags, Notizvorlagen, Budgets (AP-41)
 
 | Methode und Pfad | Zweck | Anfrage | Antwort |

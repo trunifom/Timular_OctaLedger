@@ -625,6 +625,35 @@ class ApiClient:
         )
         return result
 
+    def render_report(
+        self, first: date, last: date, fmt: str = "html", tz: str | None = None
+    ) -> dict[str, Any]:
+        """A printable report (``html`` text or ``pdf`` as base64)."""
+        body: dict[str, Any] = {"first": first.isoformat(), "last": last.isoformat(), "format": fmt}
+        if tz:
+            body["tz"] = tz
+        result: dict[str, Any] = self._post("/reports/render", body)
+        return result
+
+    def ics_preview(
+        self, content: str, first: date, last: date, tz: str | None = None
+    ) -> dict[str, Any]:
+        """Read appointments from calendar text as proposals (nothing is booked)."""
+        body: dict[str, Any] = {
+            "content": content,
+            "first": first.isoformat(),
+            "last": last.isoformat(),
+        }
+        if tz:
+            body["tz"] = tz
+        result: dict[str, Any] = self._post("/import/ics/preview", body)
+        return result
+
+    def ics_apply(self, entries: list[dict[str, Any]]) -> dict[str, Any]:
+        """Book the confirmed appointments (all or nothing)."""
+        result: dict[str, Any] = self._post("/import/ics/apply", {"entries": entries})
+        return result
+
     def tags(self) -> list[dict[str, Any]]:
         """All tags."""
         result: list[dict[str, Any]] = self._get("/tags")

@@ -484,6 +484,11 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
 
+### Bericht drucken und Kalender-Import
+
+- **Bericht:** *Statistik* → Reiter **Bericht**: Zeitraum wählen, **HTML-Bericht herunterladen** und im Browser mit **Strg+P** drucken (dort auch „Als PDF speichern“). Mit dem Zusatzpaket `pdf` (`pip install -e ".[pdf]"`) gibt es zusätzlich einen **PDF-Knopf**. Die Summen sind **dieselben wie in der Statistik**; unsichere Zeiten stehen offen im Bericht. Name und Firma der Kopfzeile stellen Sie unter *App* → *Bericht (Kopfzeile)* ein (leer = nichts). Das PDF nutzt Standardschriften: Anführungszeichen, Gedankenstriche und „€“ werden ersetzt, ungewöhnliche Zeichen erscheinen als „?“ (der HTML-Bericht hat diese Grenze nicht).
+- **Kalender-Import:** *Zeitjournal* → *Nachtragen* → **Aus Kalender vorschlagen (.ics)**: Datei wählen (≤ 2 MiB), Zeitraum (≤ 90 Tage), **Vorschläge lesen**. Für jeden Termin wählen Sie die Tätigkeit und haken an, was übernommen werden soll; Termine, die sich mit einem Eintrag überschneiden, sind markiert und nicht übernehmbar. **Erst „übernehmen“ bucht**, alle zusammen oder gar keinen. Ganztägige, abgesagte und mehrtägige Termine werden übersprungen. Braucht das Zusatzpaket `ics` (`pip install -e ".[ics]"`). Die Datei wird nicht gespeichert.
+
 ### Tags, Notizvorlagen, Budgets und Stundensatz
 
 - **Tags** (*Tätigkeiten & Projekte* → *Tags*): freie Etiketten für Einträge, z. B. „Kunde A“. Im **Zeitjournal** ändern Sie die Tags eines Eintrags (Reiter *Tags*) und filtern nach einem Tag. Eine **Tätigkeit** kann **Standard-Tags** vergeben: Neue Einträge (auch per Würfel) bekommen sie automatisch.

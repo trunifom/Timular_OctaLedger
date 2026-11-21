@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.device_service import DeviceInfo
+from octaledger.application.ics_import import IcsPreview
 from octaledger.application.integration_service import IntegrationInfo, JobInfo
 from octaledger.application.reporting_service import (
     Balance,
@@ -208,6 +209,40 @@ class AttentionResolve(_Strict):
     activity_id: str | None = Field(default=None, max_length=64)
     project_id: str | None = Field(default=None, max_length=64)
     until: datetime | None = None
+
+
+class RenderBody(_Strict):
+    """Render a printable report for a period of local days."""
+
+    first: date
+    last: date
+    format: str = Field(default="html", max_length=10)
+    tz: str | None = Field(default=None, max_length=60)
+
+
+class IcsPreviewBody(_Strict):
+    """A calendar file (text) and the period to read from it."""
+
+    content: str = Field(max_length=2_100_000)
+    first: date
+    last: date
+    tz: str | None = Field(default=None, max_length=60)
+
+
+class IcsEntryBody(_Strict):
+    """One confirmed appointment with the chosen activity."""
+
+    start: datetime
+    end: datetime
+    activity_id: str = Field(max_length=64)
+    project_id: str | None = Field(default=None, max_length=64)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class IcsApplyBody(_Strict):
+    """The confirmed appointments to book (all or nothing)."""
+
+    entries: list[IcsEntryBody] = Field(max_length=200)
 
 
 class TagCreate(_Strict):
@@ -543,6 +578,23 @@ def tracking_status_out(status: TrackingStatus, now: datetime) -> dict[str, Any]
         "paused": status.paused,
         "active_device_id": status.active_device_id,
         "uncertain_count": status.uncertain_count,
+    }
+
+
+def ics_preview_out(preview: IcsPreview) -> dict[str, Any]:
+    """Serialise the proposals of a calendar import."""
+    return {
+        "proposals": [
+            {
+                "index": p.index,
+                "start": iso(p.start),
+                "end": iso(p.end),
+                "title": p.title,
+                "overlaps": p.overlaps,
+            }
+            for p in preview.proposals
+        ],
+        "skipped": dict(preview.skipped),
     }
 
 

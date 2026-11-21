@@ -17,6 +17,7 @@ from octaledger.dashboard.ui import (
     page_help,
     to_local,
 )
+from octaledger.dashboard.views.journal_ics import render as render_ics
 from octaledger.dashboard_client.client import ApiClient
 
 ALL = "Alle"
@@ -54,6 +55,7 @@ def render(client: ApiClient, tz: str) -> None:
             [a for a in activities if not a["archived"]],
             [p for p in projects if not p["archived"]],
         )
+        render_ics(client, tz, [a for a in activities if not a["archived"]])
 
 
 def _set_range(days_back_start: int, days_back_end: int) -> None:

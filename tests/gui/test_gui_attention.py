@@ -324,3 +324,29 @@ def test_budget_reminder_text(api_server: RunningApi) -> None:
         )
     at = open_page(api_server, "journal")
     assert any("Budget „Alpha“ zu 80 % verbraucht" in w.value for w in at.warning)
+
+
+def test_report_tab_offers_html_and_explains_the_pdf_extra(api_server: RunningApi) -> None:
+    from octaledger.application.report_render import pdf_available
+
+    api_server.client.create_item("activities", "Code")
+    at = open_page(api_server, "statistics")
+    assert "Bericht" in [t.label for t in at.tabs]
+    assert at.date_input(key="rep_from").help and at.date_input(key="rep_to").help
+    pdf_button = [b for b in at.button if b.key == "rep_dl_pdf_off"]
+    assert bool(pdf_button) is (not pdf_available())
+    if pdf_button:
+        assert pdf_button[0].disabled and "pip install" in pdf_button[0].help
+
+
+def test_calendar_import_section_and_header_settings(api_server: RunningApi) -> None:
+    from octaledger.application.ics_import import ics_available
+
+    api_server.client.create_item("activities", "Code")
+    at = open_page(api_server, "journal")
+    assert [e for e in at.expander if e.label.startswith("Aus Kalender")]
+    if ics_available():
+        assert at.button(key="ics_read").disabled  # nothing chosen yet
+    settings = open_page(api_server, "settings")
+    assert settings.text_input(key="set_report_author").value == ""
+    assert "Voreinstellung" in settings.text_input(key="set_report_org").help
