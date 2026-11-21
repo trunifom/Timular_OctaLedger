@@ -21,6 +21,7 @@ from octaledger.application.device_service import DeviceInfo
 from octaledger.application.integration_service import IntegrationInfo, JobInfo
 from octaledger.application.reporting_service import JournalEntry, Report, Share
 from octaledger.application.tracking_service import TrackingStatus
+from octaledger.domain.attention import AttentionItem
 from octaledger.domain.models import (
     FACE_NUMBERS,
     Activity,
@@ -190,6 +191,14 @@ class RestoreBody(_Strict):
 
     content: str
     confirm: bool = False
+
+
+class AttentionResolve(_Strict):
+    """Answer to a question of the attention centre (for a gap: keep, discard or assign)."""
+
+    action: str = Field(min_length=1, max_length=40)
+    activity_id: str | None = Field(default=None, max_length=64)
+    project_id: str | None = Field(default=None, max_length=64)
 
 
 class EntriesRange(_Strict):
@@ -461,6 +470,20 @@ def tracking_status_out(status: TrackingStatus, now: datetime) -> dict[str, Any]
         "paused": status.paused,
         "active_device_id": status.active_device_id,
         "uncertain_count": status.uncertain_count,
+    }
+
+
+def attention_out(item: AttentionItem) -> dict[str, Any]:
+    """Serialise an attention item."""
+    return {
+        "id": item.id,
+        "kind": item.kind.value,
+        "status": item.status.value,
+        "created_at": iso(item.created_at),
+        "resolved_at": iso(item.resolved_at) if item.resolved_at else None,
+        "resolution": item.resolution,
+        "session_id": item.session_id,
+        "payload": item.payload,
     }
 
 

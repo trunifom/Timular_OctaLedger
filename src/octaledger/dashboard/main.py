@@ -24,6 +24,7 @@ from octaledger import __version__
 from octaledger.core.errors import ConfigurationError, OctaLedgerError
 from octaledger.core.logging import configure_logging
 from octaledger.core.settings import FontSize, Theme, load_settings, resolve_paths
+from octaledger.dashboard.attention import attention_panel
 from octaledger.dashboard.nav import DEFAULT_PAGE, GROUPS, NAV_STATE_KEY, go
 from octaledger.dashboard.shell import status_bar
 from octaledger.dashboard.theme import apply_native_theme, css
@@ -223,5 +224,6 @@ def run() -> None:
         _agent_down(client)
         return
     status_bar(client)
+    attention_panel(client, display["timezone"])
     renderer: Any = PAGES[page].render
     renderer(client, display["timezone"])

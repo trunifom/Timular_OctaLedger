@@ -35,6 +35,7 @@ from typing import Any, TypeVar
 import uvicorn
 
 from octaledger.agent.dispatcher import ActionDispatcher
+from octaledger.agent.housekeeper import Housekeeper
 from octaledger.agent.supervisor import AgentSupervisor, DeviceStatus, SupervisorTuning
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
@@ -165,6 +166,9 @@ class AgentRuntime:
             agent=self,
             integrations=integrations,
         )
+        self._housekeeper = Housekeeper(
+            [self.context.tracking.watchdog, self.context.attention.expire_old]
+        )
         self._loop: asyncio.AbstractEventLoop | None = None
         self._ble_thread: threading.Thread | None = None
         self._supervisor: AgentSupervisor | None = None
@@ -184,6 +188,7 @@ class AgentRuntime:
         check_port_free(self._settings.agent.host, self._settings.agent.port)
         self._start_ble_loop()
         self._dispatcher.start()
+        self._housekeeper.start()
         config = uvicorn.Config(
             create_app(self.context),
             host=self._settings.agent.host,
@@ -236,6 +241,7 @@ class AgentRuntime:
         if self._api_thread is not None:
             self._api_thread.join(timeout=10)
         self._dispatcher.stop()
+        self._housekeeper.stop()
         loop, supervisor = self._loop, self._supervisor
         if loop is not None and supervisor is not None and loop.is_running():
             try:

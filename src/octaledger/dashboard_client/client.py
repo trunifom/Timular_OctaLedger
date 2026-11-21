@@ -623,6 +623,32 @@ class ApiClient:
         )
         return result
 
+    def attention(self) -> dict[str, Any]:
+        """Open questions and connections that are lost but still inside the grace period."""
+        result: dict[str, Any] = self._get("/attention")
+        return result
+
+    def resolve_attention(
+        self,
+        item_id: str,
+        action: str,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Answer a gap question: ``keep``, ``discard`` or ``assign``."""
+        body: dict[str, Any] = {"action": action}
+        if activity_id is not None:
+            body["activity_id"] = activity_id
+        if project_id is not None:
+            body["project_id"] = project_id
+        result: dict[str, Any] = self._post(f"/attention/{item_id}/resolve", body)
+        return result
+
+    def dismiss_attention(self, item_id: str) -> dict[str, Any]:
+        """Close a question without acting on it."""
+        result: dict[str, Any] = self._post(f"/attention/{item_id}/dismiss")
+        return result
+
     def unpair_device(self, device_id: str) -> dict[str, Any]:
         """Stop the connection and forget the Bluetooth address (cube and data stay)."""
         result: dict[str, Any] = self._post(f"/devices/{device_id}/unpair")

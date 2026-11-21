@@ -254,6 +254,18 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Journalzeile** = Sitzung plus `activity_name`, `project_name`, `device_alias`.
 
+### Rückfragen (Attention Items, AP-36)
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `GET /attention` | offene Rückfragen und Verbindungen, die verloren sind, aber noch in der Frist | – | `{items: [Rückfrage], link_lost: [{device_id, alias, since, stops_at, grace_seconds}], server_time}` |
+| `POST /attention/{id}/resolve` | eine Lückenfrage beantworten | `{"action": "keep"\|"discard"\|"assign", "activity_id"?, "project_id"?}` | **Rückfrage** |
+| `POST /attention/{id}/dismiss` | Rückfrage schließen, ohne etwas zu ändern | – | **Rückfrage** |
+
+**Rückfrage:** `{id, kind, status, created_at, resolved_at, resolution, session_id, payload}`. `kind` ist heute `gap` (Lücke nach Verbindungsverlust; `payload`: `device_id`, `lost_at`, `returned_at` oder `null`, `activity_id`, `project_id`); `idle`, `auto_stop`, `reminder`, `break_hint` sind für spätere Pakete reserviert. `status`: `open`, `resolved`, `dismissed`, `expired`.
+
+`keep` verlängert den beendeten Eintrag bis zur Rückkehr (ohne Rückkehr: bis jetzt), `discard` lässt die Lücke leer, `assign` bucht sie auf die angegebene Tätigkeit (Pflicht, sonst 422). Die Lücke überlappt nie den nächsten Eintrag; ist sie ganz belegt, antwortet die API 409. Eine schon beantwortete Rückfrage ergibt 409, eine unbekannte 404. Jede Antwort steht in der Prüfspur.
+
 Hinweis: Im **Steuerungsmodus** eines Würfels entstehen **keine** Sitzungen – seine Drehungen lösen Aktionen aus (Abschnitt 7).
 
 ## 10. Berichte

@@ -36,6 +36,7 @@ from octaledger.core.errors import (
     NotFoundError,
     ValidationError,
 )
+from octaledger.domain.attention import AttentionItem, AttentionKind, AttentionStatus
 from octaledger.domain.models import (
     Activity,
     Correction,
@@ -1473,6 +1474,114 @@ class AuditLogRepository:
 # --------------------------------------------------------------------------- app state
 
 
+class AttentionRepository:
+    """Questions waiting for a decision of the user (see :class:`AttentionItem`)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> AttentionItem:
+        return _load(
+            lambda: AttentionItem(
+                id=row["id"],
+                kind=AttentionKind(row["kind"]),
+                created_at=from_db_time(row["created_at"]),
+                session_id=row["session_id"],
+                payload=_from_json(row["payload"]),
+                status=AttentionStatus(row["status"]),
+                resolved_at=_opt_time(row["resolved_at"]),
+                resolution=row["resolution"],
+            ),
+            "attention item",
+            row["id"],
+        )
+
+    def add(self, item: AttentionItem) -> AttentionItem:
+        """Store a new item."""
+        with _db_errors("add attention item"):
+            self._c.execute(
+                "INSERT INTO attention_items (id, kind, created_at, session_id, payload, status, "
+                "resolved_at, resolution) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    item.id,
+                    item.kind.value,
+                    to_db_time(item.created_at),
+                    item.session_id,
+                    _to_json(item.payload),
+                    item.status.value,
+                    None if item.resolved_at is None else to_db_time(item.resolved_at),
+                    item.resolution,
+                ),
+            )
+        return item
+
+    def get(self, item_id: str) -> AttentionItem | None:
+        """Return an item or ``None``."""
+        with _db_errors("read attention item"):
+            row = self._c.execute(
+                "SELECT * FROM attention_items WHERE id = ?", (item_id,)
+            ).fetchone()
+        return None if row is None else self._from_row(row)
+
+    def require(self, item_id: str) -> AttentionItem:
+        """Return an item or raise :class:`NotFoundError`."""
+        item = self.get(item_id)
+        if item is None:
+            raise NotFoundError(
+                f"Attention item {item_id} not found",
+                user_message="Diese Rückfrage gibt es nicht (mehr).",
+            )
+        return item
+
+    def list_open(self) -> list[AttentionItem]:
+        """Return all open items, oldest first."""
+        with _db_errors("list attention items"):
+            rows = self._c.execute(
+                "SELECT * FROM attention_items WHERE status = 'open' ORDER BY created_at, id"
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def list_recent(self, limit: int = 50) -> list[AttentionItem]:
+        """Return the newest items of any status, newest first."""
+        with _db_errors("list attention items"):
+            rows = self._c.execute(
+                "SELECT * FROM attention_items ORDER BY created_at DESC, id DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def update_payload(self, item_id: str, payload: Mapping[str, Any]) -> None:
+        """Replace the payload of an item (used to add facts such as the return time)."""
+        with _db_errors("update attention payload"):
+            self._c.execute(
+                "UPDATE attention_items SET payload = ? WHERE id = ?",
+                (_to_json(payload), item_id),
+            )
+
+    def close(
+        self, item_id: str, status: AttentionStatus, resolution: str | None, at: datetime
+    ) -> None:
+        """Mark an item as answered (``resolved``), ``dismissed`` or ``expired``."""
+        with _db_errors("close attention item"):
+            self._c.execute(
+                "UPDATE attention_items SET status = ?, resolution = ?, resolved_at = ? "
+                "WHERE id = ?",
+                (status.value, resolution, to_db_time(at), item_id),
+            )
+
+    def expire_open_before(self, cutoff: datetime, now: datetime) -> int:
+        """Mark open items created before ``cutoff`` as ``expired``; time data is untouched."""
+        with _db_errors("expire attention items"):
+            cursor = self._c.execute(
+                "UPDATE attention_items SET status = 'expired', resolved_at = ? "
+                "WHERE status = 'open' AND created_at < ?",
+                (to_db_time(now), to_db_time(cutoff)),
+            )
+        return cursor.rowcount
+
+
 class StateRepository:
     """Tiny persistent key/value store for application state (active tracker, pause)."""
 
@@ -1685,6 +1794,7 @@ class Repositories:
     integrations: IntegrationRepository
     actions: FaceActionRepository
     jobs: JobRepository
+    attention: AttentionRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -1704,6 +1814,7 @@ class Repositories:
             ("integrations", IntegrationRepository(connection)),
             ("actions", FaceActionRepository(connection)),
             ("jobs", JobRepository(connection)),
+            ("attention", AttentionRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

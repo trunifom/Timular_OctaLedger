@@ -76,6 +76,9 @@ class DisconnectPolicy(StrEnum):
     MARK_UNCERTAIN = "mark_uncertain"
     #: End the session at the last known good moment.
     STOP_SESSION = "stop_session"
+    #: Keep the session running for a grace period; end it at the moment of the loss if the
+    #: tracker does not come back in time, then ask the user about the gap.
+    GRACE_THEN_STOP = "grace_then_stop"
 
 
 class NeutralPolicy(StrEnum):
@@ -196,13 +199,16 @@ class TrackingSettings:
 
     debounce_ms: int = 300
     baseline_policy: BaselinePolicy = BaselinePolicy.OBSERVE_ONLY
-    disconnect_policy: DisconnectPolicy = DisconnectPolicy.MARK_UNCERTAIN
+    disconnect_policy: DisconnectPolicy = DisconnectPolicy.GRACE_THEN_STOP
+    #: Grace period (seconds) of ``grace_then_stop``; 0 behaves like ``stop_session``.
+    disconnect_grace_seconds: int = 300
     neutral_policy: NeutralPolicy = NeutralPolicy.OBSERVE_ONLY
     mode: TrackingMode = TrackingMode.SINGLE_ACTIVE_TRACKER
 
     def __post_init__(self) -> None:
         """Validate ranges and coerce strings to enum members."""
         _check_int("tracking", "debounce_ms", self.debounce_ms, 0, 10_000)
+        _check_int("tracking", "disconnect_grace_seconds", self.disconnect_grace_seconds, 0, 3600)
         object.__setattr__(
             self,
             "baseline_policy",

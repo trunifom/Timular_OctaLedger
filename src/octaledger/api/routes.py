@@ -16,7 +16,7 @@ Conventions
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, Query
@@ -28,6 +28,7 @@ from octaledger.api.schemas import (
     ActionAssign,
     AddressBody,
     ArchiveBody,
+    AttentionResolve,
     CatalogCreate,
     CatalogUpdate,
     CorrectBody,
@@ -54,6 +55,7 @@ from octaledger.api.schemas import (
     StartBody,
     activity_out,
     adapter_out,
+    attention_out,
     device_out,
     integration_out,
     iso,
@@ -388,6 +390,43 @@ def build_router(ctx: AppContext) -> APIRouter:
         moment = now()
         flt = ReportFilter(start, end, device_id, activity_id, project_id)
         return [journal_out(e, moment) for e in ctx.reports.journal(flt)]
+
+    # ------------------------------------------------------------------- attention
+    @router.get("/attention")
+    def attention() -> dict[str, Any]:
+        """Open questions plus connections that are lost but still inside the grace period."""
+        moment = now()
+        grace = ctx.settings.settings.tracking.disconnect_grace_seconds
+        names = {d.device.id: d.device.alias for d in ctx.devices.list_devices()}
+        waiting = [
+            {
+                "device_id": device_id,
+                "alias": names.get(device_id, ""),
+                "since": iso(since),
+                "stops_at": iso(since + timedelta(seconds=grace)),
+                "grace_seconds": grace,
+            }
+            for device_id, since in sorted(ctx.tracking.link_lost_since().items())
+        ]
+        return {
+            "items": [attention_out(i) for i in ctx.attention.list_open()],
+            "link_lost": waiting,
+            "server_time": iso(moment),
+        }
+
+    @router.post("/attention/{item_id}/resolve")
+    def resolve_attention(item_id: str, body: AttentionResolve) -> dict[str, Any]:
+        """Answer a gap question: ``keep``, ``discard`` or ``assign`` (with an activity)."""
+        return attention_out(
+            ctx.tracking.resolve_gap(
+                item_id, body.action, activity_id=body.activity_id, project_id=body.project_id
+            )
+        )
+
+    @router.post("/attention/{item_id}/dismiss")
+    def dismiss_attention(item_id: str) -> dict[str, Any]:
+        """Close a question without acting on it."""
+        return attention_out(ctx.attention.dismiss(item_id))
 
     @router.get("/sessions/uncertain")
     def uncertain() -> list[dict[str, Any]]:

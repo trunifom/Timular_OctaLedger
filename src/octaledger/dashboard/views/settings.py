@@ -24,7 +24,8 @@ BASELINE = {
     "adopt_current": "Aktuelle Seite sofort als Start übernehmen",
 }
 DISCONNECT = {
-    "mark_uncertain": "Zeit als unsicher markieren (empfohlen)",
+    "grace_then_stop": "Weiterlaufen, nach einer Frist beenden und nachfragen (empfohlen)",
+    "mark_uncertain": "Unbegrenzt weiterlaufen und als unsicher markieren",
     "stop_session": "Zeit beenden und als unsicher markieren",
 }
 NEUTRAL = {
@@ -104,7 +105,20 @@ def render(client: ApiClient, tz: str) -> None:
                 index=list(DISCONNECT).index(tracking["disconnect_policy"]),
                 format_func=DISCONNECT.__getitem__,
                 help="Was mit der laufenden Zeit geschieht, wenn der Würfel die Verbindung "
-                "verliert. Voreinstellung: als unsicher markieren.",
+                "verliert. Voreinstellung: weiterlaufen, nach einer Frist am Moment des Verlusts "
+                "beenden und nachfragen (so wird keine Zeit erfunden).",
+            )
+            grace = st.number_input(
+                "Frist bei Verbindungsverlust (Sekunden)",
+                min_value=0,
+                max_value=3600,
+                value=int(tracking["disconnect_grace_seconds"]),
+                step=30,
+                key="set_grace",
+                help="Gilt für „Weiterlaufen, nach einer Frist beenden“. So lange läuft die Zeit "
+                "nach einem Verbindungsverlust weiter; kommt der Würfel nicht zurück, endet sie "
+                "am Moment des Verlusts und Sie werden gefragt. 0 beendet sofort. "
+                f"Voreinstellung: {DEFAULT_TRACKING.disconnect_grace_seconds} Sekunden.",
             )
             neutral = st.selectbox(
                 "Neutralwert (Würfel auf keiner Seite)",
@@ -136,6 +150,7 @@ def render(client: ApiClient, tz: str) -> None:
                 "debounce_ms": debounce,
                 "baseline_policy": baseline,
                 "disconnect_policy": disconnect,
+                "disconnect_grace_seconds": int(grace),
                 "neutral_policy": neutral,
             },
             "logging": {"level": level},
@@ -147,6 +162,7 @@ def render(client: ApiClient, tz: str) -> None:
                 debounce != tracking["debounce_ms"]
                 or baseline != tracking["baseline_policy"]
                 or disconnect != tracking["disconnect_policy"]
+                or grace != tracking["disconnect_grace_seconds"]
                 or neutral != tracking["neutral_policy"]
                 or level != logging_["level"]
             )
@@ -183,6 +199,7 @@ def _reset(
         and tracking["debounce_ms"] == DEFAULT_TRACKING.debounce_ms
         and tracking["baseline_policy"] == DEFAULT_TRACKING.baseline_policy.value
         and tracking["disconnect_policy"] == DEFAULT_TRACKING.disconnect_policy.value
+        and tracking["disconnect_grace_seconds"] == DEFAULT_TRACKING.disconnect_grace_seconds
         and tracking["neutral_policy"] == DEFAULT_TRACKING.neutral_policy.value
         and logging_["level"] == DEFAULT_LOGGING.level
     )

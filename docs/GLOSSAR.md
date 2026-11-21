@@ -54,6 +54,12 @@ Drehung zählt.
 
 **Datenordner** – der Ort im Benutzerprofil, an dem Datenbank, Einstellungen, Token, Zugangsdaten, Protokolle, Sicherungen und Exporte liegen (`octaledger paths`).
 
+**Frist (bei Verbindungsverlust)** – die Zeit, die ein Eintrag nach einem Verbindungsverlust weiterläuft (Voreinstellung 5 min). Danach endet er am Moment des Verlusts und es wird eine → Rückfrage gestellt.
+
+**Housekeeper** – der Hintergrund-Thread im Agenten, der zeitgesteuerte Regeln prüft (Frist nach Verbindungsverlust, später Arbeitstag und Erinnerungen).
+
+**Rückfrage** – eine Frage, die auf Ihre Entscheidung wartet, z. B. was in einer Lücke nach einem Verbindungsverlust war. Sie ändert nie von selbst Zeitdaten.
+
 **Dispatcher** – der Hintergrund-Thread im Agenten, der die wartenden → Aufträge des Steuerungsmodus nacheinander sendet.
 
 **Duplikat** – eine Würfelmeldung, die denselben Wert wie zuvor wiederholt; sie wird gezählt und ignoriert.

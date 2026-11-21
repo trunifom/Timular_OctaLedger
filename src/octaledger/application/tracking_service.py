@@ -36,6 +36,8 @@ from octaledger.core.settings import (
     NeutralPolicy,
     TrackingSettings,
 )
+from octaledger.domain.attention import AttentionItem, AttentionKind, AttentionStatus
+from octaledger.domain.link_loss import LinkAction, decide
 from octaledger.domain.models import (
     FACE_NUMBERS,
     Activity,
@@ -55,6 +57,13 @@ logger = logging.getLogger(__name__)
 #: Keys in the persistent application state.
 STATE_ACTIVE_DEVICE = "active_device"
 STATE_PAUSED = "paused"
+#: Prefix of the per-device marker "connection lost at ..." (JSON value).
+STATE_LINK_LOST = "link_lost:"
+#: Answers the user can give to a gap question.
+GAP_KEEP = "keep"
+GAP_DISCARD = "discard"
+GAP_ASSIGN = "assign"
+GAP_ACTIONS = (GAP_KEEP, GAP_DISCARD, GAP_ASSIGN)
 #: Tolerance for "end lies in the future" checks on back-dated sessions.
 FUTURE_TOLERANCE = timedelta(minutes=1)
 
@@ -301,6 +310,8 @@ class TrackingService:
 
     def _apply_event(self, repos: Repositories, event: RawEvent) -> EventResult:
         kind = event.kind
+        if kind in (EventKind.BASELINE, EventKind.RECONNECT):
+            self._on_return(repos, event)
         if kind is EventKind.FACE_CHANGE:
             return self._on_face(repos, event)
         if kind is EventKind.BASELINE:
@@ -377,13 +388,208 @@ class TrackingService:
         running = repos.sessions.get_running()
         if running is None or running.device_id != event.device_id:
             return EventResult(Outcome.STORED)  # nothing of this device is running
-        if self._settings.disconnect_policy is DisconnectPolicy.STOP_SESSION:
+        policy = self._settings.disconnect_policy
+        stop_now = policy is DisconnectPolicy.STOP_SESSION or (
+            policy is DisconnectPolicy.GRACE_THEN_STOP
+            and self._settings.disconnect_grace_seconds == 0
+        )
+        if stop_now:
             ended = repos.sessions.end(
                 running.id, self._effective(repos, event.received_at), Quality.UNCERTAIN
             )
             return EventResult(Outcome.ENDED, ended)
         marked = repos.sessions.set_quality(running.id, Quality.UNCERTAIN)
+        if policy is DisconnectPolicy.GRACE_THEN_STOP:
+            when = self._effective(repos, event.received_at)
+            repos.state.set(
+                STATE_LINK_LOST + event.device_id,
+                json.dumps({"at": when.isoformat(), "stopped": False, "session": running.id}),
+            )
+            logger.info(
+                "Connection lost; grace period of %d s started",
+                self._settings.disconnect_grace_seconds,
+            )
         return EventResult(Outcome.MARKED_UNCERTAIN, marked)
+
+    def _on_return(self, repos: Repositories, event: RawEvent) -> None:
+        """The tracker is back: end the grace period or record when the gap ended."""
+        key = STATE_LINK_LOST + event.device_id
+        raw = repos.state.get(key)
+        if raw is None:
+            return
+        marker = json.loads(raw)
+        repos.state.delete(key)
+        if not marker.get("stopped"):
+            logger.info("Tracker returned within the grace period; entry continues")
+            return
+        for item in repos.attention.list_open():
+            if item.kind is AttentionKind.GAP and item.payload.get("device_id") == event.device_id:
+                repos.attention.update_payload(
+                    item.id, {**item.payload, "returned_at": event.received_at.isoformat()}
+                )
+                logger.info("Tracker returned after the grace period; gap question updated")
+
+    # ------------------------------------------------------------ link-loss watchdog
+
+    def watchdog(self, now: datetime | None = None) -> list[AttentionItem]:
+        """End entries whose lost connection outlasted the grace period (called by a timer).
+
+        For every device with a "connection lost" marker the pure rule
+        :func:`octaledger.domain.link_loss.decide` is applied. When the period is over the
+        running entry of that device is ended **at the moment of the loss** (flagged uncertain)
+        and a ``gap`` question is raised. If the entry was already ended or replaced by the user
+        in the meantime, the marker is simply dropped; no time is invented.
+
+        Args:
+            now: Current time (default: the service clock).
+
+        Returns:
+            The newly raised questions.
+        """
+        moment = ensure_utc(now, name="now") if now is not None else self._now()
+        grace = timedelta(seconds=self._settings.disconnect_grace_seconds)
+        raised: list[AttentionItem] = []
+        with self._storage.transaction() as repos:
+            for key, raw in repos.state.items().items():
+                if not key.startswith(STATE_LINK_LOST):
+                    continue
+                marker = json.loads(raw)
+                device_id = key[len(STATE_LINK_LOST) :]
+                lost_at = datetime.fromisoformat(marker["at"])
+                action = decide(lost_at, moment, grace, already_stopped=bool(marker.get("stopped")))
+                if action is not LinkAction.STOP_AT_LOSS:
+                    continue
+                running = repos.sessions.get_running()
+                if running is None or running.id != marker.get("session"):
+                    repos.state.delete(key)  # the user acted meanwhile; nothing to decide
+                    continue
+                repos.sessions.end(running.id, self._effective(repos, lost_at), Quality.UNCERTAIN)
+                marker["stopped"] = True
+                repos.state.set(key, json.dumps(marker))
+                item = repos.attention.add(
+                    AttentionItem(
+                        kind=AttentionKind.GAP,
+                        created_at=moment,
+                        session_id=running.id,
+                        payload={
+                            "device_id": device_id,
+                            "lost_at": lost_at.isoformat(),
+                            "returned_at": None,
+                            "activity_id": running.activity_id,
+                            "project_id": running.project_id,
+                        },
+                    )
+                )
+                raised.append(item)
+                logger.warning("Grace period over: entry ended at the loss, gap question raised")
+        return raised
+
+    def link_lost_since(self) -> dict[str, datetime]:
+        """Return ``device_id -> loss time`` for connections that are lost but not yet ended."""
+        result: dict[str, datetime] = {}
+        with self._storage.read() as repos:
+            for key, raw in repos.state.items().items():
+                if key.startswith(STATE_LINK_LOST):
+                    marker = json.loads(raw)
+                    if not marker.get("stopped"):
+                        result[key[len(STATE_LINK_LOST) :]] = datetime.fromisoformat(marker["at"])
+        return result
+
+    def resolve_gap(
+        self,
+        item_id: str,
+        action: str,
+        *,
+        activity_id: str | None = None,
+        project_id: str | None = None,
+    ) -> AttentionItem:
+        """Answer a gap question; every change is audited.
+
+        Args:
+            item_id: The attention item (kind ``gap``, status open).
+            action: ``keep`` (extend the ended entry over the gap), ``discard`` (leave the gap
+                empty) or ``assign`` (book the gap on another activity).
+            activity_id: Required for ``assign``.
+            project_id: Optional project for ``assign``.
+
+        Returns:
+            The closed item.
+
+        Raises:
+            ValidationError: For an unknown action or ``assign`` without an activity.
+            InvalidStateError: If the item is not an open gap question or the gap is already
+                occupied by another entry.
+            NotFoundError: If the item, activity or project does not exist.
+        """
+        if action not in GAP_ACTIONS:
+            raise ValidationError(
+                f"Unknown gap action {action!r}",
+                user_message="Unbekannte Antwort. Erlaubt sind: behalten, verwerfen, zuordnen.",
+            )
+        with self._storage.transaction() as repos:
+            item = repos.attention.require(item_id)
+            if item.kind is not AttentionKind.GAP or item.status is not AttentionStatus.OPEN:
+                raise InvalidStateError(
+                    f"Attention item {item_id} is not an open gap question",
+                    user_message="Diese Rückfrage ist schon beantwortet oder keine Lücke.",
+                )
+            if action != GAP_DISCARD:
+                self._fill_gap(repos, item, action, activity_id, project_id)
+            repos.attention.close(item.id, AttentionStatus.RESOLVED, action, self._now())
+            repos.audit.add("resolve_gap", "attention", item.id, action)
+            closed = repos.attention.require(item.id)
+        logger.info("Gap question answered: %s", action)
+        return closed
+
+    def _fill_gap(
+        self,
+        repos: Repositories,
+        item: AttentionItem,
+        action: str,
+        activity_id: str | None,
+        project_id: str | None,
+    ) -> None:
+        """Extend the ended entry (``keep``) or book the gap (``assign``)."""
+        lost_at = datetime.fromisoformat(str(item.payload["lost_at"]))
+        returned = item.payload.get("returned_at")
+        end = datetime.fromisoformat(str(returned)) if returned else self._now()
+        # Never overlap the next entry: the gap ends where the next one starts.
+        later = [
+            s
+            for s in repos.sessions.list_between(lost_at, end + timedelta(days=1))
+            if s.started_at >= lost_at and s.id != item.session_id
+        ]
+        if later:
+            end = min(end, min(s.started_at for s in later))
+        if end <= lost_at:
+            raise InvalidStateError(
+                "The gap is already occupied",
+                user_message="Die Lücke ist schon von einem anderen Eintrag belegt.",
+            )
+        if action == GAP_KEEP:
+            repos.sessions.correct(
+                str(item.session_id),
+                {"ended_at": end},
+                "Lücke nach Verbindungsverlust behalten",
+            )
+            return
+        if activity_id is None:
+            raise ValidationError(
+                "assign requires an activity",
+                user_message="Bitte wählen Sie eine Tätigkeit für die Lücke.",
+            )
+        self._require_refs(repos, activity_id, project_id)
+        repos.sessions.add(
+            Session(
+                activity_id=activity_id,
+                project_id=project_id,
+                started_at=lost_at,
+                ended_at=end,
+                source=SessionSource.MANUAL,
+                quality=Quality.UNCERTAIN,
+                note="Lücke nach Verbindungsverlust",
+            )
+        )
 
     # ----------------------------------------------------------- manual operations
 

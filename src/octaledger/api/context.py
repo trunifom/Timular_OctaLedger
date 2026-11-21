@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from octaledger.agent.supervisor import DeviceStatus
+from octaledger.application.attention_service import AttentionService
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.data_service import DataService
 from octaledger.application.device_service import DeviceService
@@ -73,8 +74,10 @@ class AppContext:
     agent: AgentControl | None = None
     integrations: IntegrationService | None = None
     data: DataService | None = None
+    attention: AttentionService = field(init=False)
 
     def __post_init__(self) -> None:
-        """Build the data-management service from the other services when none was given."""
+        """Build the attention and data-management services from the other services."""
+        self.attention = AttentionService(self.storage)
         if self.data is None:
             self.data = DataService(self.storage, self.exports, self.integrations, self.settings)

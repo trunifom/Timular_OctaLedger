@@ -73,7 +73,7 @@ darf nur den `dashboard_client` verwenden.
 | **infrastructure/ble** | `octaledger.infrastructure.ble` | `protocol` (UUIDs, Fähigkeitenerkennung, Decoder), `transport` (Schnittstelle **ohne** Schreibzugriff), `fake` (Simulator für Tests und Vorschau), `client` (Bleak), `scanner` |
 | **infrastructure/storage** | `octaledger.infrastructure.storage` | SQLite-Zugriff, nummerierte Migrationen, Repositories; **kein SQL außerhalb dieses Pakets** |
 | **infrastructure/integrations** | `octaledger.infrastructure.integrations` | Adapter des Steuerungsmodus: `base` (Vertrag: `Adapter`, `AdapterSpec`, `FieldSpec`, `ActionSpec`), `registry`, `httpio` (gemeinsame, sichere HTTP-Logik), `webhook`, `mqtt`, `homeassistant`, `hue` |
-| **agent** | `octaledger.agent` | der Prozess: `main` (`AgentRuntime`: Start, Threads, Herunterfahren, Autostart), `supervisor` (Worker, Wiederverbindung, Puffer), `dispatcher` (Versand-Thread) |
+| **agent** | `octaledger.agent` | der Prozess: `main` (`AgentRuntime`: Start, Threads, Herunterfahren, Autostart), `supervisor` (Worker, Wiederverbindung, Puffer), `dispatcher` (Versand-Thread), `housekeeper` (Zeitgeber-Thread für zeitgesteuerte Regeln) |
 | **api** | `octaledger.api` | HTTP-Verträge (`schemas`), Routen, Authentifizierung und Host-/Origin-Schutz (`security`), Anwendungskontext |
 | **dashboard** | `octaledger.dashboard` + `octaledger.dashboard_client` | Darstellung (Seiten, Formulare, SVG-Würfel, Handbuch-Leser) und der API-Client; **kein BleakClient, kein SQL** |
 | **core** | `octaledger.core` | Fehlerklassen mit stabilen Codes, Protokollierung mit Schwärzung, atomarer Dateizugriff, Einstellungen/Pfade, `SecretStore` |
@@ -88,7 +88,7 @@ OctaLedger besteht aus **zwei Betriebssystem-Prozessen** (Befehle `octaledger ag
 
 | Prozess | Inhalt |
 |---|---|
-| **Agent** | Hauptthread (wartet auf Beenden), **BLE-Thread** mit dem asyncio-Loop, **API-Thread** (uvicorn), **Dispatcher-Thread** (Versand der Aktionen) |
+| **Agent** | Hauptthread (wartet auf Beenden), **BLE-Thread** mit dem asyncio-Loop, **API-Thread** (uvicorn), **Dispatcher-Thread** (Versand der Aktionen), **Housekeeper-Thread** (alle 5 s: Frist nach Verbindungsverlust prüfen, alte Rückfragen verfallen lassen) |
 | **Dashboard** | Streamlit-Server (Skript läuft bei jeder Interaktion neu); spricht nur über HTTP mit dem Agenten |
 
 Regeln der Nebenläufigkeit:
@@ -98,6 +98,7 @@ Regeln der Nebenläufigkeit:
   thread-sicher. Im Callback gibt es nie langsame Aufrufe.
 * **Datenbankarbeit** läuft in `asyncio.to_thread`, strikt in Reihenfolge je Gerät. Der Agent ist der **einzige reguläre Schreiber**.
 * Die **API** erreicht die BLE-Seite ausschließlich über `AgentControl` (`run_coroutine_threadsafe`) – nie direkt.
+* Der **Housekeeper** ist ein Daemon-Thread nach demselben Muster: Er tickt alle 5 s (und sofort beim Start) und ruft nur Anwendungsdienste auf (`TrackingService.watchdog`, `AttentionService.expire_old`); die Entscheidungen liegen in reinen Regeln (`domain/link_loss.py`), der Thread ist nur der Taktgeber. Ein fehlschlagender Auftrag hält die anderen nicht auf.
 * Der **Dispatcher** ist ein eigener Daemon-Thread: Netzwerkanfragen dürfen den BLE-Loop nie aufhalten, und das Dashboard ist nicht beteiligt.
   Er arbeitet Aufträge **nacheinander in Erzeugungsreihenfolge** ab („an“ dann „aus“ bleibt „an“, dann „aus“), überlebt jeden Fehler und wartet
   über ein `threading.Event`, damit das Herunterfahren nicht auf ein Intervall wartet.
