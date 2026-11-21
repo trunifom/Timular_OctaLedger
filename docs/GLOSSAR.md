@@ -126,6 +126,8 @@ Drehung zählt.
 
 ## N
 
+**Musik-Modus** – (geplant, AP-48 bis AP-50) dritte Betriebsart je Würfel: jede Seite spielt einen eigenen Titel (Radio, Datei, Home Assistant/Cast, Spotify, YouTube Music); steht der Würfel in der **Halterung** (auf keiner Seite), hält die Musik ganz an. Es entstehen keine Zeiten.
+
 **Neutral (0)** – der Würfel liegt auf keiner stabilen Seite (z. B. in der Hand). Im Zeitmodus beendet es die laufende Sitzung nur, wenn die Einstellung „Neutral = Pause“ gewählt ist; im Steuerungsmodus löst es nie eine Aktion aus.
 
 ## O

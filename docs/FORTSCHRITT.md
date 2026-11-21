@@ -60,7 +60,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-33a | Datenverwaltung: `DataService` (Vorschau, Löschen mit Sicherung und Zahlenbestätigung, Würfel entfernen, Zurücksetzen), neue Endpunkte, Client; Adapter mit erweiterten Feldern und Anleitungen | 2026-11-21 | 16:50 | 1d89f84 |
 | AP-33b | Oberfläche der Datenverwaltung: Reiter „Löschen“, Würfel verwalten (Kopplung aufheben, entfernen) | 2026-11-21 | 17:10 | dd275fb |
 | AP-34 | Einstellungsbereiche getrennt: Würfel verwalten · App · Darstellung · Smarthome & Verbindungen, neue Menügruppen, Hilfetext an jedem Knopf, Handbuch und Doku angepasst | 2026-11-21 | 17:45 | 677827f |
-| AP-34p | Planung der Erweiterungen: Recherche (Zeiterfassung, Würfel-BLE, Smarthome, Musik, Windows), Pflichtenheft §12 (F-21 bis F-50, A-18 bis A-29) und Umsetzungsplan AP-35 bis AP-47 | 2026-11-21 | 18:45 | d21c464 |
+| AP-34p | Planung der Erweiterungen: Recherche (Zeiterfassung, Würfel-BLE, Smarthome, Musik, Windows), Pflichtenheft §12 (F-21 bis F-63, A-18 bis A-35) und Umsetzungsplan AP-35 bis AP-50 | 2026-11-21 | 18:45 | d21c464 |
+| AP-34q | Planung des Musik-Modus: Pflichtenheft §12.6 (F-51 bis F-63, A-30 bis A-35) und Umsetzungsplan AP-48 bis AP-50 (Ziele PC, Home Assistant, Spotify, YouTube Music; Halterung hält an) | 2026-11-21 | 19:30 | _folgt_ |
 
 ## Offen
 
@@ -75,7 +76,7 @@ kann** oder bewusst nicht im Umfang liegt:
 | VIS-01 | **Visueller Browsertest** aller Dashboard-Seiten (Layout, Farben, kleine Bildschirme) | Anwender | AppTest prüft nur Logik/Elemente |
 | REL-01 | Release-Prozess, Installer, Windows-Autostart | optional | Roadmap „Später“ |
 | F-20 | Obsidian-Anbindung (Home Assistant, Hue, MQTT, Webhook sind umgesetzt) | optional („Kann“) | nur über den Webhook-Adapter denkbar; ein eigener Adapter folgt der Anleitung `docs/ADAPTER_ENTWICKLUNG.md` |
-| NEXT-01 | **Erweiterungen umsetzen** der Reihe nach: AP-35 bis AP-47 | Agent + Anwender | [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md); [HW]-Abnahmen braucht den echten Würfel |
+| NEXT-01 | **Erweiterungen umsetzen** der Reihe nach: AP-35 bis AP-50 | Agent + Anwender | [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md); [HW]-Abnahmen braucht den echten Würfel |
 | ECHT-01 | **Anbindungen mit echten Zielen** ausprobieren (Home Assistant, Hue-Bridge, MQTT-Broker) | Anwender | bisher nur gegen Testziele geprüft; Ergebnis in `docs/QUELLEN_UND_GRENZEN.md` und `docs/TESTPLAN.md` (A-17) festhalten |
 
 Veröffentlichen (`git push`) übernimmt der Projektinhaber selbst; Agenten pushen nie.

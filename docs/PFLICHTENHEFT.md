@@ -1,7 +1,7 @@
 # Software-Pflichtenheft: OctaLedger
 
 Version: 0.1, Planungsstand 19. November 2026; Umsetzungsstand siehe Abschnitt 11.
-Status: Soll-Spezifikation, **F-01 bis F-20 umgesetzt** (F-20 ohne Obsidian) bis auf die Hardwareprüfung; **F-21 bis F-50 sind geplant** (Abschnitt 12, Reihenfolge und Entwürfe in [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md)).
+Status: Soll-Spezifikation, **F-01 bis F-20 umgesetzt** (F-20 ohne Obsidian) bis auf die Hardwareprüfung; **F-21 bis F-63 sind geplant** (Abschnitt 12, Reihenfolge und Entwürfe in [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md)).
 Muss/Soll/Kann bezeichnen Zielprioritäten, keine Lieferzusage.
 
 ## 1. Zweck und Zielgruppe
@@ -163,7 +163,7 @@ Abnahmekriterien A-01 bis A-11: Nachweisstatus in [TESTPLAN.md](TESTPLAN.md).
 
 ## 12. Erweiterungen: Funktion A (Steuern) und Funktion B (Zeit erfassen), geplant
 
-Dieser Abschnitt legt fest, **was als Nächstes gebaut wird**. Für jede Anforderung nennt [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) das **Warum**, das **Wo** (Module/Dateien), das **Wie** (Entwurf, Daten, Schnittstelle, Oberfläche), die Tests und die Risiken – in der Reihenfolge der Arbeitspakete AP-35 bis AP-47.
+Dieser Abschnitt legt fest, **was als Nächstes gebaut wird**. Für jede Anforderung nennt [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) das **Warum**, das **Wo** (Module/Dateien), das **Wie** (Entwurf, Daten, Schnittstelle, Oberfläche), die Tests und die Risiken – in der Reihenfolge der Arbeitspakete AP-35 bis AP-50.
 
 **Kennzeichen:** „Muss/Soll/Kann“ wie in Abschnitt 5 (Zielpriorität, keine Lieferzusage). **[U]** = Grundlage ist ungeprüft und vor der Umsetzung gegen die Primärquelle zu belegen. **[HW]** = Abnahme braucht den echten Würfel bzw. echte Geräte. **Stand** aller Zeilen: ⏳ geplant, noch nichts umgesetzt.
 
@@ -207,14 +207,14 @@ Dieser Abschnitt legt fest, **was als Nächstes gebaut wird**. Für jede Anforde
 
 | ID | Priorität | Anforderung | AP | Vorab zu klären |
 |---|---|---|---|---|
-| F-46 | Kann | **Spotify** steuern (Wiedergabe auf einem Gerät) | 47 | Premium-Pflicht, OAuth (PKCE), Token in `secrets.json` (unverschlüsselt), Nutzungsbedingungen |
+| F-46 | Kann | *(ersetzt durch F-56 im Musik-Modus, AP-49)* | 47 | Premium-Pflicht, OAuth (PKCE), Token in `secrets.json` (unverschlüsselt), Nutzungsbedingungen |
 | F-47 | Kann | **Gesten** (Schütteln, Doppelklopfen) aus der Beschleunigung | 47 | Characteristic nicht entschlüsselt, nur per READ **[U][HW]**; sonst verwerfen |
 | F-48 | Kann | **App-Auto-Tracker** (opt-in, lokal, nur Prozessname) | 47 | Datenschutz-Konzept, Rechtslage |
 | F-49 | Kann | **Sonos/Cast direkt** (ohne Home Assistant) | 47 | Nachweis, dass Home Assistant nicht infrage kommt |
 
 ### 12.4 Ausdrücklich nicht vorgesehen
 
-Schreibzugriffe auf den Würfel (LED, Gerätename, Firmware-Update), Auslesen eines Würfel-Speichers (nach heutigem Wissen nicht belegt), YouTube-/Streaming-Download, direkte Alexa-Anbindung, Cloud-Synchronisation, Mehrbenutzerbetrieb, Netzwerkfreigabe der API, eigener Matter-/Google-Home-Zugang. Begründungen: [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) §17.
+Schreibzugriffe auf den Würfel (LED, Gerätename, Firmware-Update), Auslesen eines Würfel-Speichers (nach heutigem Wissen nicht belegt), YouTube-/Streaming-Download, direkte Alexa-Anbindung, Cloud-Synchronisation, Mehrbenutzerbetrieb, Netzwerkfreigabe der API, eigener Matter-/Google-Home-Zugang. Begründungen: [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) §18.
 
 ### 12.5 Neue Abnahmekriterien
 
@@ -234,4 +234,35 @@ Schreibzugriffe auf den Würfel (LED, Gerätename, Firmware-Update), Auslesen ei
 | A-28 | Die URL-Prüfung lehnt alle gefährlichen Ziele ab; Befehle erreichen die (Attrappen-)Engine in richtiger Reihenfolge ohne den BLE-Loop zu blockieren; HA-Medienaktionen senden die dokumentierten Bodies. **[HW]** A-28b: MP3-Stream und lokale Datei spielen am PC; ein HA-`media_player` spielt eine Stream-Adresse | 45 |
 | A-29 | Eine Vorlage füllt die Felder; Platzhalter werden nur aus der Whitelist ersetzt und JSON-sicher eingesetzt; `docs/REZEPTE.md` ist vollständig verlinkt und in der App lesbar | 46 |
 
-Alle neuen Pakete erfüllen zusätzlich die Querschnittsregeln des Plans (§18): strikte Eingabeprüfung, Zeit-/Größenlimits, keine neuen BLE-Schreibzugriffe, Zugangsdaten nur im Geheimnisspeicher, Hilfetext mit Voreinstellung an jedem Feld.
+Alle neuen Pakete erfüllen zusätzlich die Querschnittsregeln des Plans (§19): strikte Eingabeprüfung, Zeit-/Größenlimits, keine neuen BLE-Schreibzugriffe, Zugangsdaten nur im Geheimnisspeicher, Hilfetext mit Voreinstellung an jedem Feld.
+
+### 12.6 Musik-Modus (Funktion M, eigenständiger Modus)
+
+Dritte Betriebsart je Würfel neben *Zeit* und *Steuerung*: **Jede Seite hat einen eigenen Titel; in der Halterung (auf keiner Seite) hält die Musik ganz an.** Entwurf: [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) §16.
+
+| ID | Priorität | Anforderung | AP | Hinweise |
+|---|---|---|---|---|
+| F-51 | Muss | **Modus „Musik“ je Würfel** (`music`), umschaltbar wie die anderen Modi; ein Musik-Würfel erzeugt **nie** Zeiteinträge und ist nie der aktive Zeit-Würfel | 48 | Moduswechsel in *Seiten zuordnen* |
+| F-52 | Muss | **Ein Titel je Seite** (Quelle, Ziel, Lautstärke); eine Seite **ersetzt** die vorige; wechselt das Ziel, wird das **vorherige Ziel gestoppt** | 48 | Aufträge Stop → Play in einer Transaktion |
+| F-53 | Muss | **Halterung hält die Musik ganz an:** erkennt der Würfel „keine Seite“ (Rohwert 0 oder 10), wird die Wiedergabe **aller vom Würfel benutzten Ziele beendet** (wählbar: pausieren statt beenden; Verzögerung einstellbar, Voreinstellung 0) | 48 | **[HW]** Rohwert der Halterung am echten Würfel bestätigen; Rückfall: Seite ohne Titel = Stopp |
+| F-54 | Soll | **Ziel „PC lokal“:** Internetradio-Streams und Dateien aus freigegebenen Ordnern über den eingebauten Player | 48 | Grundlage AP-45; `miniaudio` kann kein AAC **[U]** |
+| F-55 | Soll | **Ziel „Home Assistant“:** Wiedergabe auf `media_player` (Sonos, Cast, AirPlay, Displays) | 48 | **[U]** hängt von den HA-Integrationen ab |
+| F-56 | Soll | **Ziel „Spotify direkt“** (OAuth PKCE, Premium, aktives Gerät); „Stopp“ ist bei Spotify ein **Pausieren** | 49 | **[U]** Verfahren/Bedingungen vor dem Bau prüfen; Token unverschlüsselt im Geheimnisspeicher |
+| F-57 | Soll | **YouTube Music über Home Assistant/Cast** | 48 | **[U][HW]** Cast-Aufruf an der eigenen Installation prüfen; kein eigener YouTube-Zugriff |
+| F-58 | Kann | **Browser-Player in der App** für YouTube/YouTube Music (YouTube-IFrame-Player, **Opt-in, Voreinstellung aus**); spielt **nur bei geöffneter Seite „Musik-Player“**; Token gelangt nie in den Browser | 50 | **[U][HW]** Autoplay braucht einmaligen Klick; nicht jedes Video ist einbettbar; Datenschutzhinweis (Google erhält Anfragen) |
+| F-59 | Soll | **Link einfügen und erkennen:** Spotify-, YouTube-/YouTube-Music-Links und Stream-Adressen werden erkannt und normalisiert; Unerkanntes wird mit Erklärung abgelehnt; jede Adresse durch die URL-Prüfung (SSRF-Schutz) | 48 | |
+| F-60 | Soll | **Lautstärke** je Seite und Standardlautstärke je Würfel | 48 | nur Player-/Zielgerät-Lautstärke, nicht die Systemlautstärke |
+| F-61 | Soll | **„Läuft gerade“** in Live-Ansicht, Statusleiste, Übersicht (und Tray) sowie `GET /music/state` | 48 | |
+| F-62 | Soll | **Stopp bei Verbindungsverlust nach der Frist** (Frist aus F-22) | 48 (+36) | Musik ohne Würfel läuft nicht ewig |
+| F-63 | Soll | **Titel ausprobieren** (spielt kurz und stoppt) im Editor und eine **eigene Senderliste** des Anwenders (keine mitgelieferten Sender) | 48 | Rechte-/Aktualitätsfragen |
+
+**Neue Abnahmekriterien**
+
+| ID | Nachweis | Paket |
+|---|---|---|
+| A-30 | Ein Musik-Würfel erzeugt nie Zeit; ein Seitenwechsel reiht (bei Zielwechsel) *Stopp des alten Ziels* und *Wiedergabe des neuen Titels* in dieser Reihenfolge ein; eine Seite ohne Titel hält an | 48 |
+| A-31 | Die Halterung (Rohwert 0 und 10) stoppt **alle** benutzten Ziele, aber nur wenn etwas spielt; Baseline löst nichts aus (außer Stopp bei Halterung und laufender Musik); Duplikate lösen nichts aus | 48 |
+| A-32 | Link-Erkennung: Spotify-, YouTube-, YouTube-Music-, Stream-Adressen werden normalisiert, Unerkanntes und gefährliche Adressen werden abgelehnt | 48 |
+| A-33 | „Läuft gerade“ stimmt nach Play/Stopp/Fehler; Verbindungsverlust stoppt die Musik erst nach der Frist. **[HW]** A-33b: Am echten Würfel entspricht die Halterung dem dokumentierten Rohwert und stoppt die Musik; ein PC-Radiostream und ein HA-`media_player` spielen | 48 |
+| A-34 | Spotify gegen Fake-Server: PKCE, `state`-Prüfung, Token-Erneuerung, `PREMIUM_REQUIRED`, `NO_ACTIVE_DEVICE`; Geheimnisse nie in Meldungen/Protokoll. **[HW]** A-34b: echtes Konto spielt/pausiert | 49 |
+| A-35 | Browser-Player nur mit Opt-in sichtbar; Neuzeichnen nur bei neuem `nonce`; Token nie im HTML; IDs escaped. **[HW]** A-35b: im echten Browser startet/stoppt ein einbettbares Video | 50 |

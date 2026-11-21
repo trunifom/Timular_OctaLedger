@@ -1,6 +1,6 @@
-# OctaLedger – Umsetzungsplan der Erweiterungen (AP-35 bis AP-47)
+# OctaLedger – Umsetzungsplan der Erweiterungen (AP-35 bis AP-50)
 
-Dieser Plan beschreibt **der Reihe nach**, was als Nächstes gebaut werden soll – jeweils mit **Warum**, **Was**, **Wo** (Module und Dateien), **Wie** (Entwurf, Daten, Schnittstelle, Oberfläche), **Tests**, **Dokumentation**, **Risiken** und **Abnahme**. Die zugehörigen Anforderungen (F-21 bis F-50) stehen im [Pflichtenheft](PFLICHTENHEFT.md) §12.
+Dieser Plan beschreibt **der Reihe nach**, was als Nächstes gebaut werden soll – jeweils mit **Warum**, **Was**, **Wo** (Module und Dateien), **Wie** (Entwurf, Daten, Schnittstelle, Oberfläche), **Tests**, **Dokumentation**, **Risiken** und **Abnahme**. Die zugehörigen Anforderungen (F-21 bis F-63) stehen im [Pflichtenheft](PFLICHTENHEFT.md) §12.
 
 **Wie man diesen Plan benutzt:** Die Arbeitspakete (AP) sind so geordnet, dass jedes auf den vorherigen aufbauen darf und **einzeln** committet werden kann (Regeln: [CLAUDE.md](../CLAUDE.md) §2: Implementierung, Tests, Fehlerbehandlung, Logging, Doku, Qualitäts-Gate, danach `docs/FORTSCHRITT.md`). Ein Paket ist erst fertig, wenn seine **Abnahme** erfüllt und die Doku im selben Schritt aktualisiert ist.
 
@@ -21,9 +21,10 @@ Dieser Plan beschreibt **der Reihe nach**, was als Nächstes gebaut werden soll 
 13. [AP-44 Aktionsketten und Bedingungen](#13-ap-44-aktionsketten-und-bedingungen)
 14. [AP-45 Medien: Home-Assistant-Vorlagen und lokaler Player](#14-ap-45-medien-home-assistant-vorlagen-und-lokaler-player)
 15. [AP-46 Vorlagen und Rezepte: Node-RED und Open Source](#15-ap-46-vorlagen-und-rezepte-node-red-und-open-source)
-16. [AP-47 Optionale Pakete (nur auf Wunsch)](#16-ap-47-optionale-pakete-nur-auf-wunsch)
-17. [Bewusst nicht geplant](#17-bewusst-nicht-geplant)
-18. [Querschnitt: Tests, Doku, Sicherheit, Hardware](#18-querschnitt-tests-doku-sicherheit-hardware)
+16. [AP-48 bis AP-50 Musik-Modus (eigenständiger Modus)](#16-ap-48-bis-ap-50-musik-modus-eigenständiger-modus)
+17. [AP-47 Optionale Pakete (nur auf Wunsch)](#17-ap-47-optionale-pakete-nur-auf-wunsch)
+18. [Bewusst nicht geplant](#18-bewusst-nicht-geplant)
+19. [Querschnitt: Tests, Doku, Sicherheit, Hardware](#19-querschnitt-tests-doku-sicherheit-hardware)
 
 ---
 
@@ -70,6 +71,9 @@ AP-35 Eingang robuster ──► AP-36 Verlust + Rückfragen ──► AP-38 Arb
         └─► AP-37 Taste + Batterie ┘                              └─► AP-40 Soll-Zeit ──► AP-41 Tags/Budget ──► AP-42 PDF/ICS
 
 AP-43 Hue ──► AP-44 Aktionsketten ──► AP-45 Medien ──► AP-46 Rezepte      (Funktion A, unabhängig von Funktion B)
+                                          │
+AP-35 ──► AP-45 ──► AP-48 Musik-Modus ──► AP-49 Spotify, AP-50 Browser-Player   (Funktion M, eigenständiger Musik-Modus;
+                       (F-62 braucht zusätzlich AP-36)                          darf vor AP-36 bis AP-44 gebaut werden)
                                                                           AP-47 optional (Spotify, Gesten, App-Tracker, Sonos/Cast)
 ```
 
@@ -87,9 +91,12 @@ AP-43 Hue ──► AP-44 Aktionsketten ──► AP-45 Medien ──► AP-46 R
 | 44 | Aktionsketten, Bedingungen | A | F-41, F-42 | 0008 | – |
 | 45 | Medien (HA-Vorlagen, lokaler Player) | A | F-43, F-44 | – | [HW] |
 | 46 | Vorlagen und Rezepte (Node-RED …) | A | F-45 | – | – |
-| 47 | Optionale Pakete | A + B | F-46 bis F-49 | je nach Paket | [HW] |
+| 47 | Optionale Pakete | A + B | F-47 bis F-49 | je nach Paket | [HW] |
+| 48 | **Musik-Modus Kern** (PC lokal, Home Assistant) | M | F-51 bis F-55, F-57, F-59 bis F-63 | 0009 | [HW] Halterung |
+| 49 | **Spotify direkt** | M | F-56 | – | [HW] |
+| 50 | **Browser-Player für YouTube Music** | M | F-58 | – | [HW] Browser |
 
-**Warum diese Reihenfolge:** Zuerst die Fehlerquellen, die **Daten verfälschen** (AP-35/36: falsche oder fehlende Zeiten), dann die Bedienung (Taste, Tray, Erinnerungen), dann die Auswertung (Soll-Zeit, Berichte), zuletzt der Ausbau von Funktion A (Hue, Ketten, Medien). Funktion A und B sind **unabhängig**; wer zuerst Smarthome möchte, darf AP-43 bis AP-46 vorziehen (sie hängen nur von AP-26 bis AP-31 ab, die schon fertig sind).
+**Warum diese Reihenfolge:** Zuerst die Fehlerquellen, die **Daten verfälschen** (AP-35/36: falsche oder fehlende Zeiten), dann die Bedienung (Taste, Tray, Erinnerungen), dann die Auswertung (Soll-Zeit, Berichte), zuletzt der Ausbau von Funktion A (Hue, Ketten, Medien). Funktion A, B und der Musik-Modus M sind **unabhängig**; wer zuerst Smarthome möchte, darf AP-43 bis AP-46 vorziehen (sie hängen nur von AP-26 bis AP-31 ab, die schon fertig sind).
 
 ## 3. Gemeinsame Bausteine
 
@@ -537,19 +544,105 @@ A-29: Eine Vorlage füllt die Felder; Platzhalter werden nur aus der Whitelist e
 
 ---
 
-## 16. AP-47 Optionale Pakete (nur auf Wunsch)
+## 16. AP-48 bis AP-50 Musik-Modus (eigenständiger Modus)
+
+**Anforderungen:** F-51 bis F-63 (Pflichtenheft §12.6). **Auftrag des Anwenders:** Ein **separater, eigenständiger Modus** zur Musiksteuerung: **jede Würfelseite bekommt einen eigenen Titel** (Musikdienste wie Spotify, Radio, YouTube Music …), und **steht der Würfel in seiner Halterung (auf keiner Seite), hält die Musik ganz an.** Wiedergabe-Ziele nach Entscheidung des Anwenders: **am PC (lokaler Player)**, **über Home Assistant (Boxen/Displays, Cast)** und **Spotify direkt**; **YouTube Music** wahlweise **über Home Assistant/Cast** oder **mit einem Player in der App (Browser)**.
+
+### 16.1 Warum ein eigener Modus (und nicht „Steuerungsmodus mit Musikaktion“)
+Der Steuerungsmodus löst pro Seite eine **einmalige Aktion** aus („Licht an“). Musik ist **Zustand**: Es spielt etwas, bis etwas anderes spielt oder **die Seite verlassen wird**. Daraus folgen Regeln, die dort fehlen: (1) **Eine Seite ersetzt die vorige** (kein Überlagern), (2) **die Halterung (keine Seite) beendet die Wiedergabe**, (3) ein Wechsel **zwischen verschiedenen Zielen** (Spotify → Radio am PC) muss das **vorherige Ziel stoppen**, sonst spielen zwei Quellen gleichzeitig, (4) „läuft gerade“ muss sichtbar und abrufbar sein. Technisch **wiederverwenden** wir die vorhandene Warteschlange, den Dispatcher, die Adapter und den Verlauf (zuverlässig, einmalig, mit Verfall und Wiederholung) – nur die **Regeln der Auslösung** sind neu.
+
+### 16.2 Gesamtentwurf
+
+**Modus.** `DeviceMode.MUSIC = "music"` als **dritte** Betriebsart je Würfel (neben `time`, `control`). Es gilt dieselbe Trennung wie beim Steuerungsmodus: Ein Musik-Würfel erzeugt **nie** Zeiteinträge, kann nicht der aktive Zeit-Würfel sein, wird beim Start des Agenten wie ein Steuerungs-Würfel automatisch verbunden (`AgentRuntime`). Moduswechsel im Dialog „Wofür benutzen Sie diesen Würfel?“ der Seite *Seiten zuordnen* (dritte Wahl **„Musik“**), ebenso in der Geräte-Anzeige, Statusleiste und Live-Ansicht. Migration: `devices.mode` hat eine CHECK-Bedingung `('time','control')` → Migration (Neuaufbau der Tabelle, Daten übernehmen) erlaubt `'music'`.
+
+**Ziele („Wiedergabe-Ziele“).** Ein Ziel ist eine **Verbindung** (wie bisher, Tabelle `integrations`) einer **musikfähigen Art**. Eine Art ist musikfähig, wenn ihr Adapter die **Musik-Aktionen** `music_play` (Titel/Quelle, Lautstärke), `music_stop` (**ganz anhalten**) und optional `music_pause`/`music_volume` anbietet (`ActionSpec.capability="music"`, damit die Oberfläche musikfähige Verbindungen erkennt). Vorgesehene Ziele:
+
+| Ziel (`kind`) | Wiedergabe | Quellen | Paket |
+|---|---|---|---|
+| `player` (**PC lokal**) | eigener Player im Agenten (AP-45) | Internetradio-Streams, Dateien aus freigegebenen Ordnern | AP-45 + AP-48 |
+| `homeassistant` | `media_player.*` über Home Assistant (Sonos, Cast, AirPlay, Displays) | Stream-Adressen, Medien-IDs (auch `spotify:…`, soweit die HA-Integration sie versteht **[U]**), **YouTube/YouTube Music über Cast** **[U][HW]** | AP-45 + AP-48 |
+| `spotify` | Spotify Web API auf einem aktiven Spotify-Gerät | Spotify-Titel/-Alben/-Playlists (Link oder URI) | AP-49 |
+| `browser` | **Player in der App** (Dashboard-Seite „Musik-Player“, YouTube-IFrame-Player) | YouTube-/YouTube-Music-Links (Videos/Titel) | AP-50 |
+
+**Titel je Seite.** Eine Seite hat **einen** Titel: Quelle + Ziel + Lautstärke (+ Wiederholen/Zufall, wo das Ziel es kann). Gespeichert wie die Seitenaktionen: `face_actions` mit `params = {"action":"music_play", "source":{…}, "volume":60}` und `label` = Anzeigename („Lofi Radio“). **Kein neues Datenmodell nötig** (und mit AP-44 später auch als Schritt einer Kette möglich). Zusätzlich je Würfel `music_settings` als Zeilen in `app_state` (`music:<device_id>` JSON): `base_action` (**`stop`** = Voreinstellung, `pause`), `stop_delay_ms` (0), `default_volume` (50).
+
+**Quellen-Eingabe und Link-Erkennung** (`domain/music_source.py`, rein, ohne I/O): Der Anwender **fügt einen Link ein**; die Funktion erkennt und normalisiert:
+* `https://open.spotify.com/track|album|playlist|artist/<id>` → `spotify:<typ>:<id>` (Ziel `spotify`/`homeassistant`).
+* `https://music.youtube.com/watch?v=<id>` und `https://www.youtube.com/watch?v=<id>` / `youtu.be/<id>` (+ `list=<id>`) → `youtube:<id>` (Ziel `browser`/`homeassistant`).
+* Stream-Adressen `http(s)://…` → `url:<adresse>` (Ziel `player`/`homeassistant`).
+* Datei: Auswahl aus den **freigegebenen Ordnern** (AP-45) → `file:<relativer Pfad>`.
+Unerkanntes wird **abgelehnt mit Erklärung** (nie geraten). Alle Adressen gehen durch die **URL-Prüfung** aus AP-45 (nur http/https, SSRF-Schutz, keine Zugangsdaten in der Adresse).
+
+**Auslöse-Regeln** (`application/music_service.py`, reine Entscheidung in `domain/music.py::decide(prev, event, settings) -> list[MusicCommand]`; der `TrackingService` ruft sie für Musik-Würfel, so wie `_control_event` für Steuerungs-Würfel):
+
+| Ereignis | Entscheidung |
+|---|---|
+| Seitenwechsel auf Seite *n* mit Titel | falls bisher **ein anderes Ziel** spielt: `music_stop` an dieses Ziel; dann `music_play` mit dem Titel von *n* (Aufträge in einer Transaktion mit dem Rohereignis, in dieser Reihenfolge) |
+| Seitenwechsel auf Seite ohne Titel | **anhalten** wie in der Halterung (Voreinstellung; die Seite ist eine „Stille-Seite“) |
+| **Würfel in der Halterung** (`NEUTRAL`, Rohwert 0 oder 10, siehe AP-35) | `music_stop` (oder `music_pause` je `base_action`) an **alle** Ziele, die dieser Würfel benutzt; nur wenn etwas spielt (`music_now` gesetzt), nach `stop_delay_ms` |
+| Verbindungsabbruch | keine sofortige Aktion; **nach der Frist** (AP-36, Housekeeper) `music_stop` – eine Musik, die ohne Würfel weiterläuft, ist unerwartet (F-62) |
+| Baseline nach dem Verbinden | löst **nichts** aus (wie überall); liegt der Würfel in der Halterung und `music_now` ist gesetzt, wird gestoppt |
+| gleiche Seite nochmals gemeldet (Duplikat) | nichts (Entprellung/Duplikatregel existiert) |
+
+**„Läuft gerade“:** Nach erfolgreichem `music_play` setzt der `IntegrationService` (Ergebnis des Auftrags) `app_state` `music_now:<device_id> = {face, label, target_id, since}`; nach `music_stop` wird es gelöscht. API `GET /music/state` (alle Würfel, mit Titelname), Anzeige in **Würfel live** („♪ Lofi Radio, Seite 3, seit 12:04“), Statusleiste, Tray-Tooltip (AP-39) und Übersicht. Ein fehlgeschlagener Auftrag lässt `music_now` **unverändert** und erscheint im Verlauf.
+
+**Reihenfolge-Garantie.** Der Dispatcher sendet je Würfel **nacheinander in Erzeugungsreihenfolge** (existiert) – „Stopp Spotify, dann Play Radio“ kommen in dieser Reihenfolge an. Wiederholung nur bei „sicher nicht angekommen“ (existiert). **Verfall 30 s** gilt auch hier: Eine Radio-Adresse, die erst nach einer halben Minute gestartet würde, ist falsch (keine „späte“ Musik).
+
+### 16.3 AP-48 Musik-Modus Kern (Ziele: PC lokal, Home Assistant)
+
+**Voraussetzungen:** **AP-35** (Rohwerte 0/10 = Halterung → `NEUTRAL`; **ohne diese Zuordnung erkennt der Modus die Halterung nicht**) und **AP-45** (Player und Home-Assistant-Medienaktionen, URL-Prüfung). Für F-62 zusätzlich AP-36 (Housekeeper).
+
+**Schritt 0 Vorprüfung [HW]:** (1) Am **echten Würfel** prüfen, welcher Rohwert in der Halterung kommt (0 und/oder 10, **oder gar keine Meldung**). **Fällt das aus**, muss die Halterung anders erkannt werden – Rückfalloption: **eine Seite als „Stopp“** festlegen (jede Seite ohne Titel hält an, siehe Tabelle) und im Handbuch erklären. (2) Home-Assistant-Aufrufe für Spotify-/YouTube-Inhalte an der eigenen Installation testen **[U]**.
+
+**Entwurf:** neue Dateien `domain/music.py`, `domain/music_source.py`, `application/music_service.py`; `domain/models.py` (`DeviceMode.MUSIC`); Migration `0009_music_mode.sql` (CHECK-Bedingung von `devices.mode`; Tabelle neu aufbauen); `application/tracking_service.py` (Zweig für `DeviceMode.MUSIC`, neue `Outcome`-Werte `MUSIC_COMMANDED`, `MUSIC_STOPPED`); `application/outbox.py` (Auftragsreihe mit „Stop vor Play“); `application/integration_service.py` (`music_now` setzen/löschen aus dem Ergebnis); `infrastructure/integrations/base.py` (`ActionSpec.capability`), `player.py` und `homeassistant.py` (Musik-Aktionen `music_play`/`music_stop`/`music_pause`/`music_volume`; AP-45 liefert die Grundlage); `api/routes.py` (`PUT /devices/{id}/mode` akzeptiert `music`; `GET /music/state`; `PUT /devices/{id}/music` für `music_settings`; `POST /music/parse` prüft einen eingefügten Link und gibt die erkannte Quelle zurück – **ändert nichts**), Client; `dashboard/views/faces.py`/`faces_actions.py` (Musik-Editor je Seite: Link einfügen oder Sender/Datei wählen → Erkennung anzeigen → Ziel wählen → Lautstärke → *Ausprobieren* (spielt 10 s und stoppt) → Speichern), `live.py`, `shell.py`, `devices.py`, `overview.py`; **Seite „Musik“ unter *Würfel*?** – nein: bewusst **keine neue Seite**, sondern der dritte Modus in **Seiten zuordnen** (ein Ort für „Seiten belegen“), plus Einstellungen „Musik“ (Basis-Verhalten, Standardlautstärke) im erweiterten Bereich des Musik-Würfels.
+
+**Tests:** Reine Logik `decide` (Tabelle oben vollständig, inkl. Zielwechsel, Stille-Seite, Duplikat, Baseline, `stop_delay_ms`, `pause` statt `stop`); `music_source` (Spotify-/YouTube-/Stream-Links, Müll, Injektion, Länge); `TrackingService` (Musik-Würfel erzeugt **nie** Zeit; Seitenwechsel reiht Stop+Play in einer Transaktion ein; Halterung stoppt alle benutzten Ziele nur wenn etwas spielt; Verbindungsabbruch ohne Sofortaktion); Dispatcher (Reihenfolge Stop vor Play, Verfall, Wiederholung); `music_now` gesetzt/gelöscht; API (Parse, State, Moduswechsel, 409 bei laufender Zeit wie beim Steuerungsmodus); GUI (Editor, Erkennung, Ausprobieren, Live-Anzeige); Migration (alte Würfel bleiben `time`/`control`). Alle mit Attrappen-Zielen (Fake-Player, Fake-HA-Server).
+
+**Risiken:** **[HW]** Halterungs-Erkennung (siehe Schritt 0) ist die Kernannahme. Zwei Quellen gleichzeitig bei Fehlern → Stop-Aufträge an alle benutzten Ziele sind die Sicherung. **[U]** Spotify/YouTube über Home Assistant hängt von dessen Integrationen ab.
+
+**Abnahme:** A-30 bis A-33 (Pflichtenheft §12.6).
+
+### 16.4 AP-49 Spotify direkt
+
+**Warum eigenes Paket:** Es braucht **OAuth**, Token-Speicherung und Wartung; deshalb nach dem Kern.
+
+**Schritt 0 Vorprüfung [U]:** Die Spotify-Bedingungen und das aktuelle Anmeldeverfahren **gegen die offizielle Entwicklerdoku prüfen** (Stand 2026): Registrierung einer **eigenen Entwickler-App durch den Anwender** (Client-ID; **kein** Geheimnis nötig bei PKCE), **Redirect-URI** (Loopback-Adresse `http://127.0.0.1:<Port>/…` – ob und wie Spotify sie heute zulässt, ist zu belegen), Scope `user-modify-playback-state` (und `user-read-playback-state` zum Lesen des Geräts), **Premium-Pflicht** (sonst Fehler `PREMIUM_REQUIRED`, belegt aus der Recherche), ein **aktives Gerät** (die Spotify-App am PC muss laufen; sonst `NO_ACTIVE_DEVICE`), `device_id` immer mitgeben (belegt). Endpunkte **[U]**: `PUT /v1/me/player/play` mit `{"uris":[…]}` oder `{"context_uri":…}`, `PUT /v1/me/player/pause`, `PUT /v1/me/player/volume?volume_percent=`, `GET /v1/me/player/devices`.
+
+**Entwurf:** Adapter `spotify` (`infrastructure/integrations/spotify.py`) mit Feldern *Client-ID* (Grundangabe), *Gerät* (Auswahl aus „Geräte auflisten“; leer = aktives), Kopplung `pair()` = **PKCE-Ablauf**: der Agent öffnet für höchstens 2 Minuten einen **Loopback-Empfänger** auf einem zufälligen Port (nur `127.0.0.1`, einmaliger `state`-Wert, schließt nach dem ersten Aufruf), die Oberfläche zeigt den Anmeldelink; das **Refresh-Token** kommt in den `SecretStore` (**unverschlüsselt wie alle Zugangsdaten – ausdrücklich im Hinweis nennen**), Access-Tokens nur im Speicher, automatische Erneuerung. Aktionen `music_play` (Spotify-URI), `music_stop` (= **Pause**, denn Spotify kennt kein „Beenden“ – ehrlich dokumentiert; zusätzlich Position bleibt), `music_volume`. Fehlertexte deutsch mit Handlungshinweis (Premium, Gerät, Abmeldung → „Neu anmelden“).
+
+**Tests:** Gegen einen **Fake-Spotify-Server** (lokale HTTP-Attrappe): PKCE-Austausch, `state`-Prüfung (falsch → abgelehnt), Token-Erneuerung, `PREMIUM_REQUIRED`, `NO_ACTIVE_DEVICE`, Retry-Regeln (nur bei sicherem Nichtankommen), Geheimnisse nie in Meldungen/Protokoll; GUI-Kopplung.
+
+**Risiken:** Bedingungen/Verfahren ändern sich → Schritt 0; Token unverschlüsselt → Hinweis, eigener Widerruf in den Spotify-Kontoeinstellungen erklären; Premium-Pflicht → klare Meldung.
+
+**Abnahme:** A-34. **[HW]** A-34b: Mit echtem Konto spielt eine Seite einen Titel auf dem PC-Gerät, die Halterung pausiert.
+
+### 16.5 AP-50 Browser-Player für YouTube Music (Player in der App)
+
+**Warum und Grenze (ehrlich):** YouTube Music hat **keine offizielle Schnittstelle**; ein Abspielen per Download-Werkzeug ist ausgeschlossen (Nutzungsbedingungen, laut Sekundärquellen). Erlaubt und üblich ist das **Einbetten** über den **YouTube-IFrame-Player** **[U]**. Dafür läuft der Player **im Browser der App** – **er spielt nur, solange die Seite „Musik-Player“ des Dashboards geöffnet ist** (der Agent kann einen Browser nicht fernsteuern). Das ist die Preis-/Wirkungs-Abwägung des Anwenders für „eigener Player in der App“; die Alternative ist YouTube Music über Home Assistant/Cast (AP-48).
+
+**Schritt 0 Vorprüfung [U][HW]:** (1) IFrame-Player-API (`https://www.youtube.com/iframe_api`, `YT.Player`, `loadVideoById`, `stopVideo`/`pauseVideo`, `setVolume`); (2) **Autoplay** wird von Browsern ohne Nutzergeste blockiert → die Seite braucht einmalig einen **Klick „Wiedergabe freischalten“**; ob Streamlits Komponenten-Iframe `autoplay` erlaubt, ist zu prüfen; (3) **nicht jedes Video ist einbettbar** (Fehler 101/150) – YouTube-Music-Titel, die nur dort liegen, evtl. nicht; die Oberfläche zeigt dann „nicht einbettbar“; (4) **Datenschutz:** Der Player lädt Skripte und Inhalte von youtube.com (Google erhält Anfragen). Das widerspricht der Projektregel „keine externen Quellen“ → **Ausnahme nur als ausdrückliches Opt-in** (Einstellung „YouTube-Player in der App erlauben“, Voreinstellung **aus**, mit Datenschutzhinweis).
+
+**Entwurf:** Adapter `browser` (`infrastructure/integrations/browser.py`): hat **kein Netzwerkziel**; `music_play` schreibt den **gewünschten Zustand** `{video_id, list_id?, volume, nonce}` nach `app_state` (`music_browser`), `music_stop` setzt `{stopped, nonce}`; `check()` gelingt immer. API `GET /music/browser-state`. Dashboard-Seite **„Musik-Player“** (Untergruppe *Alltag*, nur sichtbar, wenn das Opt-in aktiv ist): ein Fragment (`st.fragment(run_every=1)`) liest den Zustand; **nur wenn sich `nonce` ändert**, wird die Komponente (`st.components.v1.html`) mit dem neuen Zustand **neu gezeichnet** (gleicher Inhalt = Iframe bleibt, Wiedergabe läuft ungestört); die Komponente enthält den IFrame-Player und stoppt bei `stopped`. **Der API-Token gelangt nie in den Browser:** Das Fragment (serverseitig) liest den Zustand, der Browser bekommt nur `video_id`, `volume`, `nonce`. Ohne geöffnete Seite zeigt die Live-Ansicht „Browser-Player nicht geöffnet – Musik wartet“.
+
+**Tests:** Adapter (Zustand schreiben/stoppen, `nonce` wächst), Link-Parsing von YouTube-/YouTube-Music-Adressen (`watch?v=`, `youtu.be`, `list=`, Müll), API, GUI: Seite nur mit Opt-in sichtbar, Neuzeichnen **nur** bei neuem `nonce` (gleicher Zustand → gleicher Inhalt), Token taucht nicht im erzeugten HTML auf, Datenschutzhinweis vorhanden; HTML-Escaping der IDs (nur `[A-Za-z0-9_-]`, Länge begrenzt).
+
+**Risiken:** **[HW]** Autoplay/Einbettung nur im echten Browser prüfbar; „läuft nur bei geöffneter Seite“ ist eine harte Grenze und wird in Oberfläche und Handbuch ausdrücklich gesagt; Streamlit-Rerender kann die Wiedergabe unterbrechen → Inhaltsgleichheit prüfen (Test).
+
+**Abnahme:** A-35. **[HW]** A-35b: Im echten Browser startet nach „Freischalten“ ein einbettbares Video per Würfeldrehung, die Halterung stoppt es.
+
+## 17. AP-47 Optionale Pakete (nur auf Wunsch)
 
 Jedes Paket wird **nur auf ausdrücklichen Wunsch** begonnen und ist unabhängig. Für jedes steht, **warum es optional ist** und **was vorher geklärt sein muss**.
 
 | Paket | Anforderung | Warum optional | Vorab zu klären |
 |---|---|---|---|
-| **A) Spotify** | F-46 | Premium-Konto nötig (sonst Fehler `PREMIUM_REQUIRED`, belegt), OAuth (PKCE) mit Token-Speicherung, ein aktives Spotify-Gerät muss existieren | Entwickler-App-Registrierung durch den Anwender, Scope `user-modify-playback-state`, Token in `secrets.json` (unverschlüsselt!), Umgang mit Ablauf/Refresh; Nutzungsbedingungen |
+| **A) Spotify** → jetzt **AP-49** (Musik-Modus) | F-46 → F-56 | Premium-Konto nötig (sonst Fehler `PREMIUM_REQUIRED`, belegt), OAuth (PKCE) mit Token-Speicherung, ein aktives Spotify-Gerät muss existieren | Entwickler-App-Registrierung durch den Anwender, Scope `user-modify-playback-state`, Token in `secrets.json` (unverschlüsselt!), Umgang mit Ablauf/Refresh; Nutzungsbedingungen |
 | **B) Gesten aus der Beschleunigung** | F-47 | Die Beschleunigungs-Characteristic ist **nicht entschlüsselt** **[U][HW]** und nur per READ (Polling) lesbar → Schütteln/Doppelklopfen wäre unzuverlässig | Rohdaten am echten Würfel aufzeichnen (Diagnose), Abtastrate messen, Erkennbarkeit nachweisen; sonst verwerfen |
 | **C) App-/Fenster-Auto-Tracker** | F-48 | Sehr datenintensiv; nur **opt-in und lokal** vertretbar | Datenschutz-Konzept (nur Prozessname, nie Fenstertitel/Inhalt; Aufbewahrung; Löschen), Rechtslage (Betriebsrat) |
 | **D) Sonos/Cast direkt** | F-49 | Mit Home Assistant überflüssig; pro Hersteller eine Abhängigkeit (SoCo, pychromecast) | Nachweis, dass Home Assistant nicht infrage kommt |
 | **E) Zwei-Geräte-Konflikte verfeinern** | – | Nur für Mehr-Würfel-/Mehr-Rechner-Nutzer | Regel „letzte Änderung gewinnt“ plus Überlappungsmarkierung |
 
-## 17. Bewusst nicht geplant
+## 18. Bewusst nicht geplant
 
 * **LED des Würfels setzen**: Die Characteristic ist belegt (zeipy, `c7e70022`), aber das Format ist **[U]**, und **Schreibzugriffe auf den Würfel sind ausgeschlossen** (Projektregel; eine Nachbarschaft schaltet in den Firmware-Update-Modus). Eine Ausnahme bräuchte eine ausdrückliche Entscheidung samt Hardwareprüfung.
 * **Firmware-Update, Umbenennen des Würfels (Schreiben des Gerätenamens)**: Schreibzugriff, nicht geplant.
@@ -559,9 +652,9 @@ Jedes Paket wird **nur auf ausdrücklichen Wunsch** begonnen und ist unabhängig
 * **Eigene Matter-/Google-Home-Anbindung**: bleibt über Home Assistant.
 * **Auslesen eines Würfel-Speichers**: nach heutigem Wissen **nicht möglich** (kein Beleg einer Historie); falls die Hardwareprüfung etwas anderes zeigt, wird ein eigenes Paket geplant.
 
-## 18. Querschnitt: Tests, Doku, Sicherheit, Hardware
+## 19. Querschnitt: Tests, Doku, Sicherheit, Hardware
 
-**Tests (für jedes Paket):** Unit-Tests der reinen Logik mit injizierter Zeit; Dienst-Tests mit temporärer Datenbank; API-Tests (`TestClient`); GUI-Tests (`AppTest` gegen den echten API-Server, Fixture `api_server`); Wächtertests laufen automatisch (Docstrings, Endpunkte in `API.md`, Dateien in `ORDNERSTRUKTUR.md`, Hilfetexte an jedem Knopf/Feld). Hardware- und echte-Ziel-Tests sind **manuell** und stehen als Abnahmen mit **[HW]** im Testplan (`docs/TESTPLAN.md`, neue Abnahmen A-18 bis A-29).
+**Tests (für jedes Paket):** Unit-Tests der reinen Logik mit injizierter Zeit; Dienst-Tests mit temporärer Datenbank; API-Tests (`TestClient`); GUI-Tests (`AppTest` gegen den echten API-Server, Fixture `api_server`); Wächtertests laufen automatisch (Docstrings, Endpunkte in `API.md`, Dateien in `ORDNERSTRUKTUR.md`, Hilfetexte an jedem Knopf/Feld). Hardware- und echte-Ziel-Tests sind **manuell** und stehen als Abnahmen mit **[HW]** im Testplan (`docs/TESTPLAN.md`, neue Abnahmen A-18 bis A-35).
 
 **Dokumentation (für jedes Paket, im selben Schritt):** `API.md` (neue Endpunkte), `DATENMODELL.md` (Migration, Sicherungsformat), `ARCHITEKTUR.md` (neue Bausteine/Threads), `BENUTZERHANDBUCH.md` (Bedienung, Meldungen), `GLOSSAR.md` (neue Begriffe), `SOFTWAREDOKUMENTATION.md` (neuer Abschnitt), `SECURITY.md` (neue Risiken), `QUELLEN_UND_GRENZEN.md` (ungeprüfte Punkte), `CHANGELOG.md`, `FORTSCHRITT.md` (mit Hash im **nächsten** Commit), in der Oberfläche: Hilfetexte mit Voreinstellung, „So funktioniert diese Seite“.
 

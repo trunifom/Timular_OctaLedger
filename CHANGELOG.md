@@ -44,7 +44,8 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Oberfläche:** Seite *Verbindungen*, Moduswechsel pro Würfel, Aktions-Editor in *Seiten zuordnen*, Live-Ansicht und Geräteseite für Steuerungs-Würfel.
 
 ### Geplant (Dokumentation, kein Code)
-- Recherche zu Funktionen für Zeiterfassung und Steuerung; **Pflichtenheft §12** (F-21 bis F-50, Abnahmen A-18 bis A-29) und **`docs/UMSETZUNGSPLAN.md`** (AP-35 bis AP-47 der Reihe nach, mit Warum, Wo, Wie, Tests, Risiken).
+- **Musik-Modus** als dritte Betriebsart je Würfel (Pflichtenheft §12.6, Umsetzungsplan AP-48 bis AP-50): jede Seite ein Titel (Radio, Datei, Home Assistant/Cast, Spotify, YouTube Music über Cast oder Player in der App), die **Halterung hält die Musik ganz an**.
+- Recherche zu Funktionen für Zeiterfassung und Steuerung; **Pflichtenheft §12** (F-21 bis F-63, Abnahmen A-18 bis A-35) und **`docs/UMSETZUNGSPLAN.md`** (AP-35 bis AP-50 der Reihe nach, mit Warum, Wo, Wie, Tests, Risiken).
 - Fund aus dem ersten echten Lauf: Der Decoder verwarf Werte außerhalb 0–8 als `invalid`; laut Community-Quelle bedeuten 0 und 10 „Würfel in der Basis“ (AP-35).
 
 ### Hinzugefügt (Einstellungen, Würfel- und Datenverwaltung; AP-33, AP-34)

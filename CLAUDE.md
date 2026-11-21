@@ -78,7 +78,7 @@ Streamlit-Dashboard. Unabhängig von Timeular/EARLY.
 | Daten | `docs/DATENMODELL.md` | Dateien, Tabellen, Regeln, Sicherungsformat |
 | Erweiterung | `docs/ADAPTER_ENTWICKLUNG.md` | neue Art von Verbindung hinzufügen |
 | Begriffe, Übersicht | `docs/GLOSSAR.md`, `docs/README.md` | Fachbegriffe, Wegweiser durch alle Dokumente |
-| Planung | `docs/PFLICHTENHEFT.md` §12 + `docs/UMSETZUNGSPLAN.md` | geplante Erweiterungen F-21 bis F-50, Pakete AP-35 bis AP-47 der Reihe nach |
+| Planung | `docs/PFLICHTENHEFT.md` §12 + `docs/UMSETZUNGSPLAN.md` | geplante Erweiterungen F-21 bis F-63, Pakete AP-35 bis AP-50 der Reihe nach |
 | Betrieb | `docs/INSTALLATION.md` | Installation, Start, Konfiguration, Backup, Fehlersuche |
 | Prozess | `docs/FORTSCHRITT.md` | Erledigt/offen mit Datum, Uhrzeit, Commit |
 

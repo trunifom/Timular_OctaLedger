@@ -20,7 +20,7 @@ Markdown und liegen in diesem Ordner. Das **Benutzerhandbuch** und die **Install
 | die **Sicherheit** beurteilen | [SECURITY.md](../SECURITY.md) |
 | wissen, **was geprüft ist und was nicht** | [TESTPLAN.md](TESTPLAN.md), [QUELLEN_UND_GRENZEN.md](QUELLEN_UND_GRENZEN.md) |
 | den **Projektstand und die Planung** sehen | [FORTSCHRITT.md](FORTSCHRITT.md), [ROADMAP.md](ROADMAP.md), [CHANGELOG.md](../CHANGELOG.md), [PFLICHTENHEFT.md](PFLICHTENHEFT.md) |
-| wissen, **was als Nächstes gebaut wird** und **wie** (Reihenfolge, Entwürfe, Risiken) | [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md), Anforderungen F-21 bis F-50 im [Pflichtenheft](PFLICHTENHEFT.md#12-erweiterungen-funktion-a-steuern-und-funktion-b-zeit-erfassen-geplant) |
+| wissen, **was als Nächstes gebaut wird** und **wie** (Reihenfolge, Entwürfe, Risiken) | [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md), Anforderungen F-21 bis F-63 im [Pflichtenheft](PFLICHTENHEFT.md#12-erweiterungen-funktion-a-steuern-und-funktion-b-zeit-erfassen-geplant) |
 | wissen, **wie die Oberfläche gestaltet wurde** | [GUI_KONZEPT.md](GUI_KONZEPT.md) |
 | das Projekt **auf GitHub** bereitstellen | [GITHUB.md](GITHUB.md) |
 
@@ -52,8 +52,8 @@ Markdown und liegen in diesem Ordner. Das **Benutzerhandbuch** und die **Install
 
 | Dokument | Inhalt |
 |---|---|
-| [PFLICHTENHEFT.md](PFLICHTENHEFT.md) | Anforderungen (F-xx) und Abnahmekriterien, geplante Erweiterungen F-21 bis F-50 (Abschnitt 12) |
-| [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) | die Arbeitspakete AP-35 bis AP-47 der Reihe nach: Warum, Was, Wo, Wie, Tests, Doku, Risiken, Abnahme |
+| [PFLICHTENHEFT.md](PFLICHTENHEFT.md) | Anforderungen (F-xx) und Abnahmekriterien, geplante Erweiterungen F-21 bis F-63 (Abschnitt 12) |
+| [UMSETZUNGSPLAN.md](UMSETZUNGSPLAN.md) | die Arbeitspakete AP-35 bis AP-50 der Reihe nach: Warum, Was, Wo, Wie, Tests, Doku, Risiken, Abnahme |
 | [TESTPLAN.md](TESTPLAN.md) | Teststrategie, Zahlen, Abnahmetabelle, Hardwaretest-Matrix |
 | [QUELLEN_UND_GRENZEN.md](QUELLEN_UND_GRENZEN.md) | Quellen, Annahmen, was nicht geprüft ist |
 | [ROADMAP.md](ROADMAP.md) | Pakete und Reihenfolge |
