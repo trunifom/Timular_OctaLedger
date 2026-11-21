@@ -63,10 +63,13 @@ DISCOVER_DOMAINS: Final = {
 }
 MAX_DISCOVERED_PER_DOMAIN: Final = 200
 
+_SWITCHABLE: Final = ("light", "switch", "input_boolean", "fan", "cover", "media_player")
+
 _ENTITY_FIELD: Final = FieldSpec(
     "entity_id",
     "Gerät (entity_id)",
     required=True,
+    choices_from=_SWITCHABLE,
     placeholder="light.schreibtisch",
     help="Der Name des Geräts in Home Assistant, im Format „bereich.name“ (Einstellungen › Geräte "
     "& Dienste › Entitäten). „Entdecken“ listet Ihre Geräte auf.",
@@ -148,6 +151,7 @@ class HomeAssistantAdapter(Adapter):
                         "entity_id",
                         "Szene (entity_id)",
                         required=True,
+                        choices_from=("scene",),
                         placeholder="scene.abend",
                         help="Der Name der Szene, beginnt mit „scene.“.",
                     ),
@@ -162,6 +166,7 @@ class HomeAssistantAdapter(Adapter):
                         "entity_id",
                         "Skript (entity_id)",
                         required=True,
+                        choices_from=("script",),
                         placeholder="script.feierabend",
                         help="Der Name des Skripts, beginnt mit „script.“.",
                     ),

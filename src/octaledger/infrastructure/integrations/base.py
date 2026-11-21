@@ -58,6 +58,8 @@ class FieldSpec:
         choices: ``(value, label)`` pairs for ``choice`` fields.
         minimum: Lower bound of an ``int`` field.
         maximum: Upper bound of an ``int`` field.
+        choices_from: Names of the discovery categories (see :meth:`Adapter.discover`) a text field
+            can be filled from; the dashboard then offers a pick list instead of free text.
     """
 
     name: str
@@ -70,6 +72,7 @@ class FieldSpec:
     choices: tuple[tuple[str, str], ...] = ()
     minimum: int | None = None
     maximum: int | None = None
+    choices_from: tuple[str, ...] = ()
 
     @property
     def secret(self) -> bool:

@@ -423,6 +423,9 @@ def test_the_adapter_ships_with_the_program() -> None:
     assert "homeassistant" in adapters and adapters["homeassistant"].spec.can_discover
     spec = adapters["homeassistant"].spec
     assert spec.action("turn_on").idempotent and not spec.action("toggle").idempotent
+    assert "light" in spec.action("turn_on").fields[0].choices_from
+    assert spec.action("scene").fields[0].choices_from == ("scene",)
+    assert spec.action("script").fields[0].choices_from == ("script",)
 
 
 def test_a_queued_action_reaches_home_assistant_through_the_service(

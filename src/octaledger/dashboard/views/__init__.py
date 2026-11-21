@@ -11,6 +11,7 @@ from __future__ import annotations
 from octaledger.dashboard.nav import PageDef
 from octaledger.dashboard.views import (
     catalog,
+    connections,
     data,
     devices,
     diagnostics,
@@ -79,6 +80,14 @@ _DEFINITIONS = (
         "Einrichten",
         "Sehen Sie, welche Seite oben liegt, und geben Sie ihr eine Tätigkeit",
         faces.render,
+    ),
+    PageDef(
+        "connections",
+        "Verbindungen",
+        "hub",
+        "Einrichten",
+        "Smarthome, MQTT, Home Assistant, Hue oder Web-Adressen anbinden",
+        connections.render,
     ),
     PageDef(
         "catalog",

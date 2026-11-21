@@ -618,6 +618,8 @@ def test_adapters_describe_their_forms(env: Env) -> None:
     assert (port["minimum"], port["maximum"], port["default"]) == (1, 65535, 80)
     toggle = next(a for a in spec["actions"] if a["id"] == "toggle")
     assert toggle["idempotent"] is False  # the interface warns about this
+    ping = next(a for a in spec["actions"] if a["id"] == "ping")
+    assert ping["fields"][0]["choices_from"] == ["lights"]  # filled from the discovery list
 
 
 def test_secrets_are_never_returned_by_the_api(env: Env, tmp_path: Path) -> None:

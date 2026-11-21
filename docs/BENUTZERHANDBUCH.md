@@ -126,7 +126,7 @@ Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entsp
 |---|---|---|
 | **Start** | Startseite | Was ist der Würfel? Geführte Einrichtung und dieses Handbuch zum Nachlesen |
 | **Alltag** | Übersicht · Würfel live · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
-| **Einrichten** | Geräte · Seiten zuordnen · Verwaltung | einmal einrichten: Würfel verbinden, den Seiten Tätigkeiten geben, Tätigkeiten und Projekte anlegen |
+| **Einrichten** | Geräte · Seiten zuordnen · Verbindungen · Verwaltung | einmal einrichten: Würfel verbinden, den Seiten Tätigkeiten geben, Tätigkeiten und Projekte anlegen |
 | **System** | Daten · Einstellungen · Diagnose | Sicherung/Export, persönliche Einstellungen, Fehlersuche |
 
 - **Dunkel / Hell:** wechselt die Darstellung. **Größer / Kleiner:** wechselt zwischen normaler und
@@ -239,6 +239,26 @@ und ohne Umwege:
 Die Nummern im Bild sind die **technischen Seitennummern**, die der Würfel meldet. Sie müssen nicht mit
 einer Aufschrift auf dem Gehäuse übereinstimmen – diese Zuordnung stellt die Verbindung zu Ihren
 Tätigkeiten erst her. Tipp: Notieren Sie sich die Zuordnung (z. B. mit kleinen Aufklebern).
+
+### Bereich „Verbindungen“
+Hier verbinden Sie OctaLedger mit Dingen, die der Würfel **steuern** soll (Steuerungsmodus): **Home Assistant**, **Philips Hue**,
+einen **MQTT-Broker** oder eine beliebige **Web-Adresse** (Webhook). **Matter-Geräte und Google Home erreichen Sie über Home
+Assistant**, sofern Sie diese dort eingebunden haben; OctaLedger spricht Matter und Google Home nicht selbst.
+
+- **Neue Verbindung:** Art wählen, Namen vergeben und die Angaben eintragen. Die Felder richten sich nach der Art und haben je einen
+  Hilfetext; mit **\*** markierte sind Pflicht. **Passwörter und Tokens werden nie angezeigt** und nie in Sicherungen gespeichert; nach
+  dem Anlegen wird das Formular geleert.
+- **Prüfen:** *Verbindung testen* prüft, ob das Ziel erreichbar ist und die Zugangsdaten stimmen, **ohne etwas zu schalten**. Bei Hue
+  koppeln Sie hier einmalig: den runden Knopf an der Bridge drücken, dann innerhalb von 30 Sekunden *Koppeln*.
+- **Ausprobieren:** Führt eine Aktion **sofort** aus, damit Sie sehen, ob sie funktioniert. *Geräte der Verbindung auflisten* fragt das
+  Ziel nach Lampen, Szenen und Ähnlichem, damit Sie auswählen statt Kennungen abzutippen. Aktionen, die bei **jedem** Senden erneut
+  wirken (zum Beispiel Umschalten), sind mit einer Warnung gekennzeichnet.
+- **Einstellungen:** Namen und Angaben ändern (ein leeres Passwortfeld behält das gespeicherte), *Ausschalten* (die Verbindung behält
+  ihre Angaben, sendet aber nichts) und *Löschen* (nur mit Bestätigung und nur, solange keine Würfelseite die Verbindung nutzt).
+- **Letzte Aktionen:** Tabelle mit Zeit, Verbindung, Aktion, Seite, Ergebnis (⏳ wartet, ✅ gesendet, ❌ fehlgeschlagen, ⌛ verfallen) und
+  Hinweis. Eine Aktion, die nicht ausgeführt wurde, ist so nie ein Rätsel.
+
+Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet, wäre schlimmer als eines, das nicht schaltet.
 
 ### Bereich „Verwaltung“
 - Reiter **Tätigkeiten** und **Projekte**: neuen Namen eingeben, **➕ anlegen**. Ohne eigene Farbe

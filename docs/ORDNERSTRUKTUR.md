@@ -69,10 +69,12 @@ octaledger/
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/docs_reader.py
+  src/octaledger/dashboard/forms.py
   src/octaledger/dashboard/main.py
   src/octaledger/dashboard/nav.py
   src/octaledger/dashboard/views/__init__.py
   src/octaledger/dashboard/views/catalog.py
+  src/octaledger/dashboard/views/connections.py
   src/octaledger/dashboard/views/data.py
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
@@ -122,6 +124,7 @@ octaledger/
   tests/fake_adapter.py
   tests/fixtures/.gitkeep
   tests/gui/__init__.py
+  tests/gui/test_gui_connections.py
   tests/gui/test_gui_core.py
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_devices_catalog.py

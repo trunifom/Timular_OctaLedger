@@ -464,6 +464,18 @@ def test_the_adapter_ships_with_the_program() -> None:
     spec = default_adapters()["hue"].spec
     assert spec.can_pair and spec.can_discover and spec.pair_help
     assert not spec.action("light").idempotent and spec.action("scene").idempotent
+    # every identifier field is filled from what discovery found, so nobody has to type a UUID
+    sources = {
+        field.name: field.choices_from
+        for action in spec.actions
+        for field in action.fields
+        if field.name.endswith("_id")
+    }
+    assert sources == {
+        "light_id": ("lights",),
+        "group_id": ("rooms",),
+        "scene_id": ("scenes",),
+    }
 
 
 def test_pairing_and_switching_through_the_service(bridge: FakeBridge, tmp_path: Path) -> None:

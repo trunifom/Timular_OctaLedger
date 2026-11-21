@@ -1746,3 +1746,34 @@ Szene, **Fehler in einer 200-Antwort werden gemeldet**, unbekannte Lampe, 429/50
 Entdecken (sortiert, Gruppen-Kennung, Einträge ohne Kennung übersprungen), Auslieferung und **Koppeln und Schalten über den Dienst**.
 Nicht geprüft: eine echte Bridge, ein echter TLS-Handshake mit der Anheftung (dafür fehlt ein Test-Zertifikat; mit der Test-Bibliothek
 `trustme` ließe sich das ergänzen).
+
+### 31.20 Oberfläche für Verbindungen (`dashboard.forms`, `dashboard.views.connections`, AP-31a)
+
+Die Seite **Verbindungen** (Gruppe „Einrichten“) verwaltet Verbindungen und enthält **keinen Code für einzelne Adapter**: Die Formulare
+entstehen aus der Selbstbeschreibung (`GET /adapters`), die `dashboard/forms.py` in Eingabefelder übersetzt.
+
+- **`render_fields(fields, key_prefix, values, secrets_set, discovered)`** zeichnet je Feld ein Widget (Text, Zahl, Schalter, Auswahl,
+  Passwort) und liefert die eingegebenen Werte; leere Texte und leere Zahlen werden weggelassen, Schalter immer gemeldet. **Jedes Feld
+  hat einen Hilfetext** (Rückfall: „Angabe für diese Verbindung.“), Pflichtfelder sind mit `*` markiert, Schlüssel sind je
+  `key_prefix` eindeutig. Passwortfelder zeigen **nie** einen gespeicherten Wert; ein leeres Feld bedeutet „behalten“ (der Platzhalter
+  sagt „gespeichert“).
+- **Auswahllisten statt Kennungen (`FieldSpec.choices_from`):** Ein Textfeld kann die **Entdeckungskategorien** nennen, aus denen es
+  sich füllen lässt (Hue: `light_id` ← `lights`, `group_id` ← `rooms`, `scene_id` ← `scenes`; Home Assistant: Geräte-Kennung ← Lampen,
+  Schalter, Hilfsschalter, Ventilatoren, Rollläden, Mediengeräte bzw. Szenen bzw. Skripte). Nach „Geräte auflisten“ wird daraus eine
+  Auswahl mit Namen (bei gemischten Kategorien mit Zusatz wie „(light)“); niemand muss eine UUID abtippen. Die API liefert
+  `choices_from` je Feld mit.
+- **Seite:** je Verbindung ein Kasten mit Zustand und Zusammenfassung (Einstellungen ohne Geheimnisse, „Passwort: gespeichert ✔“) und
+  den Reitern *Prüfen* (testen, koppeln), *Ausprobieren* (auflisten, Aktion wählen, Warnung bei nicht idempotenten Aktionen, „Jetzt
+  senden“) und *Einstellungen* (Name, Angaben, ein/aus, Löschen mit Bestätigung). Darunter „Neue Verbindung“ und die Tabelle „Letzte
+  Aktionen“. Nach dem Anlegen wird das Formular **einschließlich des Passworts geleert** (ein eingetipptes Passwort bleibt nicht
+  stehen; der Test hat das aufgedeckt).
+
+### 31.21 Tests (AP-31a)
+
+`tests/gui/test_gui_connections.py` (21): Titel/Hilfe/leerer Zustand, Anlegen aus der Beschreibung, **Geheimnisse bleiben verborgen**
+(Seite, Widgets), fehlende Pflichtfelder mit deutscher Meldung und Code, doppelter Name, Verbindungstest (Erfolg und Misserfolg ohne
+Nennung des falschen Werts), Koppeln, **Auswahlliste aus „Entdecken“** und Ausprobieren, fehlendes Feld sendet nichts, Warnung bei
+nicht idempotenten Aktionen, Einstellungen ändern (leeres Passwort behält), ein/aus, **Löschen nur mit Bestätigung und nicht, solange
+eine Seite die Verbindung nutzt**, Verlauf mit allen Ergebnissen, Hilfetexte an allen Feldern, Seite meldet fehlenden Dienst, und der
+Formular-Generator selbst (jede Feldart, Rückgabewerte, gemischte Auswahllisten, Hilfsfunktionen, kein Geheimnis im Widget-Zustand).
+Im Browser angesehen; mit dem Test-Adapter, nicht mit einem echten Ziel.

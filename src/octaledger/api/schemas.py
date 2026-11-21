@@ -331,6 +331,7 @@ def field_out(spec: FieldSpec) -> dict[str, Any]:
         "choices": [{"value": value, "label": label} for value, label in spec.choices],
         "minimum": spec.minimum,
         "maximum": spec.maximum,
+        "choices_from": list(spec.choices_from),
     }
 
 

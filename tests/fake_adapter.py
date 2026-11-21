@@ -33,7 +33,7 @@ class FakeAdapter(Adapter):
                 "ping",
                 "Anpingen",
                 "Sendet ein Signal",
-                (FieldSpec("target", "Ziel", required=True),),
+                (FieldSpec("target", "Ziel", required=True, choices_from=("lights",)),),
             ),
             ActionSpec("toggle", "Umschalten", "Schaltet um", idempotent=False),
         ),
