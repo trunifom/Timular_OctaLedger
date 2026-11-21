@@ -54,6 +54,8 @@ Basisklasse `Adapter` in `src/octaledger/infrastructure/integrations/base.py`:
 | `validate_config(values)` | nein | Einstellungen prüfen; die Basisklasse prüft Typen/Pflichtfelder, überschreiben Sie nur für **zusätzliche** Regeln (z. B. Adresse) |
 | `validate_action(params)` | nein | Parameter einer Aktion prüfen (die Basisklasse prüft Aktion und Felder) |
 | `pair(config, *, timeout) -> PairResult` | nur wenn `can_pair` | einmalige Kopplung; liefert Geheimnisse und Einstellungen zum Speichern |
+| `spec.presets` (`Preset`) | optional | Vorlagen für eine Aktion (`id`, `label`, `action`, `description`, `params`, `verified`): Die Oberfläche zeigt sie als Auswahl und füllt nur das Formular. Das Feld `verified` bleibt `False`, bis die Vorlage an einem echten Ziel geprüft wurde |
+| `FieldSpec(placeholders=True)` | optional | erlaubt in diesem Textfeld die Platzhalter `{device}`, `{face}`, `{label}`, `{time}`; sie werden beim Senden ersetzt (JSON-Vorlagen maskiert), unbekannte Namen werden beim Speichern abgelehnt (`domain/placeholders.py`) |
 | `find_targets(*, online=False, timeout) -> list` | nur wenn `can_find` | das Ziel im Netz suchen: `[{"id", "address", "name"}]`; `online` erlaubt einen Internetdienst und darf **nie** ohne ausdrücklichen Klick des Anwenders benutzt werden |
 | `discover(config, secrets, *, timeout) -> dict` | nur wenn `can_discover` | Auswahllisten, z. B. `{"lights": [{"id": "1", "name": "Schreibtisch"}]}` |
 

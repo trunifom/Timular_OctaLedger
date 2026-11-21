@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Vorlagen und Rezepte, AP-46)
+- `AdapterSpec.presets` und Auswahl „Vorlage“ im Aktionseditor; Vorlagen für Webhook (Node-RED, WLED, Shelly, openHAB, Home-Assistant-Webhook) und MQTT (Zigbee2MQTT, Tasmota, Node-RED), alle als „nicht an echtem Ziel geprüft“ gekennzeichnet.
+- Platzhalter `{device}`, `{face}`, `{label}`, `{time}` in Webhook-Inhalt und MQTT-Nachricht (Whitelist, ohne Ausdrücke, bei JSON maskiert).
+- Neues Dokument `docs/REZEPTE.md` (auch in der App lesbar).
+
 ### Hinzugefügt (Medien, AP-45)
 - Home Assistant: Aktionen *Musik abspielen*, *pausieren*, *beenden*, *Lautstärke setzen* für `media_player`.
 - Neue Verbindungsart **Lokaler Player** (Extra `audio`): Stream/Datei abspielen, stoppen, Lautstärke; eigener Arbeits-Thread, Warteschlange, Engine hinter einer Schnittstelle.

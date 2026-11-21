@@ -39,6 +39,7 @@ DOCUMENTS: Final = (
     ("Architektur", "ARCHITEKTUR.md"),
     ("Schnittstelle (API)", "API.md"),
     ("Datenmodell", "DATENMODELL.md"),
+    ("Rezepte: Node-RED und mehr", "REZEPTE.md"),
     ("Anbindungen entwickeln (Adapter)", "ADAPTER_ENTWICKLUNG.md"),
     ("Software-Dokumentation", "SOFTWAREDOKUMENTATION.md"),
     ("Grenzen und Quellen", "QUELLEN_UND_GRENZEN.md"),

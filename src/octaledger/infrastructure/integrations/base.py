@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final, Literal
 
 from octaledger.core.errors import IntegrationError, ValidationError
+from octaledger.domain.placeholders import check as check_placeholders
 
 FieldKind = Literal["text", "password", "int", "bool", "choice"]
 
@@ -76,6 +77,9 @@ class FieldSpec:
     maximum: int | None = None
     choices_from: tuple[str, ...] = ()
     advanced: bool = False
+    #: Whether the text may contain the placeholders {device}, {face}, {label}, {time}
+    #: (replaced when the action is sent; see ``domain/placeholders.py``).
+    placeholders: bool = False
 
     @property
     def secret(self) -> bool:
@@ -96,6 +100,30 @@ class ActionSpec:
     description: str
     fields: tuple[FieldSpec, ...] = ()
     idempotent: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class Preset:
+    """A ready-made set of values for one action (a "Vorlage"), shown as a pick list.
+
+    Choosing a preset only *fills the form*; the user can change everything afterwards. The
+    description says what must be set up at the target for the preset to work.
+
+    Attributes:
+        id: Stable identifier.
+        label: German name in the pick list.
+        action: The action id the preset belongs to.
+        description: German explanation, including what the target needs.
+        params: The field values to fill in (without the ``action`` key).
+        verified: Whether it was checked against a real target (``False`` until it was).
+    """
+
+    id: str
+    label: str
+    action: str
+    description: str
+    params: Mapping[str, Any] = field(default_factory=dict)
+    verified: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,6 +148,8 @@ class AdapterSpec:
     #: German step-by-step instructions (Markdown): where to get the address and the
     #: credentials, what to click. Shown next to the form so no outside manual is needed.
     setup_guide: str = ""
+    #: Ready-made values for common targets (Node-RED, WLED, Zigbee2MQTT ...).
+    presets: tuple[Preset, ...] = ()
 
     def action(self, action_id: str) -> ActionSpec:
         """Return the action with ``action_id``.
@@ -248,7 +278,12 @@ class Adapter(ABC):
             raise ValidationError("Missing action", user_message="Es wurde keine Aktion gewählt.")
         action = self.spec.action(action_id)
         rest = {key: value for key, value in params.items() if key != "action"}
-        return {"action": action_id, **validate_fields(action.fields, rest)}
+        cleaned = validate_fields(action.fields, rest)
+        for spec in action.fields:
+            text = cleaned.get(spec.name)
+            if spec.placeholders and isinstance(text, str):
+                check_placeholders(text)
+        return {"action": action_id, **cleaned}
 
     @abstractmethod
     def check(

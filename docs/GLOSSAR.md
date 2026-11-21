@@ -60,6 +60,10 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Vorlage (Preset)** – fertig ausgefüllte Werte einer Aktion für ein bekanntes Ziel (z. B. Node-RED, WLED). Sie füllt nur das Formular; alles bleibt änderbar.
+
+**Platzhalter** – `{device}`, `{face}`, `{label}`, `{time}` im Inhalt einer Nachricht; werden beim Senden durch Würfelname, Seite, Seitenname und Zeit ersetzt.
+
 **Aktionskette** – die geordneten Schritte, die eine Würfelseite im Steuerungsmodus auslöst (je Schritt: Verbindung, Aktion, Verzögerung, optional ein Zeitfenster). Ein neuer Seitenwechsel verwirft die noch nicht gesendeten Schritte der vorigen Kette.
 
 **Housekeeper** – der Hintergrund-Thread im Agenten, der zeitgesteuerte Regeln prüft (Frist nach Verbindungsverlust, später Arbeitstag und Erinnerungen).

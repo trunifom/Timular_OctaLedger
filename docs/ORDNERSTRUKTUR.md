@@ -43,6 +43,7 @@ octaledger/
   docs/PFLICHTENHEFT.md
   docs/QUELLEN_UND_GRENZEN.md
   docs/README.md
+  docs/REZEPTE.md
   docs/ROADMAP.md
   docs/SOFTWAREDOKUMENTATION.md
   docs/TESTPLAN.md
@@ -137,6 +138,7 @@ octaledger/
   src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
   src/octaledger/domain/orientation.py
+  src/octaledger/domain/placeholders.py
   src/octaledger/domain/schedule.py
   src/octaledger/domain/state_machine.py
   src/octaledger/domain/steps.py
@@ -240,6 +242,7 @@ octaledger/
   tests/unit/test_media_player.py
   tests/unit/test_models.py
   tests/unit/test_orientation.py
+  tests/unit/test_presets_placeholders.py
   tests/unit/test_report_and_ics.py
   tests/unit/test_reporting_service.py
   tests/unit/test_repositories.py

@@ -73,7 +73,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-42 | Druckbarer Bericht (HTML, PDF als Extra) und Kalender-Import (.ics, Extra) als bestätigte Vorschläge; Lizenzkorrektur fpdf2/recurring-ical-events (LGPL) | 2026-11-22 | 06:00 | 3c8c85b |
 | AP-43 | Hue erweitert (Übergang, Szenen-Modus, Mindestabstand, 429) und Bridge-Suche (mDNS, Cloud nur auf Klick); nur gegen Attrappe getestet | 2026-11-22 | 08:00 | 599dd1a |
 | AP-44 | Aktionsketten: mehrere Schritte je Seite mit Verzögerung, Bedingung (Zeitfenster/Wochentage), Abbruch bei neuem Seitenwechsel und bei Fehler; Migration 0008; Editor | 2026-11-22 | 10:00 | a67938a |
-| AP-45 | Medien: Home-Assistant-Medienaktionen, lokaler Player (Extra audio) mit Arbeits-Thread, SSRF-sichere Adressprüfung und Ordnerfreigabe; nur gegen Attrappen getestet | 2026-11-22 | 12:00 | _folgt_ |
+| AP-45 | Medien: Home-Assistant-Medienaktionen, lokaler Player (Extra audio) mit Arbeits-Thread, SSRF-sichere Adressprüfung und Ordnerfreigabe; nur gegen Attrappen getestet | 2026-11-22 | 12:00 | 4b4466a |
+| AP-46 | Vorlagen (Presets) und Platzhalter für Webhook/MQTT, Rezeptbuch `docs/REZEPTE.md` (Node-RED, Zigbee2MQTT, WLED, Shelly, openHAB); nichts an echten Zielen geprüft | 2026-11-22 | 13:30 | _folgt_ |
 
 ## Offen
 

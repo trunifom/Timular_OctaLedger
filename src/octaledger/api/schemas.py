@@ -536,6 +536,17 @@ def adapter_out(spec: AdapterSpec) -> dict[str, Any]:
         "pair_help": spec.pair_help,
         "can_discover": spec.can_discover,
         "can_find": spec.can_find,
+        "presets": [
+            {
+                "id": p.id,
+                "label": p.label,
+                "action": p.action,
+                "description": p.description,
+                "params": dict(p.params),
+                "verified": p.verified,
+            }
+            for p in spec.presets
+        ],
         "find_help": spec.find_help,
         "setup_guide": spec.setup_guide,
     }

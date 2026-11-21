@@ -39,6 +39,7 @@ from octaledger.core.errors import (
 from octaledger.core.secrets import SecretStore
 from octaledger.domain.conditions import parse_condition
 from octaledger.domain.models import FaceAction, Integration, IntegrationJob, JobStatus
+from octaledger.domain.placeholders import render as render_placeholders
 from octaledger.domain.steps import ActionStep, check_chain
 from octaledger.domain.time_rules import utc_now
 from octaledger.infrastructure.integrations.base import Adapter, AdapterSpec
@@ -442,7 +443,7 @@ class IntegrationService:
             message = adapter.execute(
                 integration.config,
                 self._secrets.get(integration.id),
-                job.params,
+                self._filled(adapter, job),
                 timeout=self._timeout,
             )
         except IntegrationConnectionError as exc:
@@ -456,6 +457,36 @@ class IntegrationService:
         else:
             logger.info("Action %r of %s sent: %s", job.label, integration.name, message)
             self._finish(job, "done", attempts, None)
+
+    def _filled(self, adapter: Adapter, job: IntegrationJob) -> Mapping[str, Any]:
+        """The job's parameters with the placeholders of the text fields replaced.
+
+        Only fields the adapter marked ``placeholders`` are touched, only the four whitelisted
+        names are replaced and values are escaped when the text looks like JSON.
+        """
+        try:
+            spec = adapter.spec.action(str(job.params.get("action", "")))
+        except ValidationError:
+            return job.params
+        names = [
+            f.name
+            for f in spec.fields
+            if f.placeholders and isinstance(job.params.get(f.name), str)
+        ]
+        if not names:
+            return job.params
+        alias = ""
+        if job.device_id is not None:
+            with self._storage.read() as repos:
+                device = repos.devices.get(job.device_id)
+            alias = device.alias if device else ""
+        values: dict[str, str | int] = {
+            "device": alias,
+            "face": job.face or 0,
+            "label": job.label,
+            "time": job.created_at.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        return {**job.params, **{n: render_placeholders(str(job.params[n]), values) for n in names}}
 
     def _retry_or_fail(self, job: IntegrationJob, attempts: int, error: str) -> None:
         now = self._clock()

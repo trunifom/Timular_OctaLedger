@@ -367,3 +367,34 @@ def test_a_face_can_get_several_steps_with_delay_and_condition(api_server: Runni
     chain = api_server.client.action_chains(did)["1"]
     assert [(s["label"], s["delay_ms"]) for s in chain] == [("Fokus", 0), ("Musik", 3000)]
     assert chain[1]["condition"] == {"start": "08:00", "end": "18:00", "weekdays": ""}
+
+
+def test_a_preset_fills_the_form_and_can_be_changed(api_server: RunningApi) -> None:
+    from octaledger.application.integration_service import IntegrationService
+    from octaledger.core.secrets import SecretStore
+    from octaledger.infrastructure.integrations.registry import default_adapters
+
+    api_server.context.integrations = IntegrationService(
+        api_server.storage,
+        SecretStore(api_server.tmp_path / "s-presets.json"),
+        {"webhook": default_adapters()["webhook"]},
+    )
+    cid = str(
+        api_server.client.create_integration(
+            "webhook", "Node-RED", {"base_url": "http://192.168.1.20:1880"}
+        )["id"]
+    )
+    did = control_device(api_server)
+    at = open_page(api_server, FACES)
+    base = f"{prefix(did)}_{cid}_request"
+    picker = at.selectbox(key=f"{base}_preset")
+    assert picker.help and picker.value is None
+    options = [str(o) for o in picker.options]
+    index = next(i for i, text in enumerate(options) if "Node-RED" in text)
+    picker.select_index(index).run()
+    assert any("http in" in c.value for c in at.caption)  # what the target needs is explained
+    at.button(key=f"{base}_preset_apply").click().run()
+    assert at.text_input(key=f"{base}_path").value == "/octaledger"
+    assert "{face}" in at.text_input(key=f"{base}_body").value
+    at.text_input(key=f"{base}_path").input("/mein-pfad").run()  # presets are only a start
+    assert at.text_input(key=f"{base}_path").value == "/mein-pfad"

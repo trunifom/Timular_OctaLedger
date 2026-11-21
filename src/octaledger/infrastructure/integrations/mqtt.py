@@ -44,6 +44,7 @@ from octaledger.infrastructure.integrations.base import (
     Adapter,
     AdapterSpec,
     FieldSpec,
+    Preset,
 )
 
 logger = logging.getLogger(__name__)
@@ -177,6 +178,52 @@ SETUP_GUIDE: Final = """\
 """  # noqa: E501
 
 
+PRESETS: Final = (
+    Preset(
+        "z2m_on",
+        "Zigbee2MQTT: Lampe einschalten",
+        "publish",
+        "Schaltet ein Zigbee-Gerät über Zigbee2MQTT ein. Ersetzen Sie `lampe` im Thema durch den "
+        "Namen des Geräts in Zigbee2MQTT. Noch nicht mit echtem Zigbee2MQTT geprüft.",
+        {"topic": "zigbee2mqtt/lampe/set", "payload": '{"state":"ON"}'},
+    ),
+    Preset(
+        "z2m_off",
+        "Zigbee2MQTT: Lampe ausschalten",
+        "publish",
+        "Schaltet ein Zigbee-Gerät über Zigbee2MQTT aus. Noch nicht mit echtem Zigbee2MQTT "
+        "geprüft.",
+        {"topic": "zigbee2mqtt/lampe/set", "payload": '{"state":"OFF"}'},
+    ),
+    Preset(
+        "tasmota_on",
+        "Tasmota: Schalter einschalten",
+        "publish",
+        "Schaltet ein Tasmota-Gerät ein (`cmnd/<Name>/POWER`). Ersetzen Sie `steckdose` durch den "
+        "Namen (Topic) des Geräts. Noch nicht mit echtem Tasmota geprüft.",
+        {"topic": "cmnd/steckdose/POWER", "payload": "ON"},
+    ),
+    Preset(
+        "tasmota_off",
+        "Tasmota: Schalter ausschalten",
+        "publish",
+        "Schaltet ein Tasmota-Gerät aus. Noch nicht mit echtem Tasmota geprüft.",
+        {"topic": "cmnd/steckdose/POWER", "payload": "OFF"},
+    ),
+    Preset(
+        "node_red",
+        "Node-RED (MQTT in)",
+        "publish",
+        "Schickt Würfel, Seite, Name und Zeit als JSON an das Thema `octaledger/seite`, das ein "
+        "„mqtt in“-Knoten in Node-RED abonniert.",
+        {
+            "topic": "octaledger/seite",
+            "payload": '{"device":"{device}","face":{face},"label":"{label}","time":"{time}"}',
+        },
+    ),
+)
+
+
 class MqttAdapter(Adapter):
     """Publishes MQTT messages (see the module docstring)."""
 
@@ -235,6 +282,7 @@ class MqttAdapter(Adapter):
                 "erzeugten Zertifikat.",
             ),
         ),
+        presets=PRESETS,
         actions=(
             ActionSpec(
                 "publish",
@@ -253,8 +301,12 @@ class MqttAdapter(Adapter):
                         "payload",
                         "Inhalt",
                         placeholder='{"state": "TOGGLE"}',
+                        placeholders=True,
                         help="Der Inhalt der Nachricht. Inhalte wie „TOGGLE“ schalten bei jedem "
-                        "Senden erneut um; bevorzugen Sie „ON“ und „OFF“.",
+                        "Senden erneut um; bevorzugen Sie „ON“ und „OFF“. Platzhalter: {device} "
+                        "(Name des Würfels), {face} (Seite 1-8), {label} (Name der Seite), "
+                        "{time} (Zeitpunkt, UTC); sie werden beim Senden ersetzt, bei JSON sicher "
+                        "maskiert.",
                     ),
                     FieldSpec(
                         "qos",

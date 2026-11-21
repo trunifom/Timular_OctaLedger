@@ -31,11 +31,13 @@ from typing import Any, Final
 from requests import Response
 
 from octaledger.core.errors import IntegrationError, ValidationError
+from octaledger.domain.placeholders import render as render_placeholders
 from octaledger.infrastructure.integrations.base import (
     ActionSpec,
     Adapter,
     AdapterSpec,
     FieldSpec,
+    Preset,
 )
 from octaledger.infrastructure.integrations.httpio import (
     SessionFactory,
@@ -68,6 +70,98 @@ eigene Skripte oder ein **Home-Assistant-Webhook**.
 """  # noqa: E501
 
 
+SAMPLE_VALUES: Final[dict[str, str | int]] = {
+    "device": "Würfel",
+    "face": 1,
+    "label": "Seite",
+    "time": "2026-01-01T00:00:00Z",
+}
+
+PRESETS: Final = (
+    Preset(
+        "node_red",
+        "Node-RED (HTTP-In, JSON)",
+        "request",
+        "Schickt Würfel, Seite, Name und Zeit als JSON an einen „http in“-Knoten von Node-RED "
+        "(Pfad `/octaledger`, Methode POST). In Node-RED: Knoten „http in“ (POST, URL "
+        "/octaledger) und „http response“ anlegen. Absichern: siehe Rezeptbuch.",
+        {
+            "path": "/octaledger",
+            "method": "POST",
+            "content_type": "application/json",
+            "body": '{"device":"{device}","face":{face},"label":"{label}","time":"{time}"}',
+        },
+    ),
+    Preset(
+        "wled_on",
+        "WLED einschalten",
+        "request",
+        "WLED-Leuchte einschalten (JSON-Schnittstelle `/json/state`). Basisadresse = Adresse der "
+        "WLED. Noch nicht mit echter WLED geprüft.",
+        {
+            "path": "/json/state",
+            "method": "POST",
+            "content_type": "application/json",
+            "body": '{"on":true}',
+        },
+    ),
+    Preset(
+        "wled_off",
+        "WLED ausschalten",
+        "request",
+        "WLED-Leuchte ausschalten. Noch nicht mit echter WLED geprüft.",
+        {
+            "path": "/json/state",
+            "method": "POST",
+            "content_type": "application/json",
+            "body": '{"on":false}',
+        },
+    ),
+    Preset(
+        "shelly_on",
+        "Shelly (Gen2) einschalten",
+        "request",
+        "Schaltet Kanal 0 eines Shelly der 2. Generation ein (`/rpc/Switch.Set`). Noch nicht mit "
+        "echtem Shelly geprüft.",
+        {"path": "/rpc/Switch.Set?id=0&on=true", "method": "GET"},
+    ),
+    Preset(
+        "shelly_off",
+        "Shelly (Gen2) ausschalten",
+        "request",
+        "Schaltet Kanal 0 eines Shelly der 2. Generation aus. Noch nicht mit echtem Shelly "
+        "geprüft.",
+        {"path": "/rpc/Switch.Set?id=0&on=false", "method": "GET"},
+    ),
+    Preset(
+        "openhab",
+        "openHAB: Item auf ON setzen",
+        "request",
+        "Setzt ein openHAB-Item per REST (`/rest/items/<Name>`, Text „ON“). Ersetzen Sie "
+        "`MeinItem` durch den Namen Ihres Items. Noch nicht mit echtem openHAB geprüft.",
+        {
+            "path": "/rest/items/MeinItem",
+            "method": "POST",
+            "content_type": "text/plain",
+            "body": "ON",
+        },
+    ),
+    Preset(
+        "ha_webhook",
+        "Home-Assistant-Webhook",
+        "request",
+        "Löst eine Automation mit Webhook-Auslöser aus (`/api/webhook/<ID>`). Ersetzen Sie `ID` "
+        "durch die Webhook-ID Ihrer Automation (sie ist das Geheimnis).",
+        {
+            "path": "/api/webhook/ID",
+            "method": "POST",
+            "content_type": "application/json",
+            "body": '{"face":{face},"label":"{label}"}',
+        },
+    ),
+)
+
+
 class WebhookAdapter(Adapter):
     """Sends HTTP requests (see the module docstring for the safety rules)."""
 
@@ -80,6 +174,7 @@ class WebhookAdapter(Adapter):
             "Web-Schnittstelle."
         ),
         setup_guide=SETUP_GUIDE,
+        presets=PRESETS,
         config_fields=(
             FieldSpec(
                 "base_url",
@@ -148,8 +243,11 @@ class WebhookAdapter(Adapter):
                         "body",
                         "Inhalt (optional)",
                         placeholder='{"an": true}',
+                        placeholders=True,
                         help="Wird mitgesendet, wenn die Methode es erlaubt. Bei JSON muss er "
-                        "gültiges JSON sein.",
+                        "gültiges JSON sein. Platzhalter: {device} (Name des Würfels), {face} "
+                        "(Seite 1-8), {label} (Name der Seite), {time} (Zeitpunkt, UTC); sie "
+                        "werden beim Senden ersetzt, bei JSON sicher maskiert.",
                     ),
                 ),
                 idempotent=False,
@@ -193,7 +291,8 @@ class WebhookAdapter(Adapter):
         body = cleaned.get("body")
         if body and cleaned["content_type"] == "application/json":
             try:
-                json.loads(body)
+                # Placeholders become sample values first: {"face":{face}} is JSON once filled.
+                json.loads(render_placeholders(body, SAMPLE_VALUES))
             except ValueError:
                 raise ValidationError(
                     "Body is not valid JSON",

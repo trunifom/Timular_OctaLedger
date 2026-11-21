@@ -14,6 +14,7 @@ Markdown und liegen in diesem Ordner. Das **Benutzerhandbuch** und die **Install
 | **wissen, wie OctaLedger gebaut ist** | [ARCHITEKTUR.md](ARCHITEKTUR.md) |
 | die **Datenbank und Dateien** verstehen | [DATENMODELL.md](DATENMODELL.md) |
 | die **Schnittstelle (REST-API)** nutzen | [API.md](API.md) |
+| **Node-RED, Zigbee2MQTT, WLED, Shelly, openHAB** anbinden (Vorlagen und Rezepte) | [REZEPTE.md](REZEPTE.md) |
 | einen **neuen Adapter** (Anbindung) schreiben | [ADAPTER_ENTWICKLUNG.md](ADAPTER_ENTWICKLUNG.md) |
 | im Code **etwas ändern oder ergänzen** | [CONTRIBUTING.md](../CONTRIBUTING.md), [SOFTWAREDOKUMENTATION.md](SOFTWAREDOKUMENTATION.md), [ORDNERSTRUKTUR.md](ORDNERSTRUKTUR.md) |
 | wissen, **wie das Bluetooth-Protokoll** funktioniert | [BLE_PROTOCOL.md](BLE_PROTOCOL.md) |
@@ -33,6 +34,7 @@ Markdown und liegen in diesem Ordner. Das **Benutzerhandbuch** und die **Install
 | [BENUTZERHANDBUCH.md](BENUTZERHANDBUCH.md) | Bedienung Schritt für Schritt, alle Seiten des Dashboards, Zeiterfassung, Steuerungsmodus, Korrekturen, Sicherung, Fehlermeldungen, häufige Fragen |
 | [INSTALLATION.md](INSTALLATION.md) | Voraussetzungen, Installation, Start, Bluetooth-Hinweise, Fehlerbehebung |
 | [GLOSSAR.md](GLOSSAR.md) | alle Fachbegriffe |
+| [REZEPTE.md](REZEPTE.md) | Rezeptbuch: Node-RED, Zigbee2MQTT, Tasmota, WLED, Shelly, openHAB, Home-Assistant-Webhook, Platzhalter in Nachrichten |
 
 ### Entwickler
 

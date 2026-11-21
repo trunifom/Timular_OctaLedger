@@ -213,6 +213,7 @@ def _step_editor(
         help="Die Aktion, die beim Drehen auf diese Seite ausgelöst wird.",
     )
     st.caption(action["description"])
+    _preset_picker(prefix, connection, spec, action)
     if not action["idempotent"]:
         st.warning(
             "Diese Aktion wirkt bei **jedem** Auslösen erneut (zum Beispiel Umschalten). Besser "
@@ -259,6 +260,54 @@ def _step_editor(
         "enabled": enabled,
         "condition": condition,
     }
+
+
+def _apply_preset(
+    key_prefix: str, fields: list[dict[str, Any]], params: dict[str, Any], select_key: str
+) -> None:
+    """Callback: write a preset's values into the form's widgets before the next run."""
+    for field in fields:
+        value = params.get(field["name"])
+        if value is not None:
+            st.session_state[f"{key_prefix}_{field['name']}"] = value
+    st.session_state[select_key] = None
+
+
+def _preset_picker(
+    prefix: str, connection: dict[str, Any], spec: dict[str, Any], action: dict[str, Any]
+) -> None:
+    """Offer ready-made values ("Vorlage") for the chosen action; the user may change them."""
+    presets = [p for p in spec.get("presets", []) if p["action"] == action["id"]]
+    if not presets:
+        return
+    select_key = f"{prefix}_{connection['id']}_{action['id']}_preset"
+    choice = st.selectbox(
+        "Vorlage (optional)",
+        [None, *presets],
+        key=select_key,
+        format_func=lambda p: "– ohne Vorlage –" if p is None else p["label"],
+        help="Füllt die Felder mit bewährten Werten für ein bekanntes Ziel. Danach können Sie "
+        "alles ändern. Was am Ziel nötig ist, steht unter der Auswahl.",
+    )
+    if choice is None:
+        return
+    st.caption(
+        choice["description"]
+        + ("" if choice["verified"] else " (Noch nicht an einem echten Ziel geprüft.)")
+    )
+    st.button(
+        "Vorlage übernehmen",
+        key=f"{select_key}_apply",
+        icon=":material/content_paste:",
+        on_click=_apply_preset,
+        args=(
+            f"{prefix}_{connection['id']}_{action['id']}",
+            action["fields"],
+            choice["params"],
+            select_key,
+        ),
+        help="Trägt die Werte der Vorlage in die Felder unten ein.",
+    )
 
 
 def _condition(prefix: str, saved: dict[str, str] | None) -> dict[str, str] | None:
