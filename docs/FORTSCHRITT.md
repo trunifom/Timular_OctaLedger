@@ -60,7 +60,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-33a | Datenverwaltung: `DataService` (Vorschau, Löschen mit Sicherung und Zahlenbestätigung, Würfel entfernen, Zurücksetzen), neue Endpunkte, Client; Adapter mit erweiterten Feldern und Anleitungen | 2026-11-21 | 16:50 | 1d89f84 |
 | AP-33b | Oberfläche der Datenverwaltung: Reiter „Löschen“, Würfel verwalten (Kopplung aufheben, entfernen) | 2026-11-21 | 17:10 | dd275fb |
 | AP-34 | Einstellungsbereiche getrennt: Würfel verwalten · App · Darstellung · Smarthome & Verbindungen, neue Menügruppen, Hilfetext an jedem Knopf, Handbuch und Doku angepasst | 2026-11-21 | 17:45 | 677827f |
-| AP-34p | Planung der Erweiterungen: Recherche (Zeiterfassung, Würfel-BLE, Smarthome, Musik, Windows), Pflichtenheft §12 (F-21 bis F-50, A-18 bis A-29) und Umsetzungsplan AP-35 bis AP-47 | 2026-11-21 | 18:45 | _folgt_ |
+| AP-34p | Planung der Erweiterungen: Recherche (Zeiterfassung, Würfel-BLE, Smarthome, Musik, Windows), Pflichtenheft §12 (F-21 bis F-50, A-18 bis A-29) und Umsetzungsplan AP-35 bis AP-47 | 2026-11-21 | 18:45 | d21c464 |
 
 ## Offen
 
