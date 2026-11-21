@@ -46,6 +46,7 @@ from octaledger.infrastructure.integrations.httpio import (
     read_limited,
     send,
 )
+from octaledger.infrastructure.integrations.urlcheck import check_media_url
 
 _ENTITY: Final = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+$")
 _WORD: Final = re.compile(r"^[a-z0-9_]+$")
@@ -64,6 +65,33 @@ DISCOVER_DOMAINS: Final = {
 MAX_DISCOVERED_PER_DOMAIN: Final = 200
 
 _SWITCHABLE: Final = ("light", "switch", "input_boolean", "fan", "cover", "media_player")
+
+_MEDIA_PLAYER_FIELD: Final = FieldSpec(
+    "entity_id",
+    "Mediengerät (entity_id)",
+    required=True,
+    choices_from=("media_player",),
+    placeholder="media_player.wohnzimmer",
+    help="Der Lautsprecher oder das Display in Home Assistant („media_player.…“). „Entdecken“ "
+    "listet Ihre Mediengeräte auf.",
+)
+_MEDIA_URL_FIELD: Final = FieldSpec(
+    "media_url",
+    "Stream-Adresse",
+    required=True,
+    placeholder="https://example.org/radio.mp3",
+    help="Eine http(s)-Adresse eines Streams, „media-source://…“ oder (mit passender Integration "
+    "in Home Assistant) „spotify:…“. Spielen Sie nur Inhalte ab, deren Nutzung Ihnen erlaubt ist.",
+)
+_MEDIA_TYPE_FIELD: Final = FieldSpec(
+    "media_type",
+    "Medientyp",
+    advanced=True,
+    default="music",
+    placeholder="music",
+    help="Der Inhaltstyp, den Home Assistant erwartet (meist „music“). Voreinstellung: music.",
+)
+_MEDIA_SCHEMES: Final = ("media-source://", "spotify:")
 
 _ENTITY_FIELD: Final = FieldSpec(
     "entity_id",
@@ -206,6 +234,43 @@ class HomeAssistantAdapter(Adapter):
                 idempotent=False,
             ),
             ActionSpec(
+                "media_play",
+                "Musik abspielen",
+                "Spielt eine Stream-Adresse (z. B. Internetradio) auf einem Lautsprecher oder "
+                "Display ab, das Home Assistant kennt (Sonos, Cast, AirPlay ...).",
+                (_MEDIA_PLAYER_FIELD, _MEDIA_URL_FIELD, _MEDIA_TYPE_FIELD),
+                idempotent=False,
+            ),
+            ActionSpec(
+                "media_pause",
+                "Wiedergabe pausieren",
+                "Hält die Wiedergabe eines Mediengeräts an (Fortsetzen ist möglich).",
+                (_MEDIA_PLAYER_FIELD,),
+            ),
+            ActionSpec(
+                "media_stop",
+                "Wiedergabe beenden",
+                "Beendet die Wiedergabe eines Mediengeräts ganz.",
+                (_MEDIA_PLAYER_FIELD,),
+            ),
+            ActionSpec(
+                "media_volume",
+                "Lautstärke setzen",
+                "Stellt die Lautstärke eines Mediengeräts ein.",
+                (
+                    _MEDIA_PLAYER_FIELD,
+                    FieldSpec(
+                        "volume",
+                        "Lautstärke in %",
+                        kind="int",
+                        required=True,
+                        minimum=0,
+                        maximum=100,
+                        help="0 = stumm, 100 = voll. Es ändert nur dieses Gerät.",
+                    ),
+                ),
+            ),
+            ActionSpec(
                 "service",
                 "Beliebigen Dienst aufrufen",
                 "Für alles andere: ruft einen Dienst „bereich.dienst“ mit optionalen Daten auf.",
@@ -267,6 +332,8 @@ class HomeAssistantAdapter(Adapter):
                 "light.schreibtisch.",
                 details={"field": "entity_id"},
             )
+        if action.startswith("media_"):
+            _check_media(cleaned)
         if action in ("scene", "script") and not str(entity).startswith(f"{action}."):
             raise ValidationError(
                 f"Entity is not a {action}",
@@ -438,6 +505,32 @@ def _data_object(text: str) -> dict[str, Any]:
     return data
 
 
+def _check_media(cleaned: dict[str, Any]) -> None:
+    """Validate the media device and (for playing) the stream address."""
+    if not str(cleaned.get("entity_id", "")).startswith("media_player."):
+        raise ValidationError(
+            "Not a media player",
+            user_message="Das Gerät muss mit „media_player.“ beginnen.",
+            details={"field": "entity_id"},
+        )
+    url = cleaned.get("media_url")
+    if url is None:
+        return
+    url = str(url).strip()
+    if url.startswith(_MEDIA_SCHEMES):
+        if len(url) > 500 or any(c.isspace() or ord(c) < 32 for c in url):
+            raise ValidationError(
+                "Invalid media identifier",
+                user_message="Die Medienangabe enthält Leerzeichen oder ist zu lang.",
+                details={"field": "media_url"},
+            )
+        cleaned["media_url"] = url
+        return
+    # A web address: the speaker fetches it, possibly from the home network, so private addresses
+    # are fine here; loopback, link-local and metadata addresses never are.
+    cleaned["media_url"] = check_media_url(url, allow_lan=True)
+
+
 def _service_call(params: Mapping[str, Any]) -> tuple[str, str, dict[str, Any]]:
     """Translate an action into ``(domain, service, request body)``."""
     action = str(params["action"])
@@ -452,6 +545,27 @@ def _service_call(params: Mapping[str, Any]) -> tuple[str, str, dict[str, Any]]:
         return "homeassistant", "toggle", {"entity_id": entity}
     if action in ("scene", "script"):
         return action, "turn_on", {"entity_id": entity}
+    if action == "media_play":
+        return (
+            "media_player",
+            "play_media",
+            {
+                "entity_id": entity,
+                "media_content_id": params["media_url"],
+                "media_content_type": params.get("media_type") or "music",
+            },
+        )
+    if action in ("media_pause", "media_stop"):
+        return "media_player", action, {"entity_id": entity}
+    if action == "media_volume":
+        return (
+            "media_player",
+            "volume_set",
+            {
+                "entity_id": entity,
+                "volume_level": int(params["volume"]) / 100,
+            },
+        )
     body = _data_object(params["data"]) if params.get("data") else {}
     if entity:
         body["entity_id"] = entity

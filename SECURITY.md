@@ -77,6 +77,10 @@ Der Steuerungsmodus sendet Befehle an Geräte und Dienste; das schafft neue Risi
   echter TLS-Handshake mit einer Bridge wurde **noch nicht** getestet.
 * **TLS-Prüfung** ist bei Webhook und MQTT standardmäßig an; Abschalten ist nur für selbst erzeugte Zertifikate vorgesehen und im Hilfetext erklärt.
 
+### 5b. Medienadressen und der lokale Player (AP-45)
+
+Eine getippte Medienadresse darf OctaLedger nicht an Orte führen, die eine Webadresse nichts angehen (SSRF). Die Prüfung `infrastructure/integrations/urlcheck.py` gilt für den lokalen Player **und** für die Medienaktionen von Home Assistant: nur `http`/`https`; keine Zugangsdaten, Leer- oder Steuerzeichen in der Adresse; der Name wird aufgelöst und **jede** Zieladresse geprüft: Adressen dieses Computers (Loopback), verbindungslokale Adressen (169.254.x.x, fe80::), Multicast, reservierte und die bekannten Cloud-Metadaten-Adressen sind **immer** verboten; Adressen im Heimnetz nur mit dem Schalter „LAN-Adressen erlauben“. Weiterleitungen werden nicht blind befolgt: höchstens 3, jede **neu geprüft**; der Player öffnet nur `audio/*`-Antworten, begrenzt Verbindungszeit (5 s) und gelesene Datenmenge und speichert nichts. Dateien werden nur aus **freigegebenen Ordnern** gespielt (aufgelöster Pfad muss darunter liegen; `..` und Verknüpfungen nach außen werden abgelehnt; nur MP3/FLAC/WAV/OGG). Grenze: DNS kann sich zwischen Prüfung und Verbindung ändern; der Player prüft deshalb beim Öffnen erneut, pinnt die Adresse aber nicht (kein Schutz gegen gezieltes DNS-Rebinding durch einen Angreifer im eigenen Netz).
+
 ### 5a. Fremde Dateien: Kalender-Import und Berichte (AP-42)
 
 - Eine **.ics-Datei** ist fremde Eingabe. OctaLedger liest sie **nur**, nie führt es etwas daraus aus und öffnet nie eine Adresse oder einen Anhang aus der Datei. Grenzen: höchstens 2 MiB, ein Zeitfenster von höchstens 90 Tagen (so kann eine Serie ohne Enddatum nicht unbegrenzt wachsen), höchstens 1000 Termine; jeder Parserfehler wird zu einer verständlichen Meldung. Termine sind nur **Vorschläge**: Gebucht wird erst nach Ihrer Bestätigung, alle gewählten zusammen in einer Transaktion (Überschneidungen brechen alles ab).

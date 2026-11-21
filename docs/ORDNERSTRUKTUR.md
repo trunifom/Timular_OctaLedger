@@ -144,6 +144,9 @@ octaledger/
   src/octaledger/domain/time_rules.py
   src/octaledger/domain/workday.py
   src/octaledger/infrastructure/__init__.py
+  src/octaledger/infrastructure/audio/__init__.py
+  src/octaledger/infrastructure/audio/engine.py
+  src/octaledger/infrastructure/audio/worker.py
   src/octaledger/infrastructure/ble/__init__.py
   src/octaledger/infrastructure/ble/client.py
   src/octaledger/infrastructure/ble/fake.py
@@ -157,7 +160,9 @@ octaledger/
   src/octaledger/infrastructure/integrations/httpio.py
   src/octaledger/infrastructure/integrations/hue.py
   src/octaledger/infrastructure/integrations/mqtt.py
+  src/octaledger/infrastructure/integrations/player.py
   src/octaledger/infrastructure/integrations/registry.py
+  src/octaledger/infrastructure/integrations/urlcheck.py
   src/octaledger/infrastructure/integrations/webhook.py
   src/octaledger/infrastructure/storage/__init__.py
   src/octaledger/infrastructure/storage/database.py
@@ -232,6 +237,7 @@ octaledger/
   tests/unit/test_integrations_storage.py
   tests/unit/test_link_loss.py
   tests/unit/test_logging.py
+  tests/unit/test_media_player.py
   tests/unit/test_models.py
   tests/unit/test_orientation.py
   tests/unit/test_report_and_ics.py

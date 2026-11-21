@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Medien, AP-45)
+- Home Assistant: Aktionen *Musik abspielen*, *pausieren*, *beenden*, *Lautstärke setzen* für `media_player`.
+- Neue Verbindungsart **Lokaler Player** (Extra `audio`): Stream/Datei abspielen, stoppen, Lautstärke; eigener Arbeits-Thread, Warteschlange, Engine hinter einer Schnittstelle.
+- Gemeinsame Adressprüfung gegen SSRF (`urlcheck`): Loopback/Link-Local/Metadaten immer verboten, Heimnetz nur mit Schalter, Weiterleitungen einzeln geprüft; Dateien nur aus freigegebenen Ordnern.
+
 ### Hinzugefügt (Aktionsketten und Bedingungen, AP-44)
 - Eine Seite im Steuerungsmodus kann **mehrere Schritte** haben, mit Verzögerung, „bei Fehler weitermachen“, „aktiv“ und einer Bedingung (Zeitfenster inkl. über Mitternacht, Wochentage). Migration 0008; `PUT /devices/{id}/actions/{face}` akzeptiert `steps`, `GET /devices/{id}/chains`.
 - Ein neuer Seitenwechsel verwirft noch nicht gesendete, verzögerte Schritte; ein fehlgeschlagener Schritt bricht die folgenden ab (außer „weitermachen“). Bestehende Einzelaktionen und ältere Sicherungen funktionieren unverändert.

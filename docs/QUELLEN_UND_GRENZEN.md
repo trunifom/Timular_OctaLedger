@@ -34,6 +34,7 @@
 | `icalendar` | Kalender-Import (Extra `ics`) | BSD-2-Clause | – |
 | `recurring-ical-events` | Terminserien im Fenster (Extra `ics`) | **LGPL-3.0-or-later** | nur optional und dynamisch geladen |
 | `zeroconf` | Bridge-Suche im Heimnetz per mDNS (Extra `discovery`) | LGPL-2.1-or-later (Paket-Metadaten der Version 0.154.0) | nur optional und dynamisch geladen; manche Router blockieren Multicast, dann die Adresse von Hand eintragen |
+| `miniaudio` | lokaler Player (Extra `audio`) | MIT (Paket-Metadaten der Version 1.73) | MP3, FLAC, WAV, Vorbis; **kein AAC** (viele Internetradios nutzen AAC); Streams werden von OctaLedger selbst geöffnet und der Engine als Bytes übergeben; ein Wiedergabetest mit echter Hardware steht aus |
 | `winotify` | Windows-Hinweise (Extra `toast`) | MIT (belegt) | ohne eigene AppUserModelID erscheint ggf. ein Interpreter-Name als Absender [U] |
 
 ## Pausenregeln (nur Orientierung)
@@ -43,6 +44,10 @@ Die Tabellen in `domain/break_rules.py` stammen aus **Sekundärquellen** (ch.ch,
 ## Hue-Erweiterungen (AP-43): Stand der Prüfung
 
 Die JSON-Formen für Helligkeit, Farbtemperatur (`color_temperature.mirek`), Übergang (`dynamics.duration`) und Szenen-Aufruf (`recall.action` `active`/`dynamic_palette`/`static`, `dimming`, `duration`) stammen aus Drittquellen; die offizielle Dokumentation liegt hinter einem Entwicklerlogin und wurde **nicht** gelesen. Getestet ist gegen eine lokale Attrappe der Bridge (gesendete Bodies, Umschalten liest zuerst den Zustand, Mindestabstand, HTTP 429). **An einer echten Bridge ist nichts davon geprüft.** Die Cloud-Suche (`discovery.meethue.com`) wurde ebenfalls nur mit einer Attrappe getestet.
+
+## Medien (AP-45): Stand der Prüfung
+
+Die Dienste von Home Assistant (`media_player.play_media`, `media_pause`, `media_stop`, `volume_set`) und ihre Felder stammen aus der öffentlichen Dokumentation bzw. Drittquellen und wurden nur gegen eine Attrappe getestet. Der lokale Player ist gegen eine Attrappen-Engine getestet (Reihenfolge, Ersetzen, Fehler, Warteschlange, Adress- und Ordnerregeln); **tatsächliche Wiedergabe** (MP3-Stream, lokale Datei, Lautstärke) ist nicht an echter Hardware geprüft. Nicht gebaut: der „externe Player“ (VLC/mpv als Unterprozess) als zweite Stufe.
 
 ## Was **nicht** geprüft wurde (Grenzen)
 

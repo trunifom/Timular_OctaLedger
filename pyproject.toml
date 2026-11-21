@@ -26,6 +26,7 @@ dependencies = [
 tray = ["pystray>=0.19.5", "pillow>=10"]  # LGPL-3.0 (pystray), loaded dynamically
 toast = ["winotify>=1.1"]  # MIT
 holidays = ["holidays>=0.50"]  # MIT, offline public holidays
+audio = ["miniaudio>=1.60"]  # MIT; MP3/FLAC/WAV/Vorbis, no AAC
 pdf = ["fpdf2>=2.8"]  # LGPL-3.0 (!), loaded only when a PDF is requested
 discovery = ["zeroconf>=0.130"]  # LGPL-2.1-or-later, loaded only when a bridge search runs
 ics = ["icalendar>=6", "recurring-ical-events>=3"]  # BSD-2-Clause / LGPL-3.0
@@ -77,5 +78,5 @@ ignore_missing_imports = true
 # Optional extras (tray, toast, pdf, ics, holidays) may or may not be installed and some ship no
 # type information; only their imports are exempted.
 [[tool.mypy.overrides]]
-module = ["pystray", "winotify", "fpdf", "fpdf.*", "icalendar", "icalendar.*", "recurring_ical_events", "holidays", "zeroconf"]
+module = ["pystray", "winotify", "fpdf", "fpdf.*", "icalendar", "icalendar.*", "recurring_ical_events", "holidays", "zeroconf", "miniaudio"]
 ignore_missing_imports = true
