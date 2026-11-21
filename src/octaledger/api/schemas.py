@@ -11,7 +11,7 @@ changes require a new version prefix.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.device_service import DeviceInfo
 from octaledger.application.integration_service import IntegrationInfo, JobInfo
-from octaledger.application.reporting_service import JournalEntry, Report, Share
+from octaledger.application.reporting_service import Balance, JournalEntry, Report, Share
 from octaledger.application.tracking_service import TrackingStatus
 from octaledger.domain.attention import AttentionItem
 from octaledger.domain.models import (
@@ -29,6 +29,7 @@ from octaledger.domain.models import (
     Project,
     Session,
 )
+from octaledger.domain.schedule import Absence, WorkSchedule
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.integrations.base import AdapterSpec, FieldSpec
 
@@ -200,6 +201,23 @@ class AttentionResolve(_Strict):
     activity_id: str | None = Field(default=None, max_length=64)
     project_id: str | None = Field(default=None, max_length=64)
     until: datetime | None = None
+
+
+class ScheduleBody(_Strict):
+    """The target minutes per weekday (Monday first), valid from a date."""
+
+    valid_from: date
+    minutes: list[int] = Field(min_length=7, max_length=7)
+
+
+class AbsenceCreate(_Strict):
+    """A period of absence (both dates inclusive)."""
+
+    start: date
+    end: date
+    kind: str = Field(max_length=40)
+    target_minutes: int | None = Field(default=None, ge=0, le=1440)
+    note: str | None = Field(default=None, max_length=500)
 
 
 class AutostartBody(_Strict):
@@ -483,6 +501,45 @@ def tracking_status_out(status: TrackingStatus, now: datetime) -> dict[str, Any]
         "paused": status.paused,
         "active_device_id": status.active_device_id,
         "uncertain_count": status.uncertain_count,
+    }
+
+
+def schedule_out(schedule: WorkSchedule) -> dict[str, Any]:
+    """Serialise one schedule version."""
+    return {"valid_from": schedule.valid_from.isoformat(), "minutes": list(schedule.minutes)}
+
+
+def absence_out(absence: Absence) -> dict[str, Any]:
+    """Serialise an absence."""
+    return {
+        "id": absence.id,
+        "start": absence.start.isoformat(),
+        "end": absence.end.isoformat(),
+        "kind": absence.kind.value,
+        "target_minutes": absence.target_minutes,
+        "note": absence.note,
+    }
+
+
+def balance_out(balance: Balance) -> dict[str, Any]:
+    """Serialise the target/actual comparison (durations in seconds)."""
+    return {
+        "has_schedule": balance.has_schedule,
+        "includes_running": balance.includes_running,
+        "target_seconds": seconds(balance.target),
+        "actual_seconds": seconds(balance.actual),
+        "difference_seconds": seconds(balance.difference),
+        "days": [
+            {
+                "day": d.day.isoformat(),
+                "target_seconds": seconds(d.target),
+                "actual_seconds": seconds(d.actual),
+                "difference_seconds": seconds(d.difference),
+                "balance_seconds": seconds(d.balance),
+                "reason": d.reason,
+            }
+            for d in balance.days
+        ],
     }
 
 

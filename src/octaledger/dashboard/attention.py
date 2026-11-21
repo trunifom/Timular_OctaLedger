@@ -222,11 +222,24 @@ def _auto_stop_question(client: ApiClient, item: dict[str, Any], tz: str) -> Non
                 _answer(client, item_id, "extend", until=until)
 
 
+def _hm(minutes: int) -> str:
+    """``370`` -> ``6 h 10 min``."""
+    hours, rest = divmod(int(minutes), 60)
+    return f"{hours} h {rest:02d} min"
+
+
 def _reminder(client: ApiClient, item: dict[str, Any]) -> None:
     """A plain notice (for example a low battery) that is closed with one click."""
     payload = item["payload"]
     text = "Erinnerung"
-    if payload.get("reason") == "no_timer":
+    if item["kind"] == "break_hint":
+        text = (
+            f"**Heute {_hm(payload['worked_minutes'])} ohne ausreichende Pause erfasst** "
+            f"(Orientierung: Pause von {payload['required_minutes']} min, erfasst: "
+            f"{payload['recorded_minutes']} min). Nur ein Hinweis, kein Zwang; Pausen tragen "
+            "Sie im Zeitjournal nach."
+        )
+    elif payload.get("reason") == "no_timer":
         text = "**Es läuft keine Zeiterfassung**, obwohl der Arbeitstag begonnen hat. Zeit starten?"
     elif payload.get("reason") == "running_long":
         text = f"**Ein Eintrag läuft seit {payload.get('hours')} Stunden.** Noch dabei?"
@@ -275,5 +288,5 @@ def attention_panel(client: ApiClient, tz: str) -> None:
             _idle_question(client, item, tz)
         elif item["kind"] == "auto_stop":
             _auto_stop_question(client, item, tz)
-        elif item["kind"] == "reminder":
+        elif item["kind"] in ("reminder", "break_hint"):
             _reminder(client, item)

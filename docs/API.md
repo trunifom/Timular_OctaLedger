@@ -256,6 +256,20 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Journalzeile** = Sitzung plus `activity_name`, `project_name`, `device_alias`.
 
+### Soll, Saldo, Abwesenheiten (AP-40)
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `GET /schedule` | Soll je Wochentag, eine Version je Gültig-ab-Datum | – | Liste `{valid_from, minutes: [Mo…So]}` |
+| `PUT /schedule` | Version anlegen/ersetzen | `{"valid_from": "2026-01-01", "minutes": [480,480,480,480,480,0,0]}` | Liste; 422 bei ≠ 7 Werten oder Werten außerhalb 0–1440 |
+| `DELETE /schedule/{valid_from}` | Version löschen | – | Liste |
+| `GET /absences` | Abwesenheiten | – | Liste `{id, start, end, kind, target_minutes, note}` |
+| `POST /absences` | Abwesenheit eintragen (`kind`: `vacation`, `sick`, `holiday_custom`, `other`; `target_minutes` leer = ganzer Tag frei) | `{"start","end","kind","target_minutes"?,"note"?}` | Abwesenheit, 201 |
+| `DELETE /absences/{id}` | löschen | – | 204; 404 wenn unbekannt |
+| `GET /reports/balance?first=&last=&tz=` | Soll, Ist, Differenz und laufender Saldo je lokalem Tag | – | `{has_schedule, includes_running, target_seconds, actual_seconds, difference_seconds, days: [{day, target_seconds, actual_seconds, difference_seconds, balance_seconds, reason}]}` |
+
+Das Soll eines Tages: Abwesenheit (ihr Wert, sonst 0) vor Feiertag (0) vor Wochentagswert der gültigen Version (sonst 0). Ist = persönliche Zeit ohne Doppelzählung, an den lokalen Tagesgrenzen der Zone geschnitten.
+
 ### System (AP-39)
 
 | Methode und Pfad | Zweck | Anfrage | Antwort |

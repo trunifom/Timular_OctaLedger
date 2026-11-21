@@ -484,6 +484,16 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
 
+### Soll, Saldo, Abwesenheiten und Pausenhinweise
+
+Auf der Seite **Statistik** gibt es den Reiter **Soll und Saldo**:
+
+- **Soll je Wochentag:** Tragen Sie Ihre Arbeitszeit je Wochentag ein, gültig ab einem Datum. Ein späteres Soll (z. B. Teilzeit) ändert **frühere Tage nicht**.
+- **Saldo:** je Tag Soll, Ist, Differenz und laufender Saldo (positiv = Überstunden). Ist = erfasste persönliche Zeit ohne Doppelzählung; Tage werden an Ihrer lokalen Mitternacht geschnitten (auch Tage mit 23 oder 25 Stunden). Ohne eingetragenes Soll gilt das Soll als 0.
+- **Abwesenheiten:** Ferien, Krankheit, eigener Feiertag. Ein ganzer freier Tag hat Soll 0; für einen halben Feiertag tragen Sie das Soll des Tages ein (z. B. 4 Stunden).
+- **Gesetzliche Feiertage:** *App* → Arbeitstag → *Feiertage und Pausenhinweise* → Region (z. B. `CH-ZH`); braucht das Zusatzpaket `holidays` (`pip install -e ".[holidays]"`). Kantonale und halbe Feiertage sind Betriebssache: tragen Sie diese als Abwesenheit ein; sie gilt vor der Feiertagsliste.
+- **Pausenhinweise** (Voreinstellung **aus**): einmal pro Tag ein Hinweis, wenn lange ohne erfasste Pause gearbeitet wurde (Schweiz: mehr als 5,5 h → 15 min, mehr als 7 h → 30 min, mehr als 9 h → 60 min; EU: mehr als 6 h → Orientierungswert 20 min). **Das ist eine Orientierung, keine Rechtsberatung** und es wird nie automatisch abgezogen; das Gesetz gilt nur für bestimmte Betriebe und Personen (Selbstständige sind in der Regel ausgenommen). Die Tabellen mit Quelle und Stand stehen in `domain/break_rules.py`; bitte den Gesetzestext selbst prüfen (fedlex.admin.ch, SR 822.11 Art. 15). Eine Pause ist eine **Lücke zwischen zwei Einträgen**.
+
 ### Start mit Windows, Tray-Symbol, Hinweise
 
 Unter *App*: **Mit Windows starten** (damit der Agent nach der Anmeldung von selbst läuft; ein sichtbarer Eintrag in Ihrem Benutzerprofil, ausschalten entfernt ihn), **Symbol im Infobereich** (grün = läuft, grau = ruht, rot = Würfel getrennt, gelb = Rückfrage wartet; Menü: Zeit stoppen, Pause/Fortsetzen, Dashboard öffnen, Beenden) und **Meldungen als Windows-Hinweis** mit Ruhezeit. Symbol und Hinweise brauchen je ein Zusatzpaket (siehe Installation §5b); ohne sind die Schalter abgeblendet. Das Banner im Dashboard gibt es immer.

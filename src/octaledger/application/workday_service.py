@@ -20,8 +20,9 @@ from octaledger.application.tracking_service import STATE_PAUSED
 from octaledger.core.errors import InvalidStateError, ValidationError
 from octaledger.core.settings import Settings
 from octaledger.domain.attention import AttentionItem, AttentionKind, AttentionStatus
+from octaledger.domain.break_rules import BreakRegion, required_break_minutes, summarize_day
 from octaledger.domain.models import Quality
-from octaledger.domain.time_rules import ensure_utc, utc_now
+from octaledger.domain.time_rules import clip_interval, ensure_utc, local_day_bounds, utc_now
 from octaledger.domain.workday import (
     DayState,
     RunningEntry,
@@ -37,6 +38,7 @@ STATE_AUTO_STOPPED = "work:auto_stopped_on"
 STATE_NO_TIMER = "work:reminded_no_timer_on"
 STATE_RUNNING_REMINDER = "work:reminded_running"
 STATE_IDLE_ASKED = "work:idle_asked_for"
+STATE_BREAK_HINT = "work:break_hint_on"
 
 #: Answers to an idle question.
 IDLE_KEEP, IDLE_DISCARD, IDLE_PAUSE = "keep", "discard", "pause"
@@ -83,6 +85,7 @@ class WorkdayService:
             or work.idle_minutes
             or work.reminder_no_timer_after
             or work.reminder_running_hours
+            or work.break_region != "off"
         ):
             return []
         tz = ZoneInfo(settings.display.timezone)
@@ -101,7 +104,49 @@ class WorkdayService:
                 item = self._apply(repos, decision.action, decision.at, moment, tz, running)
                 if item is not None:
                     raised.append(item)
+            hint = self._break_hint(repos, work.break_region, moment, tz)
+            if hint is not None:
+                raised.append(hint)
         return raised
+
+    def _break_hint(
+        self, repos: Repositories, region_name: str, now: datetime, tz: ZoneInfo
+    ) -> AttentionItem | None:
+        """Raise one orientation hint per day when a long working day has no recorded break."""
+        region = BreakRegion(region_name)
+        if region is BreakRegion.OFF:
+            return None
+        today = now.astimezone(tz).date()
+        if repos.state.get(STATE_BREAK_HINT) == today.isoformat():
+            return None
+        start, end = local_day_bounds(today, tz)
+        parts: list[tuple[datetime, datetime]] = []
+        for session in repos.sessions.list_between(start, end):
+            stop = session.ended_at if session.ended_at is not None else now
+            clipped = clip_interval(
+                (session.started_at, max(stop, session.started_at)), (start, end)
+            )
+            if clipped is not None:
+                parts.append(clipped)
+        worked, rest = summarize_day(parts)
+        required = required_break_minutes(region, worked)
+        if required == 0 or rest >= required:
+            return None
+        repos.state.set(STATE_BREAK_HINT, today.isoformat())
+        logger.info("Break hint raised")
+        return repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.BREAK_HINT,
+                created_at=now,
+                payload={
+                    "day": today.isoformat(),
+                    "worked_minutes": round(worked),
+                    "required_minutes": required,
+                    "recorded_minutes": round(rest),
+                    "region": region.value,
+                },
+            )
+        )
 
     def _apply(
         self,

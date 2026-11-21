@@ -12,6 +12,7 @@ import streamlit as st
 from octaledger.core.settings import Theme
 from octaledger.dashboard.theme import PALETTES
 from octaledger.dashboard.ui import call, format_hm, from_local, page_help
+from octaledger.dashboard.views.statistics_balance import render as render_balance
 from octaledger.dashboard_client.client import ApiClient
 
 ALL = "Alle"
@@ -33,6 +34,15 @@ def render(client: ApiClient, tz: str) -> None:
         "Verbindungsabbruch). Auswertungen gelten dafür nur mit Vorbehalt.\n"
         "- Unter jedem Diagramm steht dieselbe Information als **Tabelle**.",
     )
+    evaluation, balance = st.tabs(["Auswertung", "Soll und Saldo"])
+    with evaluation:
+        _evaluation(client, tz)
+    with balance:
+        render_balance(client, tz)
+
+
+def _evaluation(client: ApiClient, tz: str) -> None:
+    """The evaluation of a period (activities, projects, devices)."""
     ok_a, activities = call(client.list_items, "activities", True)
     ok_p, projects = call(client.list_items, "projects", True)
     ok_d, devices = call(client.devices)

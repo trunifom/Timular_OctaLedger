@@ -16,8 +16,17 @@ from octaledger.application.export_service import (
     neutralize_cell,
 )
 from octaledger.application.tracking_service import TrackingService
-from octaledger.core.errors import ExportError, ImportDataError, ValidationError
-from octaledger.domain.models import Activity, Device, Project, Quality, Session, SessionSource
+from octaledger.core.errors import ExportError, ImportDataError, OctaLedgerError, ValidationError
+from octaledger.domain.models import (
+    Activity,
+    ButtonAction,
+    ButtonPress,
+    Device,
+    Project,
+    Quality,
+    Session,
+    SessionSource,
+)
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
@@ -396,3 +405,78 @@ def test_empty_database_roundtrip(tmp_path: Path) -> None:
     result = target.service.restore_backup_text(source.service.create_backup_text())
     assert sum(result.summary.counts.values()) == 0
     assert target.content().sessions == ()
+
+
+# ------------------------------------------------------- plain tables (schema 3)
+
+
+def test_plain_tables_are_part_of_the_backup_and_survive_a_restore(env: Env) -> None:
+    import json as _json
+
+    with env.storage.transaction() as repos:
+        device = repos.devices.add(Device(alias="Büro"))
+        repos.buttons.set(device.id, ButtonPress.LONG, ButtonAction.STOP)
+        repos.backup._c.execute(
+            "INSERT INTO absences (id, start_date, end_date, kind, target_minutes, note) "
+            "VALUES ('a1', '2026-01-05', '2026-01-09', 'vacation', NULL, 'Ferien')"
+        )
+    text = env.service.create_backup_text()
+    document = _json.loads(text)
+    assert document["counts"]["absences"] == 1 and document["counts"]["device_buttons"] == 1
+    with env.storage.transaction() as repos:
+        repos.backup._c.execute("DELETE FROM absences")
+        repos.backup._c.execute("DELETE FROM device_buttons")
+    env.service.restore_backup_text(text)
+    with env.storage.read() as repos:
+        assert repos.buttons.get_all(device.id) == {"long": "stop"}
+        row = repos.backup._c.execute("SELECT kind, note FROM absences").fetchone()
+        assert (row["kind"], row["note"]) == ("vacation", "Ferien")
+
+
+@pytest.mark.parametrize(
+    "tables",
+    [
+        {"nope": []},
+        {"absences": "x"},
+        {"absences": [{"id": "a"}]},
+        {
+            "absences": [
+                {
+                    "id": "a",
+                    "start_date": [],
+                    "end_date": "x",
+                    "kind": "x",
+                    "target_minutes": None,
+                    "note": None,
+                }
+            ]
+        },
+    ],
+)
+def test_malformed_tables_section_is_rejected_without_changes(env: Env, tables: object) -> None:
+    import json as _json
+
+    document = _json.loads(env.service.create_backup_text())
+    document["data"]["tables"] = tables
+    document["checksum"] = ExportService._checksum(document["data"])
+    with pytest.raises(ImportDataError):
+        env.service.inspect_backup_text(_json.dumps(document))
+
+
+def test_a_database_rule_violation_in_a_plain_table_aborts_the_restore(env: Env) -> None:
+    import json as _json
+
+    document = _json.loads(env.service.create_backup_text())
+    document["data"]["tables"]["absences"] = [
+        {
+            "id": "a",
+            "start_date": "2026-02-01",
+            "end_date": "2026-01-01",
+            "kind": "vacation",
+            "target_minutes": None,
+            "note": None,
+        }
+    ]
+    document["checksum"] = ExportService._checksum(document["data"])
+    with pytest.raises(OctaLedgerError):
+        env.service.restore_backup_text(_json.dumps(document))

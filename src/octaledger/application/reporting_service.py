@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo
 
 from octaledger.core.errors import ValidationError
 from octaledger.domain.models import Activity, Project, Quality, Session
+from octaledger.domain.schedule import Absence, AbsenceKind, WorkSchedule, target_minutes
 from octaledger.domain.time_rules import (
     Interval,
     clip_interval,
@@ -42,6 +43,7 @@ from octaledger.domain.time_rules import (
     utc_now,
 )
 from octaledger.infrastructure.storage.repositories import Storage
+from octaledger.infrastructure.system.holidays_provider import holiday_dates
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +90,38 @@ class DayTotal:
     device_time: timedelta
     personal_time: timedelta
     uncertain_time: timedelta
+
+
+@dataclass(frozen=True, slots=True)
+class DayBalance:
+    """Target, actual time and balance of one local day.
+
+    ``target`` is zero on days without a schedule, on holidays and on whole absence days;
+    ``balance`` is the running total up to and including this day.
+    """
+
+    day: date
+    target: timedelta
+    actual: timedelta
+    difference: timedelta
+    balance: timedelta
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
+class Balance:
+    """Target/actual comparison over several days."""
+
+    days: tuple[DayBalance, ...]
+    target: timedelta
+    actual: timedelta
+    includes_running: bool
+    has_schedule: bool
+
+    @property
+    def difference(self) -> timedelta:
+        """Total of ``actual - target`` (overtime when positive)."""
+        return self.actual - self.target
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +200,27 @@ def _shares(
         for key, (duration, uncertain) in buckets.items()
     ]
     return tuple(sorted(rows, key=lambda r: (-r.duration, r.name.lower())))
+
+
+def _reason(
+    day: date,
+    schedules: list[WorkSchedule],
+    absences: list[Absence],
+    holidays: frozenset[date],
+) -> str:
+    """Short German reason when a day's target differs from the plain weekday value."""
+    labels = {
+        AbsenceKind.VACATION: "Ferien",
+        AbsenceKind.SICK: "Krank",
+        AbsenceKind.HOLIDAY_CUSTOM: "Feiertag (eigener)",
+        AbsenceKind.OTHER: "Abwesend",
+    }
+    covering = [a for a in absences if a.covers(day)]
+    if covering:
+        return labels[covering[0].kind]
+    if day in holidays:
+        return "Feiertag"
+    return ""
 
 
 def build_report(
@@ -319,6 +374,60 @@ class ReportService:
             day, parse_timezone(timezone_name), week_starts_on=week_starts_on
         )
         return self.report(ReportFilter(start, end, **filters), timezone_name)
+
+    def balance(
+        self,
+        first: date,
+        last: date,
+        timezone_name: str = "UTC",
+        *,
+        holiday_region: str = "",
+    ) -> Balance:
+        """Compare actual and target working time for each local day in ``[first, last]``.
+
+        The actual time is the *personal* time (no double counting) of the local day; the
+        target comes from the weekday schedule valid on that day minus public holidays and
+        absences (:func:`octaledger.domain.schedule.target_minutes`). Entries stay in UTC and
+        are cut at the local day boundaries, so days with 23 or 25 hours are handled.
+
+        Raises:
+            ValidationError: For an unknown timezone, ``last`` before ``first`` or too many days.
+        """
+        if last < first:
+            raise ValidationError(
+                "last day before first day", user_message="Das Ende liegt vor dem Anfang."
+            )
+        tz = parse_timezone(timezone_name)
+        start = local_day_bounds(first, tz)[0]
+        end = local_day_bounds(last, tz)[1]
+        report = self.report(ReportFilter(start, end), timezone_name)
+        with self._storage.read() as repos:
+            schedules = repos.schedule.list_all()
+            absences = repos.absences.list_between(first, last)
+        holidays = holiday_dates(holiday_region, first, last)
+        days: list[DayBalance] = []
+        running = timedelta(0)
+        for total in report.daily:
+            minutes = target_minutes(total.day, schedules, absences, holidays)
+            target = timedelta(minutes=minutes)
+            running += total.personal_time - target
+            days.append(
+                DayBalance(
+                    day=total.day,
+                    target=target,
+                    actual=total.personal_time,
+                    difference=total.personal_time - target,
+                    balance=running,
+                    reason=_reason(total.day, schedules, absences, holidays),
+                )
+            )
+        return Balance(
+            days=tuple(days),
+            target=sum((d.target for d in days), timedelta(0)),
+            actual=sum((d.actual for d in days), timedelta(0)),
+            includes_running=report.includes_running,
+            has_schedule=bool(schedules),
+        )
 
     def journal(self, flt: ReportFilter) -> list[JournalEntry]:
         """Return whole sessions overlapping the window with resolved names (newest first)."""

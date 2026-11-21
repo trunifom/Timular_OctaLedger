@@ -27,8 +27,8 @@ import logging
 import sqlite3
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from typing import Any, Final, TypeVar
 
 from octaledger.core.errors import (
@@ -56,6 +56,7 @@ from octaledger.domain.models import (
     SessionSource,
     new_id,
 )
+from octaledger.domain.schedule import Absence, AbsenceKind, WorkSchedule
 from octaledger.domain.time_rules import ensure_utc, utc_now
 from octaledger.infrastructure.storage.database import Database, translate_sqlite_error
 
@@ -1620,6 +1621,133 @@ class DeviceButtonRepository:
                 )
 
 
+class ScheduleRepository:
+    """The versioned weekly target (see :class:`WorkSchedule`)."""
+
+    _COLUMNS = (
+        "mon_minutes",
+        "tue_minutes",
+        "wed_minutes",
+        "thu_minutes",
+        "fri_minutes",
+        "sat_minutes",
+        "sun_minutes",
+    )
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    def list_all(self) -> list[WorkSchedule]:
+        """Return all versions, oldest first."""
+        with _db_errors("read work schedule"):
+            rows = self._c.execute("SELECT * FROM work_schedule ORDER BY valid_from").fetchall()
+        return [
+            WorkSchedule(
+                date.fromisoformat(r["valid_from"]),
+                tuple(r[c] for c in self._COLUMNS),
+            )
+            for r in rows
+        ]
+
+    def set(self, schedule: WorkSchedule) -> None:
+        """Create or replace the version that starts on ``schedule.valid_from``."""
+        with _db_errors("write work schedule"):
+            self._c.execute(
+                "INSERT INTO work_schedule (valid_from, mon_minutes, tue_minutes, wed_minutes, "
+                "thu_minutes, fri_minutes, sat_minutes, sun_minutes) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT (valid_from) DO UPDATE SET mon_minutes = excluded.mon_minutes, "
+                "tue_minutes = excluded.tue_minutes, wed_minutes = excluded.wed_minutes, "
+                "thu_minutes = excluded.thu_minutes, fri_minutes = excluded.fri_minutes, "
+                "sat_minutes = excluded.sat_minutes, sun_minutes = excluded.sun_minutes",
+                (schedule.valid_from.isoformat(), *schedule.minutes),
+            )
+
+    def delete(self, valid_from: date) -> None:
+        """Remove one version (no error if absent)."""
+        with _db_errors("delete work schedule"):
+            self._c.execute(
+                "DELETE FROM work_schedule WHERE valid_from = ?", (valid_from.isoformat(),)
+            )
+
+
+class AbsenceRepository:
+    """Absences: vacation, sick days, own holidays."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> Absence:
+        return _load(
+            lambda: Absence(
+                start=date.fromisoformat(row["start_date"]),
+                end=date.fromisoformat(row["end_date"]),
+                kind=AbsenceKind(row["kind"]),
+                target_minutes=row["target_minutes"],
+                note=row["note"],
+                id=row["id"],
+            ),
+            "absence",
+            row["id"],
+        )
+
+    def add(self, absence: Absence) -> Absence:
+        """Store an absence."""
+        with _db_errors("add absence"):
+            self._c.execute(
+                "INSERT INTO absences (id, start_date, end_date, kind, target_minutes, note) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    absence.id,
+                    absence.start.isoformat(),
+                    absence.end.isoformat(),
+                    absence.kind.value,
+                    absence.target_minutes,
+                    absence.note,
+                ),
+            )
+        return absence
+
+    def get(self, absence_id: str) -> Absence | None:
+        """Return an absence or ``None``."""
+        with _db_errors("read absence"):
+            row = self._c.execute("SELECT * FROM absences WHERE id = ?", (absence_id,)).fetchone()
+        return None if row is None else self._from_row(row)
+
+    def list_all(self) -> list[Absence]:
+        """Return all absences, oldest first."""
+        with _db_errors("list absences"):
+            rows = self._c.execute("SELECT * FROM absences ORDER BY start_date, id").fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def list_between(self, first: date, last: date) -> list[Absence]:
+        """Return absences that touch ``[first, last]``."""
+        with _db_errors("list absences"):
+            rows = self._c.execute(
+                "SELECT * FROM absences WHERE start_date <= ? AND end_date >= ? "
+                "ORDER BY start_date, id",
+                (last.isoformat(), first.isoformat()),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def delete(self, absence_id: str) -> None:
+        """Remove an absence.
+
+        Raises:
+            NotFoundError: If it does not exist.
+        """
+        with _db_errors("delete absence"):
+            cursor = self._c.execute("DELETE FROM absences WHERE id = ?", (absence_id,))
+        if cursor.rowcount == 0:
+            raise NotFoundError(
+                f"Absence {absence_id} not found",
+                user_message="Diese Abwesenheit gibt es nicht (mehr).",
+            )
+
+
 class StateRepository:
     """Tiny persistent key/value store for application state (active tracker, pause)."""
 
@@ -1657,6 +1785,24 @@ class StateRepository:
 
 # ---------------------------------------------------------------------------- backup
 
+#: Tables that are backed up as plain rows (name -> columns, parents first). Their validity is
+#: enforced by the database's own CHECK/foreign-key rules when a backup is restored, so a new
+#: simple table only needs to be listed here (and in the schema notes of DATENMODELL.md).
+SIMPLE_TABLES: Final[dict[str, tuple[str, ...]]] = {
+    "device_buttons": ("device_id", "press", "action"),
+    "work_schedule": (
+        "valid_from",
+        "mon_minutes",
+        "tue_minutes",
+        "wed_minutes",
+        "thu_minutes",
+        "fri_minutes",
+        "sat_minutes",
+        "sun_minutes",
+    ),
+    "absences": ("id", "start_date", "end_date", "kind", "target_minutes", "note"),
+}
+
 
 @dataclass(frozen=True, slots=True)
 class BackupContent:
@@ -1673,6 +1819,8 @@ class BackupContent:
     state: Mapping[str, str] | None = None
     integrations: tuple[Integration, ...] = ()
     actions: tuple[FaceAction, ...] = ()
+    #: Rows of the :data:`SIMPLE_TABLES` (column order as listed there).
+    tables: Mapping[str, tuple[tuple[Any, ...], ...]] = field(default_factory=dict)
 
     def counts(self) -> dict[str, int]:
         """Number of records per entity (for previews and summaries)."""
@@ -1687,6 +1835,7 @@ class BackupContent:
             "audit_log": len(self.audit),
             "integrations": len(self.integrations),
             "face_actions": len(self.actions),
+            **{name: len(rows) for name, rows in self.tables.items()},
         }
 
 
@@ -1699,6 +1848,7 @@ class BackupRepository:
 
     #: Tables in the order they can be emptied without violating foreign keys.
     _CLEAR_ORDER = (
+        *reversed(SIMPLE_TABLES),
         "integration_jobs",
         "face_actions",
         "integrations",
@@ -1734,7 +1884,19 @@ class BackupRepository:
             state=r.state.items(),
             integrations=tuple(r.integrations.list_all()),
             actions=tuple(r.actions.list_all()),
+            tables=self._read_simple_tables(),
         )
+
+    def _read_simple_tables(self) -> dict[str, tuple[tuple[Any, ...], ...]]:
+        """Read the rows of every simple table in column order."""
+        tables: dict[str, tuple[tuple[Any, ...], ...]] = {}
+        with _db_errors("read tables for backup"):
+            for name, columns in SIMPLE_TABLES.items():
+                rows = self._c.execute(
+                    f"SELECT {', '.join(columns)} FROM {name} ORDER BY rowid"  # noqa: S608
+                ).fetchall()
+                tables[name] = tuple(tuple(row) for row in rows)
+        return tables
 
     def replace_all(self, content: BackupContent) -> None:
         """Delete everything and insert ``content`` (the caller provides the transaction).
@@ -1809,6 +1971,14 @@ class BackupRepository:
                     for a in content.audit
                 ],
             )
+        with _db_errors("restore tables"):
+            for name, rows in content.tables.items():
+                columns = SIMPLE_TABLES[name]
+                marks = ", ".join("?" for _ in columns)
+                self._c.executemany(
+                    f"INSERT INTO {name} ({', '.join(columns)}) VALUES ({marks})",  # noqa: S608
+                    rows,
+                )
         for key, value in (content.state or {}).items():
             r.state.set(key, value)
 
@@ -1834,6 +2004,8 @@ class Repositories:
     jobs: JobRepository
     attention: AttentionRepository
     buttons: DeviceButtonRepository
+    schedule: ScheduleRepository
+    absences: AbsenceRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -1855,6 +2027,8 @@ class Repositories:
             ("jobs", JobRepository(connection)),
             ("attention", AttentionRepository(connection)),
             ("buttons", DeviceButtonRepository(connection)),
+            ("schedule", ScheduleRepository(connection)),
+            ("absences", AbsenceRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

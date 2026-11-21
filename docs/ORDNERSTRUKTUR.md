@@ -81,6 +81,7 @@ octaledger/
   src/octaledger/application/outbox.py
   src/octaledger/application/reporting_service.py
   src/octaledger/application/tracking_service.py
+  src/octaledger/application/work_time_service.py
   src/octaledger/application/workday_service.py
   src/octaledger/cli.py
   src/octaledger/core/__init__.py
@@ -118,13 +119,16 @@ octaledger/
   src/octaledger/dashboard/views/settings.py
   src/octaledger/dashboard/views/start.py
   src/octaledger/dashboard/views/statistics.py
+  src/octaledger/dashboard/views/statistics_balance.py
   src/octaledger/dashboard_client/__init__.py
   src/octaledger/dashboard_client/client.py
   src/octaledger/domain/__init__.py
   src/octaledger/domain/attention.py
+  src/octaledger/domain/break_rules.py
   src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
   src/octaledger/domain/orientation.py
+  src/octaledger/domain/schedule.py
   src/octaledger/domain/state_machine.py
   src/octaledger/domain/time_rules.py
   src/octaledger/domain/workday.py
@@ -151,9 +155,11 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0003_integrations.sql
   src/octaledger/infrastructure/storage/migrations/0004_attention.sql
   src/octaledger/infrastructure/storage/migrations/0005_buttons.sql
+  src/octaledger/infrastructure/storage/migrations/0006_work.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
+  src/octaledger/infrastructure/system/holidays_provider.py
   src/octaledger/infrastructure/system/idle.py
   src/octaledger/infrastructure/system/toast.py
   tests/__init__.py
@@ -189,6 +195,7 @@ octaledger/
   tests/unit/test_api.py
   tests/unit/test_api_security.py
   tests/unit/test_attention.py
+  tests/unit/test_balance.py
   tests/unit/test_ble_bleak_layer.py
   tests/unit/test_ble_protocol_and_fake.py
   tests/unit/test_button_and_battery.py

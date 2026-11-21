@@ -299,7 +299,7 @@ def test_backup_v2_roundtrips_modes_integrations_and_actions(tmp_path: Path) -> 
     source.fill()
     path = source.service.export_backup(filename="b.json").path
     document = json.loads(path.read_text(encoding="utf-8"))
-    assert document["schema_version"] == BACKUP_SCHEMA_VERSION == 2
+    assert document["schema_version"] == BACKUP_SCHEMA_VERSION == 3
     assert document["counts"]["integrations"] == 2 and document["counts"]["face_actions"] == 1
     result = target.service.restore_backup(path)
     assert result.summary.counts["face_actions"] == 1
@@ -335,7 +335,7 @@ def test_a_v1_backup_is_still_readable(tmp_path: Path) -> None:
     source.fill()
     document = json.loads(source.service.create_backup_text())
     data = document["data"]
-    del data["integrations"], data["face_actions"]
+    del data["integrations"], data["face_actions"], data["tables"]
     for device in data["devices"]:
         del device["mode"]
     document["schema_version"] = 1

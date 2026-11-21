@@ -67,7 +67,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-36b | Hilfe beim Verbinden: Hue-Fehlertexte und Fehlersuche, Home-Assistant-Anleitung, Testverbindung (Probelauf) | 2026-11-21 | 21:30 | 2808811 |
 | AP-37 | Würfeltaste (kurz/lang, belegbar, Migration 0005) und Batterie-Warnung (alle 10 min lesen, einmal warnen); Taste nicht hardwarebestätigt | 2026-11-21 | 22:10 | 5dd795f |
 | AP-38 | Arbeitstag: Auto-Stopp am Arbeitsende, Leerlauf-Erkennung (nur Eingabedauer), Erinnerungen; Rückfragen idle/auto_stop (alles standardmäßig aus) | 2026-11-21 | 23:00 | 224f887 |
-| AP-39 | Autostart (Run-Key, CLI, Schalter), Tray-Symbol (Extra), Windows-Hinweise (Extra, Ruhezeit); mit Attrappen getestet, nicht auf echtem Desktop | 2026-11-22 | 00:10 | _folgt_ |
+| AP-39 | Autostart (Run-Key, CLI, Schalter), Tray-Symbol (Extra), Windows-Hinweise (Extra, Ruhezeit); mit Attrappen getestet, nicht auf echtem Desktop | 2026-11-22 | 00:10 | f2bd696 |
+| AP-40 | Soll je Wochentag (versioniert), Abwesenheiten, Feiertage (Extra), Saldo-Auswertung, Pausenhinweise (aus; Orientierung); Sicherung Schema 3 | 2026-11-22 | 02:00 | _folgt_ |
 
 ## Offen
 

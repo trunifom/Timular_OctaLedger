@@ -29,7 +29,12 @@
 |---|---|---|---|
 | `pystray` | Tray-Symbol (Extra `tray`) | LGPL-3.0 (belegt) | nur optional und dynamisch geladen; seit 2023 wenig gepflegt (Wartungsrisiko); bei einer gebündelten Auslieferung LGPL-Hinweise beilegen |
 | `pillow` | Symbolbild für das Tray | HPND (PIL-Lizenz) | kommt ohnehin mit Streamlit |
+| `holidays` | gesetzliche Feiertage offline (Extra `holidays`) | MIT (belegt) | Regionen/Unterteilungen und halbe Feiertage je Betrieb prüfen; eigene Abwesenheiten überschreiben die Liste |
 | `winotify` | Windows-Hinweise (Extra `toast`) | MIT (belegt) | ohne eigene AppUserModelID erscheint ggf. ein Interpreter-Name als Absender [U] |
+
+## Pausenregeln (nur Orientierung)
+
+Die Tabellen in `domain/break_rules.py` stammen aus **Sekundärquellen** (ch.ch, WEKA, SECO-Wegleitung zum Arbeitsgesetz Art. 15; EU-Richtlinie 2003/88/EG Art. 4 in EUR-Lex) mit Stand 2026-11. Der **Wortlaut der Primärquellen** (fedlex.admin.ch, SR 822.11 und SR 822.111) wurde **nicht** von einem Menschen gegengeprüft. Das Gesetz gilt nur für bestimmte Betriebe und Personen; bei flexiblen Arbeitszeitsystemen gelten Besonderheiten. OctaLedger gibt keine Rechtsberatung und zieht nie automatisch Pausen ab.
 
 ## Was **nicht** geprüft wurde (Grenzen)
 

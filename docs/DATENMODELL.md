@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0005`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0006`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -12,7 +12,7 @@ die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang d
 4. [Regeln, die die Datenbank selbst durchsetzt](#4-regeln-die-die-datenbank-selbst-durchsetzt)
 5. [Zeit und Zeitzonen](#5-zeit-und-zeitzonen)
 6. [Migrationen](#6-migrationen)
-7. [Das Sicherungsformat (JSON, Schema 2)](#7-das-sicherungsformat-json-schema-2)
+7. [Das Sicherungsformat (JSON, Schema 3)](#7-das-sicherungsformat-json-schema-3)
 8. [CSV-Export](#8-csv-export)
 9. [Aufbewahrung und Löschen](#9-aufbewahrung-und-löschen)
 10. [Was nicht in der Datenbank steht](#10-was-nicht-in-der-datenbank-steht)
@@ -64,6 +64,8 @@ audit_log      app_state     (allein stehend)
 | `face_actions` | **Steuerungsmodus:** welche Aktion eine Seite auslöst | 0003 |
 | `integration_jobs` | **Steuerungsmodus:** Warteschlange („Outbox“) und Verlauf | 0003 |
 | `device_buttons` | welche Aktion ein kurzer/langer Tastendruck des Würfels auslöst (keine Zeile = nichts) | 0005 |
+| `work_schedule` | Soll je Wochentag in Minuten, versioniert nach Gültig-ab-Datum | 0006 |
+| `absences` | Ferien, Krankheit, eigene Feiertage (ein Zeitraum, optional abweichendes Tagessoll) | 0006 |
 | `attention_items` | **Rückfragen-Zentrale:** Fragen, die auf eine Entscheidung warten (Lücke nach Verbindungsverlust …) | 0004 |
 
 ## 3. Tabellen im Detail
@@ -125,9 +127,13 @@ Schlüssel/Wert (`key` 1–100 Zeichen, `value` Text, meist JSON, `updated_at`):
 
 Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stopped, session}`): Die Verbindung riss um `at`; `stopped` zeigt, ob die Frist schon abgelaufen und der Eintrag beendet ist. Der Schlüssel verschwindet bei Rückkehr in der Frist, nach einer Handlung des Anwenders oder wenn der Würfel nach der Frist zurückkommt; er überlebt einen Neustart des Agenten.
 
+### `work_schedule` und `absences` (0006)
+
+`work_schedule`: `valid_from` (lokales Datum, Schlüssel), `mon_minutes` … `sun_minutes` (0–1440). Eine neue Version ändert frühere Tage nicht. `absences`: `id`, `start_date`, `end_date` (einschließlich, lokale Daten), `kind` (`vacation`, `sick`, `holiday_custom`, `other`), `target_minutes` (leer = 0), `note`. Beide Tabellen sind Teil der Sicherung (Schema 3, Abschnitt `tables`).
+
 ### `device_buttons` (0005)
 
-`device_id` (löscht sich mit dem Würfel), `press` (`short`/`long`), `action` (`pause_resume`, `stop`, `start_last`). Ohne Zeile geschieht beim Druck nichts. **Nicht Teil der Sicherung** (wie die Verbindungen); nach einer Wiederherstellung die Tasten neu belegen. Migration 0005 baut außerdem `raw_events` neu auf, damit die Ereignisart `button` erlaubt ist; alle Zeilen werden unverändert übernommen.
+`device_id` (löscht sich mit dem Würfel), `press` (`short`/`long`), `action` (`pause_resume`, `stop`, `start_last`). Ohne Zeile geschieht beim Druck nichts. Teil der Sicherung ab Schema 3 (Abschnitt `tables`). Migration 0005 baut außerdem `raw_events` neu auf, damit die Ereignisart `button` erlaubt ist; alle Zeilen werden unverändert übernommen.
 
 ### `attention_items` (0004)
 
@@ -205,14 +211,14 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
 | 0003 | `0003_integrations.sql` | Spalte `devices.mode` (bestehende Würfel bleiben `time`), `integrations`, `face_actions`, `integration_jobs` |
 
-## 7. Das Sicherungsformat (JSON, Schema 2)
+## 7. Das Sicherungsformat (JSON, Schema 3)
 
 `octaledger backup` und die Seite **Daten** erzeugen eine JSON-Datei:
 
 ```json
 {
   "format": "octaledger-backup",
-  "schema_version": 2,
+  "schema_version": 3,
   "app_version": "0.1.0",
   "exported_at": "2026-11-21T08:30:00.000000Z",
   "counts": {"devices": 1, "sessions": 120, "…": 0},
@@ -221,11 +227,13 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
     "devices": [], "activities": [], "projects": [], "face_mappings": [],
     "integrations": [], "face_actions": [],
     "raw_events": [], "sessions": [], "corrections": [], "audit_log": [],
-    "app_state": {}
+    "app_state": {},
+    "tables": {"device_buttons": [], "work_schedule": [], "absences": []}
   }
 }
 ```
 
+* **Schema 3** enthält zusätzlich den Abschnitt `tables` mit den einfachen Tabellen `device_buttons`, `work_schedule` und `absences` (Spalten und Reihenfolge: `SIMPLE_TABLES` in `repositories.py`; beim Wiederherstellen prüft die Datenbank selbst jede Zeile, ein Fehler bricht alles ab). Ältere Dateien bleiben lesbar.
 * **Schema 2** enthält zusätzlich `integrations` und `face_actions`; **Schema 1** (ohne Steuerungsmodus) bleibt lesbar – fehlende Abschnitte gelten als leer.
 * **Nicht enthalten:** `secrets.json` (Zugangsdaten) und `integration_jobs` (Laufzeitdaten). Nach einer Wiederherstellung auf einem anderen Rechner trägt man
   die Zugangsdaten der Verbindungen neu ein – eine bewusste Abwägung, damit eine Sicherung gefahrlos aufbewahrt werden kann.

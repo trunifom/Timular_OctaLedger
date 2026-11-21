@@ -231,3 +231,32 @@ def test_autostart_section_explains_when_unavailable(api_server: RunningApi) -> 
     at = open_page(api_server, "settings")
     assert any("nur unter Windows" in i.value for i in at.info)
     assert not [t for t in at.toggle if t.key == "set_autostart"]
+
+
+def test_the_balance_tab_shows_target_actual_and_absences(api_server: RunningApi) -> None:
+    from datetime import date
+
+    api_server.client.set_schedule(date(2026, 1, 1), [480] * 5 + [0, 0])
+    api_server.client.add_absence(date(2026, 1, 6), date(2026, 1, 6), "vacation", None, "Skiferien")
+    at = open_page(api_server, "statistics")
+    assert [t.label for t in at.tabs][:2] == ["Auswertung", "Soll und Saldo"]
+    assert at.number_input(key="sched_0").value == 8.0
+    assert any(m.label == "Saldo" for m in at.metric)
+    assert any("Skiferien" in m.value for m in at.markdown)
+    key = next(b.key for b in at.button if b.key and b.key.startswith("abs_del_"))
+    at.button(key=key).click().run()
+    assert api_server.client.absences() == []
+    widgets = [*at.number_input, *at.selectbox, *at.date_input, *at.text_input]
+    assert all(w.help for w in widgets if w.key and w.key.startswith(("sched_", "abs_", "bal_")))
+
+
+def test_the_balance_tab_explains_a_missing_schedule(api_server: RunningApi) -> None:
+    at = open_page(api_server, "statistics")
+    assert any("Noch kein Soll eingetragen" in i.value for i in at.info)
+
+
+def test_holiday_and_break_settings_have_defaults_and_help(api_server: RunningApi) -> None:
+    at = open_page(api_server, "settings")
+    assert at.text_input(key="set_holiday_region").value == ""
+    assert at.selectbox(key="set_break_region").value == "off"
+    assert "keine Rechtsberatung" in at.selectbox(key="set_break_region").help

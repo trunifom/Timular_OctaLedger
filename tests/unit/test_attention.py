@@ -228,3 +228,56 @@ def test_idle_and_auto_stop_questions_are_answered_through_the_same_endpoint(env
     # a reminder is closed with "dismiss", not answered
     assert env.post(f"/attention/{reminder.id}/resolve", {"action": "keep"}).status_code == 409
     assert env.post(f"/attention/{reminder.id}/dismiss").json()["status"] == "dismissed"
+
+
+# ------------------------------------------------------- schedule, absences, balance
+
+
+def test_schedule_absence_and_balance_endpoints(env: Env) -> None:
+    assert env.get("/schedule").json() == []
+    put = env.call(
+        "PUT", "/schedule", json={"valid_from": "2026-01-01", "minutes": [480] * 5 + [0, 0]}
+    )
+    assert put.status_code == 200 and put.json()[0]["minutes"][0] == 480
+    assert (
+        env.call("PUT", "/schedule", json={"valid_from": "2026-01-01", "minutes": [1]}).status_code
+        == 422
+    )
+    assert (
+        env.call(
+            "PUT", "/schedule", json={"valid_from": "2026-01-01", "minutes": [9999] * 7}
+        ).status_code
+        == 422
+    )
+    created = env.post(
+        "/absences", {"start": "2026-01-06", "end": "2026-01-06", "kind": "vacation"}
+    )
+    assert created.status_code == 201
+    assert (
+        env.post(
+            "/absences", {"start": "2026-01-06", "end": "2026-01-05", "kind": "sick"}
+        ).status_code
+        == 422
+    )
+    assert (
+        env.post(
+            "/absences", {"start": "2026-01-06", "end": "2026-01-06", "kind": "party"}
+        ).status_code
+        == 422
+    )
+    assert len(env.get("/absences").json()) == 1
+    result = env.get(
+        "/reports/balance", params={"first": "2026-01-05", "last": "2026-01-07", "tz": "UTC"}
+    ).json()
+    assert result["has_schedule"] is True
+    assert [d["target_seconds"] for d in result["days"]] == [28800, 0, 28800]
+    assert result["days"][1]["reason"] == "Ferien"
+    assert (
+        env.get(
+            "/reports/balance", params={"first": "2026-01-07", "last": "2026-01-05"}
+        ).status_code
+        == 422
+    )
+    assert env.call("DELETE", f"/absences/{created.json()['id']}").status_code == 204
+    assert env.call("DELETE", f"/absences/{created.json()['id']}").status_code == 404
+    assert env.call("DELETE", "/schedule/2026-01-01").json() == []

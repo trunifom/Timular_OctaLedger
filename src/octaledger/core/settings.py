@@ -26,6 +26,7 @@ import dataclasses
 import json
 import logging
 import os
+import re
 import threading
 import tomllib
 from collections.abc import Mapping
@@ -316,6 +317,9 @@ class TraySettings:
             raise _fail("tray", "enabled", "wahr oder falsch erwartet", self.enabled)
 
 
+_REGION: Final = re.compile(r"[A-Z]{2}(-[A-Z0-9]{1,3})?")
+
+
 def _check_clock(section: str, key: str, value: object) -> str:
     """Validate ``HH:MM`` (24 h) or the empty text that switches a rule off."""
     if not isinstance(value, str):
@@ -347,6 +351,11 @@ class WorkSettings:
     reminder_no_timer_after: str = ""
     #: Remind when one entry has been running this many hours; 0 = off.
     reminder_running_hours: int = 0
+    #: Public holidays of a region as ``CC`` or ``CC-SUB`` (e.g. ``CH-ZH``), empty = none.
+    #: Needs the optional ``holidays`` package.
+    holiday_region: str = ""
+    #: Break hints: ``off``, ``ch`` or ``eu`` (orientation only, see break_rules.py).
+    break_region: str = "off"
 
     def __post_init__(self) -> None:
         """Validate every value and normalise the clock times."""
@@ -360,6 +369,18 @@ class WorkSettings:
         )
         _check_int("work", "idle_minutes", self.idle_minutes, 0, 480)
         _check_int("work", "reminder_running_hours", self.reminder_running_hours, 0, 24)
+        if not isinstance(self.holiday_region, str) or (
+            self.holiday_region and not _REGION.fullmatch(self.holiday_region.strip().upper())
+        ):
+            raise _fail(
+                "work",
+                "holiday_region",
+                "Land oder Land-Region wie CH oder CH-ZH",
+                self.holiday_region,
+            )
+        object.__setattr__(self, "holiday_region", self.holiday_region.strip().upper())
+        if self.break_region not in ("off", "ch", "eu"):
+            raise _fail("work", "break_region", "erlaubt sind: off, ch, eu", self.break_region)
         if not isinstance(self.workdays, str):
             raise _fail(
                 "work", "workdays", "Wochentage als Text erwartet (z. B. 1,2,3,4,5)", self.workdays

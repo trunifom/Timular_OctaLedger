@@ -26,6 +26,7 @@ from octaledger.agent.tray import tray_available
 from octaledger.api.context import AppContext
 from octaledger.api.schemas import (
     API_VERSION,
+    AbsenceCreate,
     ActionAssign,
     AddressBody,
     ArchiveBody,
@@ -52,13 +53,16 @@ from octaledger.api.schemas import (
     RestoreBody,
     RestoreInspectBody,
     ScanBody,
+    ScheduleBody,
     SettingsBody,
     SettingsReset,
     SplitBody,
     StartBody,
+    absence_out,
     activity_out,
     adapter_out,
     attention_out,
+    balance_out,
     device_out,
     integration_out,
     iso,
@@ -67,6 +71,7 @@ from octaledger.api.schemas import (
     live_out,
     report_out,
     scan_out,
+    schedule_out,
     session_out,
     tracking_status_out,
 )
@@ -541,6 +546,48 @@ def build_router(ctx: AppContext) -> APIRouter:
         """Report for a window and filters."""
         flt = ReportFilter(start, end, device_id, activity_id, project_id)
         return report_out(ctx.reports.report(flt, tz or display_tz()))
+
+    @router.get("/reports/balance")
+    def balance(first: date, last: date, tz: str | None = None) -> dict[str, Any]:
+        """Target, actual and running balance for each local day in ``[first, last]``."""
+        region = ctx.settings.settings.work.holiday_region
+        return balance_out(
+            ctx.reports.balance(first, last, tz or display_tz(), holiday_region=region)
+        )
+
+    @router.get("/schedule")
+    def get_schedule() -> list[dict[str, Any]]:
+        """The target working time per weekday, one entry per valid-from date."""
+        return [schedule_out(s) for s in ctx.worktime.list_schedules()]
+
+    @router.put("/schedule")
+    def put_schedule(body: ScheduleBody) -> list[dict[str, Any]]:
+        """Create or replace the schedule that starts on ``valid_from``."""
+        return [schedule_out(s) for s in ctx.worktime.set_schedule(body.valid_from, body.minutes)]
+
+    @router.delete("/schedule/{valid_from}")
+    def delete_schedule(valid_from: date) -> list[dict[str, Any]]:
+        """Remove one schedule version."""
+        return [schedule_out(s) for s in ctx.worktime.delete_schedule(valid_from)]
+
+    @router.get("/absences")
+    def get_absences() -> list[dict[str, Any]]:
+        """All absences (vacation, sick days, own holidays), oldest first."""
+        return [absence_out(a) for a in ctx.worktime.list_absences()]
+
+    @router.post("/absences", status_code=201)
+    def add_absence(body: AbsenceCreate) -> dict[str, Any]:
+        """Record an absence."""
+        return absence_out(
+            ctx.worktime.add_absence(
+                body.start, body.end, body.kind, body.target_minutes, body.note
+            )
+        )
+
+    @router.delete("/absences/{absence_id}", status_code=204)
+    def delete_absence(absence_id: str) -> None:
+        """Remove an absence."""
+        ctx.worktime.delete_absence(absence_id)
 
     @router.get("/reports/day")
     def day_report(

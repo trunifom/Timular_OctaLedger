@@ -46,6 +46,11 @@ DEFAULT_LOGGING = LoggingSettings()
 DEFAULT_NOTIFICATIONS = NotificationSettings()
 DEFAULT_WORK = WorkSettings()
 DEFAULT_TRAY = TraySettings()
+BREAK_REGIONS = {
+    "off": "Aus (Voreinstellung)",
+    "ch": "Schweiz (Orientierung nach Arbeitsgesetz)",
+    "eu": "EU (Orientierung nach Richtlinie 2003/88/EG)",
+}
 WEEKDAYS = {
     "1": "Montag",
     "2": "Dienstag",
@@ -269,6 +274,28 @@ def render(client: ApiClient, tz: str) -> None:
                     "Abgeblendete Schalter brauchen ein Zusatzpaket (siehe Hilfetext). Ohne das "
                     "Paket funktioniert alles andere unverändert."
                 )
+        with st.expander("Feiertage und Pausenhinweise", key="set_holidays"):
+            holiday_region = st.text_input(
+                "Region für Feiertage (leer = keine)",
+                value=work["holiday_region"],
+                key="set_holiday_region",
+                max_chars=6,
+                placeholder="CH-ZH",
+                help="Land oder Land-Region, z. B. CH, CH-ZH, DE-BY oder AT. Feiertage senken das "
+                "Soll im Saldo auf 0. Braucht das Zusatzpaket „holidays“ (pip install "
+                "octaledger[holidays]); eigene Feiertage tragen Sie als Abwesenheit ein. "
+                "Voreinstellung: leer.",
+            )
+            break_region = st.selectbox(
+                "Pausenhinweise",
+                list(BREAK_REGIONS),
+                index=list(BREAK_REGIONS).index(work["break_region"]),
+                format_func=BREAK_REGIONS.__getitem__,
+                key="set_break_region",
+                help="Einmal pro Tag ein Hinweis, wenn lange ohne erfasste Pause gearbeitet wurde. "
+                "Nur eine Orientierung – keine Rechtsberatung und kein automatischer Abzug "
+                "(Quellen und Stand: docs/QUELLEN_UND_GRENZEN.md). Voreinstellung: aus.",
+            )
         submitted = st.form_submit_button(
             "💾 Einstellungen speichern",
             type="primary",
@@ -299,6 +326,8 @@ def render(client: ApiClient, tz: str) -> None:
                 "idle_minutes": int(idle),
                 "reminder_no_timer_after": no_timer,
                 "reminder_running_hours": int(running_hours),
+                "holiday_region": holiday_region,
+                "break_region": break_region,
             },
         }
         saved, _ = call(client.update_settings, changes)

@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Soll, Saldo, Pausenhinweise, AP-40)
+- Soll je Wochentag (versioniert nach Gültig-ab-Datum), Abwesenheiten, optionale gesetzliche Feiertage (Extra `holidays`), Saldo je lokalem Tag (Reiter „Soll und Saldo“ auf *Statistik*, `GET /reports/balance`). Migration 0006.
+- Pausenhinweise (Voreinstellung aus; Orientierung, keine Rechtsberatung) als Rückfrage `break_hint`.
+- **Sicherung Schema 3:** einfache Tabellen (`device_buttons`, `work_schedule`, `absences`) im Abschnitt `tables`; Schema 1 und 2 bleiben lesbar.
+
 ### Hinzugefügt (Tray, Hinweise, Autostart, AP-39)
 - Autostart über den Benutzer-Run-Schlüssel (`octaledger autostart on|off|status`, `GET/PUT /system/autostart`, Schalter unter *App*), Zustand wird gelesen.
 - Tray-Symbol (optionales Extra `tray`, Zustand als Farbe, Tooltip, Menü) und Windows-Hinweise (optionales Extra `toast`, Ruhezeit) für neue Rückfragen; Einstellungen `tray`, `notifications.toast/quiet_*`.

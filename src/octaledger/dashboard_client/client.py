@@ -623,6 +623,58 @@ class ApiClient:
         )
         return result
 
+    def balance(self, first: date, last: date, tz: str | None = None) -> dict[str, Any]:
+        """Target, actual and running balance per local day."""
+        result: dict[str, Any] = self._get(
+            "/reports/balance", first=first.isoformat(), last=last.isoformat(), tz=tz
+        )
+        return result
+
+    def schedule(self) -> list[dict[str, Any]]:
+        """The target working time per weekday (one entry per valid-from date)."""
+        result: list[dict[str, Any]] = self._get("/schedule")
+        return result
+
+    def set_schedule(self, valid_from: date, minutes: list[int]) -> list[dict[str, Any]]:
+        """Create or replace the schedule that starts on ``valid_from``."""
+        result: list[dict[str, Any]] = self._request(
+            "PUT", "/schedule", json={"valid_from": valid_from.isoformat(), "minutes": minutes}
+        )
+        return result
+
+    def delete_schedule(self, valid_from: date) -> list[dict[str, Any]]:
+        """Remove one schedule version."""
+        result: list[dict[str, Any]] = self._request(
+            "DELETE", f"/schedule/{valid_from.isoformat()}"
+        )
+        return result
+
+    def absences(self) -> list[dict[str, Any]]:
+        """All absences."""
+        result: list[dict[str, Any]] = self._get("/absences")
+        return result
+
+    def add_absence(
+        self,
+        start: date,
+        end: date,
+        kind: str,
+        target_minutes: int | None = None,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        """Record an absence."""
+        body: dict[str, Any] = {"start": start.isoformat(), "end": end.isoformat(), "kind": kind}
+        if target_minutes is not None:
+            body["target_minutes"] = target_minutes
+        if note:
+            body["note"] = note
+        result: dict[str, Any] = self._post("/absences", body)
+        return result
+
+    def delete_absence(self, absence_id: str) -> None:
+        """Remove an absence."""
+        self._request("DELETE", f"/absences/{absence_id}")
+
     def autostart(self) -> dict[str, Any]:
         """Whether OctaLedger starts with Windows (read from the registry)."""
         result: dict[str, Any] = self._get("/system/autostart")

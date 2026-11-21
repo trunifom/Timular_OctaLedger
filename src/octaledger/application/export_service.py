@@ -61,6 +61,7 @@ from octaledger.domain.models import (
 )
 from octaledger.domain.time_rules import ensure_utc, parse_timezone, utc_now
 from octaledger.infrastructure.storage.repositories import (
+    SIMPLE_TABLES,
     AuditEntry,
     BackupContent,
     Storage,
@@ -73,8 +74,10 @@ logger = logging.getLogger(__name__)
 BACKUP_FORMAT: Final = "octaledger-backup"
 #: Highest backup schema version this program can read and the one it writes.
 #: v2 adds the device mode, integrations (settings only, **never secrets**) and face actions;
-#: v1 files are still read (every device then is in time mode and there are no integrations).
-BACKUP_SCHEMA_VERSION: Final = 2
+#: v3 adds the plain tables (button assignments, target working time, absences; see
+#: ``SIMPLE_TABLES``) in a ``tables`` section. v1 and v2 files are still read (the missing parts
+#: are empty).
+BACKUP_SCHEMA_VERSION: Final = 3
 #: Largest backup file accepted (bytes).
 MAX_BACKUP_BYTES: Final = 200 * 1024 * 1024
 
@@ -112,7 +115,8 @@ _DATA_KEYS_V1: Final = frozenset(
         "app_state",
     }
 )
-_DATA_KEYS: Final = _DATA_KEYS_V1 | {"integrations", "face_actions"}
+_DATA_KEYS_V2: Final = _DATA_KEYS_V1 | {"integrations", "face_actions"}
+_DATA_KEYS: Final = _DATA_KEYS_V2 | {"tables"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -409,6 +413,10 @@ class ExportService:
                 for a in content.audit
             ],
             "app_state": dict(content.state or {}),
+            "tables": {
+                name: [dict(zip(SIMPLE_TABLES[name], row, strict=True)) for row in rows]
+                for name, rows in content.tables.items()
+            },
         }
 
     @staticmethod
@@ -500,7 +508,7 @@ class ExportService:
             data: The ``data`` section of the document.
             version: The file's schema version; a v1 file has no mode, integrations or actions.
         """
-        expected = _DATA_KEYS if version >= 2 else _DATA_KEYS_V1
+        expected = _DATA_KEYS if version >= 3 else _DATA_KEYS_V2 if version == 2 else _DATA_KEYS_V1
         if set(data) != expected:
             raise cls._fail(
                 f"Unexpected data sections: {sorted(set(data) ^ expected)}",
@@ -526,7 +534,9 @@ class ExportService:
         ):
             raise cls._fail("app_state must map text to text", "„app_state“ ist fehlerhaft")
 
+        tables = cls._decode_tables(data.get("tables", {}) if version >= 3 else {})
         content = BackupContent(
+            tables=tables,
             devices=cls._build(
                 data,
                 "devices",
@@ -667,6 +677,31 @@ class ExportService:
         )
         cls._check_integrity(content)
         return content
+
+    @classmethod
+    def _decode_tables(cls, raw: Any) -> dict[str, tuple[tuple[Any, ...], ...]]:
+        """Validate the ``tables`` section: known tables, exact columns, plain values."""
+        if not isinstance(raw, dict) or not set(raw) <= set(SIMPLE_TABLES):
+            raise cls._fail("Unknown or malformed tables section", "„tables“ ist fehlerhaft")
+        tables: dict[str, tuple[tuple[Any, ...], ...]] = {}
+        for name, columns in SIMPLE_TABLES.items():
+            records = raw.get(name, [])
+            if not isinstance(records, list):
+                raise cls._fail(f"'{name}' must be a list", f"„{name}“ ist fehlerhaft")
+            rows: list[tuple[Any, ...]] = []
+            for index, record in enumerate(records):
+                if (
+                    not isinstance(record, dict)
+                    or set(record) != set(columns)
+                    or not all(v is None or isinstance(v, (str, int)) for v in record.values())
+                ):
+                    raise cls._fail(
+                        f"Invalid {name} record #{index + 1}",
+                        f"{name} Nr. {index + 1} ist ungültig",
+                    )
+                rows.append(tuple(record[c] for c in columns))
+            tables[name] = tuple(rows)
+        return tables
 
     @classmethod
     def _check_integrity(cls, content: BackupContent) -> None:
