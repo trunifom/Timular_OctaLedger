@@ -95,6 +95,7 @@ octaledger/
   src/octaledger/dashboard/views/catalog.py
   src/octaledger/dashboard/views/connections.py
   src/octaledger/dashboard/views/data.py
+  src/octaledger/dashboard/views/data_cleanup.py
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
   src/octaledger/dashboard/views/faces.py
@@ -141,6 +142,7 @@ octaledger/
   tests/gui/test_gui_connections.py
   tests/gui/test_gui_control.py
   tests/gui/test_gui_core.py
+  tests/gui/test_gui_data_cleanup.py
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_devices_catalog.py
   tests/gui/test_gui_faces.py

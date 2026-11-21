@@ -8,6 +8,7 @@ from typing import Any
 import streamlit as st
 
 from octaledger.dashboard.ui import call, from_local, page_help
+from octaledger.dashboard.views import data_cleanup
 from octaledger.dashboard_client.client import ApiClient
 
 DELIMITERS = {";": "Semikolon (deutsches Excel)", ",": "Komma", "\t": "Tabulator"}
@@ -39,15 +40,23 @@ def render(client: ApiClient, tz: str) -> None:
         "OctaLedger automatisch eine Kopie des aktuellen Stands an. Bei jedem Problem bleibt alles "
         "unverändert.\n"
         "- Testen Sie das Wiederherstellen einmal in Ruhe: Erst eine erfolgreich getestete "
-        "Sicherung ist belastbar.",
+        "Sicherung ist belastbar.\n"
+        "- **Wiederherstellen** ist zugleich der **Import**: Sie können jede OctaLedger-Sicherung "
+        "Sicherung einspielen, auch auf einem anderen Rechner.\n"
+        "- **Löschen:** gezielt Einträge eines Zeitraums oder alles zurücksetzen. Vorher gibt es "
+        "immer eine automatische Sicherung, die Ihr Rückgängig ist.",
     )
-    export_tab, backup_tab, restore_tab = st.tabs(["CSV-Export", "Sicherung", "Wiederherstellen"])
+    export_tab, backup_tab, restore_tab, delete_tab = st.tabs(
+        ["CSV-Export", "Sicherung", "Wiederherstellen", "Löschen"]
+    )
     with export_tab:
         _export(client, tz)
     with backup_tab:
         _backup(client)
     with restore_tab:
         _restore(client)
+    with delete_tab:
+        data_cleanup.render(client, tz)
 
 
 def _export(client: ApiClient, tz: str) -> None:

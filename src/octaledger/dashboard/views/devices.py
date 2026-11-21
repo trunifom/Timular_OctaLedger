@@ -38,6 +38,9 @@ def render(client: ApiClient, tz: str) -> None:
         "**Aktiver Tracker:** Nur er erzeugt Zeiten. Mit *Zum aktiven Tracker machen* wechseln Sie "
         "ausdrücklich (die Zeit des alten Trackers endet dabei, es entsteht keine doppelte Zeit).",
     )
+    flash = st.session_state.pop("devices_flash", None)
+    if flash:
+        st.success(flash)
     ok, devices = call(client.devices)
     ok_a, activities = call(client.list_items, "activities")
     ok_p, projects = call(client.list_items, "projects")
@@ -320,9 +323,13 @@ def _save_calibration(
         st.rerun()
 
 
+ASK_REMOVE_KEY = "devices_ask_remove"  # id of the cube whose removal is being confirmed
+
+
 def _manage(client: ApiClient, device: dict[str, Any]) -> None:
+    """Rename, unpair and remove a cube (removal is a two-step action with a safety backup)."""
     did = device["id"]
-    with st.expander("Umbenennen oder löschen"):
+    with st.expander("Verwalten: umbenennen, Kopplung aufheben, entfernen", key=f"manage_{did}"):
         new_alias = st.text_input(
             "Neuer Name",
             value=device["alias"],
@@ -333,17 +340,78 @@ def _manage(client: ApiClient, device: dict[str, Any]) -> None:
         if st.button("✏️ Umbenennen", key=f"rename_btn_{did}", help="Speichert den neuen Namen."):
             if call(client.rename_device, did, new_alias)[0]:
                 st.rerun()
-        confirm = st.checkbox(
-            f"Ja, „{device['alias']}“ löschen",
-            key=f"delete_confirm_{did}",
-            help="Löschen ist nur möglich, solange für das Gerät noch keine Daten aufgezeichnet "
-            "wurden.",
+
+        st.markdown("**Kopplung aufheben**")
+        st.caption(
+            "Beendet die Verbindung und vergisst die Bluetooth-Adresse. Der Würfel, seine Seiten "
+            "und alle erfassten Daten bleiben erhalten; Sie können ihn jederzeit neu koppeln "
+            "(Bluetooth-Suche oben). Sinnvoll, wenn Sie einen anderen Würfel verwenden wollen."
         )
         if st.button(
-            "🗑 Löschen",
-            key=f"delete_{did}",
-            disabled=not confirm,
-            help="Entfernt den Tracker samt Seitenzuordnung.",
+            "Kopplung aufheben",
+            key=f"unpair_{did}",
+            icon=":material/link_off:",
+            disabled=not device["has_address"],
+            help="Trennt den Würfel und vergisst seine Adresse; nichts wird gelöscht.",
         ):
-            if call(client.remove_device, did)[0]:
+            if call(client.unpair_device, did)[0]:
+                st.session_state["_scan"] = None
                 st.rerun()
+
+        st.markdown("**Würfel entfernen**")
+        st.caption(
+            "Entfernt den Würfel mitsamt Seitenzuordnung und Aktionen. Hat er bereits Daten "
+            "erfasst, müssen Sie entscheiden, ob diese mit gelöscht werden."
+        )
+        if st.button(
+            "Entfernen …",
+            key=f"remove_ask_{did}",
+            icon=":material/delete:",
+            help="Fragt noch einmal nach. Entfernt wird erst danach.",
+        ):
+            st.session_state[ASK_REMOVE_KEY] = did
+        if st.session_state.get(ASK_REMOVE_KEY) == did:
+            _confirm_remove(client, device)
+
+
+def _confirm_remove(client: ApiClient, device: dict[str, Any]) -> None:
+    did = device["id"]
+    with st.container(border=True, key=f"remove_confirm_{did}"):
+        with_data = st.checkbox(
+            "Auch alle mit diesem Würfel erfassten Daten löschen (Einträge und Rohereignisse)",
+            key=f"remove_data_{did}",
+            help="Ohne Haken lässt sich nur ein Würfel ohne Daten entfernen. Mit Haken legt "
+            "OctaLedger vorher automatisch eine Sicherung an (Ihr Rückgängig).",
+        )
+        st.warning(
+            f"„{device['alias']}“ wird entfernt"
+            + (" – samt aller erfassten Daten." if with_data else ".")
+            + " Das lässt sich nicht rückgängig machen"
+            + (" (außer über die Sicherung)." if with_data else "."),
+            icon="⚠️",
+        )
+        yes, no = st.columns(2)
+        if yes.button(
+            "Würfel entfernen",
+            key=f"delete_{did}",
+            type="primary",
+            width="stretch",
+            help="Entfernt den Würfel endgültig.",
+        ):
+            ok, done = call(client.remove_device_with_options, did, with_data)
+            if ok and done:
+                st.session_state.pop(ASK_REMOVE_KEY, None)
+                if done["safety_backup"]:
+                    st.session_state["devices_flash"] = (
+                        f"„{device['alias']}“ wurde entfernt. Sicherung vorher: "
+                        f"**{done['safety_backup']}** (Ordner „backups“)."
+                    )
+                st.rerun()
+        if no.button(
+            "Behalten",
+            key=f"remove_keep_{did}",
+            width="stretch",
+            help="Bricht ab, es wird nichts entfernt.",
+        ):
+            st.session_state.pop(ASK_REMOVE_KEY, None)
+            st.rerun()

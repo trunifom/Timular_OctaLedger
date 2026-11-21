@@ -1,11 +1,13 @@
 """GUI tests for the devices page (registration, scan, calibration) and the management page."""
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
 from octaledger.dashboard_client.client import ApiClient
+from octaledger.domain.models import Session, SessionSource
 from tests.conftest import FakeAgent, RunningApi
 from tests.gui.test_gui_core import button, open_app, texts
 
@@ -183,17 +185,57 @@ def test_calibration_requires_activities(api_server: RunningApi) -> None:
     assert any("Verwaltung" in i.value and "Tätigkeiten" in i.value for i in at.info)
 
 
-def test_rename_and_delete_with_confirmation(api_server: RunningApi) -> None:
+def test_rename_and_remove_with_confirmation(api_server: RunningApi) -> None:
     client = api_server.client
     device = client.register_device("Alt")
     at = open_page(api_server, DEVICES)
     at.text_input(key=f"rename_{device['id']}").input("Neu")
     at.button(key=f"rename_btn_{device['id']}").click().run()
     assert client.devices()[0]["alias"] == "Neu"
-    assert at.button(key=f"delete_{device['id']}").disabled  # needs the checkbox first
-    at.checkbox(key=f"delete_confirm_{device['id']}").check().run()
+    assert f"delete_{device['id']}" not in [b.key for b in at.button]  # asks first
+    at.button(key=f"remove_ask_{device['id']}").click().run()
+    at.button(key=f"remove_keep_{device['id']}").click().run()
+    assert len(client.devices()) == 1  # keeping changes nothing
+    at.button(key=f"remove_ask_{device['id']}").click().run()
     at.button(key=f"delete_{device['id']}").click().run()
     assert client.devices() == []
+
+
+def test_a_cube_with_data_is_removed_only_when_its_data_may_go(api_server: RunningApi) -> None:
+    client = api_server.client
+    device = client.register_device("Mit Daten")
+    activity = client.create_item("activities", "Meeting")
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    with api_server.storage.transaction() as repos:
+        repos.sessions.add(
+            Session(
+                activity_id=activity["id"],
+                device_id=device["id"],
+                source=SessionSource.DEVICE,
+                started_at=now - timedelta(days=2),
+                ended_at=now - timedelta(days=2) + timedelta(hours=1),
+            )
+        )
+    at = open_page(api_server, DEVICES)
+    at.button(key=f"remove_ask_{device['id']}").click().run()
+    at.button(key=f"delete_{device['id']}").click().run()
+    assert "OL-STATE-002" in texts(at) and len(client.devices()) == 1  # data protects the cube
+    at.checkbox(key=f"remove_data_{device['id']}").check().run()
+    at.button(key=f"delete_{device['id']}").click().run()
+    assert client.devices() == []
+    assert any("Sicherung vorher" in s.value for s in at.success)
+
+
+def test_unpairing_forgets_the_address_but_keeps_the_cube(api_server: RunningApi) -> None:
+    client = api_server.client
+    device = client.register_device("Gekoppelt")
+    client.set_device_address(device["id"], "AA:BB:CC")
+    at = open_page(api_server, DEVICES)
+    at.button(key=f"unpair_{device['id']}").click().run()
+    assert (
+        client.devices()[0]["has_address"] is False and client.devices()[0]["alias"] == "Gekoppelt"
+    )
+    assert at.button(key=f"unpair_{device['id']}").disabled  # nothing left to unpair
 
 
 def test_devices_page_widgets_have_help_texts(api_server: RunningApi) -> None:
