@@ -259,7 +259,7 @@ def test_user_supplied_device_name_is_escaped(api_server: RunningApi) -> None:
 def test_catalog_page_create_rename_archive_delete(api_server: RunningApi) -> None:
     client = api_server.client
     at = open_page(api_server, CATALOG)
-    assert at.header[0].value == "Tätigkeiten & Projekte" and len(at.tabs) == 2
+    assert at.header[0].value == "Tätigkeiten & Projekte" and len(at.tabs) == 3
     at.text_input(key="new_name_activities").input("Meeting")
     button(at, "Tätigkeit anlegen").click().run()
     (item,) = client.list_items("activities")

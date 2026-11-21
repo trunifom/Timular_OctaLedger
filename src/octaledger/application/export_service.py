@@ -59,6 +59,7 @@ from octaledger.domain.models import (
     Session,
     SessionSource,
 )
+from octaledger.domain.tags import ProjectBilling, amount_cents
 from octaledger.domain.time_rules import ensure_utc, parse_timezone, utc_now
 from octaledger.infrastructure.storage.repositories import (
     SIMPLE_TABLES,
@@ -97,6 +98,9 @@ CSV_COLUMNS: Final = (
     "quality",
     "revision",
     "note",
+    "tags",
+    "billable",
+    "amount",
 )
 _ALLOWED_DELIMITERS: Final = {";": "semicolon", ",": "comma", "\t": "tab"}
 _FORMULA_PREFIXES: Final = ("=", "+", "-", "@", "\t", "\r", "\n")
@@ -246,6 +250,8 @@ class ExportService:
             activities = {a.id: a.name for a in repos.activities.list_all(include_archived=True)}
             projects = {p.id: p.name for p in repos.projects.list_all(include_archived=True)}
             devices = {d.id: d.alias for d in repos.devices.list_all()}
+            tags = repos.tags.by_session()
+            billing = repos.tags.all_billing()
 
         buffer = io.StringIO()
         writer = csv.writer(buffer, delimiter=delimiter, lineterminator="\r\n")
@@ -275,9 +281,22 @@ class ExportService:
                     session.quality.value,
                     session.revision,
                     neutralize_cell(session.note or ""),
+                    neutralize_cell(", ".join(t.name for t in tags.get(session.id, []))),
+                    *self._billing_cells(session, billing, now),
                 ]
             )
         return buffer.getvalue(), len(sessions)
+
+    @staticmethod
+    def _billing_cells(
+        session: Session, billing: Mapping[str, ProjectBilling], now: datetime
+    ) -> tuple[str, str]:
+        """The ``billable`` and ``amount`` cells: the amount is computed and rounded here."""
+        bill = billing.get(session.project_id or "")
+        if bill is None:
+            return "no", ""
+        cents = amount_cents(session.duration(now), bill.hourly_rate_cents)
+        return ("yes" if bill.billable else "no"), ("" if cents is None else f"{cents / 100:.2f}")
 
     def export_sessions_csv(self, *, filename: str | None = None, **options: Any) -> ExportResult:
         """Write the CSV into the exports folder (UTF-8 with BOM, atomically).

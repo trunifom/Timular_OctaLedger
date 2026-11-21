@@ -72,6 +72,7 @@ octaledger/
   src/octaledger/application/__init__.py
   src/octaledger/application/attention_service.py
   src/octaledger/application/battery_watch.py
+  src/octaledger/application/budget_watch.py
   src/octaledger/application/catalog_service.py
   src/octaledger/application/data_service.py
   src/octaledger/application/device_service.py
@@ -80,6 +81,7 @@ octaledger/
   src/octaledger/application/notifier.py
   src/octaledger/application/outbox.py
   src/octaledger/application/reporting_service.py
+  src/octaledger/application/tag_service.py
   src/octaledger/application/tracking_service.py
   src/octaledger/application/work_time_service.py
   src/octaledger/application/workday_service.py
@@ -105,6 +107,7 @@ octaledger/
   src/octaledger/dashboard/ui.py
   src/octaledger/dashboard/views/__init__.py
   src/octaledger/dashboard/views/catalog.py
+  src/octaledger/dashboard/views/catalog_extras.py
   src/octaledger/dashboard/views/connections.py
   src/octaledger/dashboard/views/data.py
   src/octaledger/dashboard/views/data_cleanup.py
@@ -120,6 +123,7 @@ octaledger/
   src/octaledger/dashboard/views/start.py
   src/octaledger/dashboard/views/statistics.py
   src/octaledger/dashboard/views/statistics_balance.py
+  src/octaledger/dashboard/views/statistics_budget.py
   src/octaledger/dashboard_client/__init__.py
   src/octaledger/dashboard_client/client.py
   src/octaledger/domain/__init__.py
@@ -130,6 +134,7 @@ octaledger/
   src/octaledger/domain/orientation.py
   src/octaledger/domain/schedule.py
   src/octaledger/domain/state_machine.py
+  src/octaledger/domain/tags.py
   src/octaledger/domain/time_rules.py
   src/octaledger/domain/workday.py
   src/octaledger/infrastructure/__init__.py
@@ -156,6 +161,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0004_attention.sql
   src/octaledger/infrastructure/storage/migrations/0005_buttons.sql
   src/octaledger/infrastructure/storage/migrations/0006_work.sql
+  src/octaledger/infrastructure/storage/migrations/0007_tags_budgets.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -225,6 +231,7 @@ octaledger/
   tests/unit/test_settings.py
   tests/unit/test_state_machine.py
   tests/unit/test_supervisor.py
+  tests/unit/test_tags_budgets.py
   tests/unit/test_time_intervals.py
   tests/unit/test_time_rules.py
   tests/unit/test_tracking_service.py

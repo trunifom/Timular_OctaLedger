@@ -28,10 +28,12 @@ from octaledger.api.schemas import (
     API_VERSION,
     AbsenceCreate,
     ActionAssign,
+    ActivityDefaults,
     AddressBody,
     ArchiveBody,
     AttentionResolve,
     AutostartBody,
+    BillingBody,
     ButtonBody,
     CatalogCreate,
     CatalogUpdate,
@@ -58,11 +60,16 @@ from octaledger.api.schemas import (
     SettingsReset,
     SplitBody,
     StartBody,
+    TagCreate,
+    TagIds,
+    TagUpdate,
     absence_out,
     activity_out,
     adapter_out,
     attention_out,
     balance_out,
+    billing_out,
+    budget_out,
     device_out,
     integration_out,
     iso,
@@ -73,6 +80,7 @@ from octaledger.api.schemas import (
     scan_out,
     schedule_out,
     session_out,
+    tag_out,
     tracking_status_out,
 )
 from octaledger.api.security import parse_bearer, verify_token
@@ -395,11 +403,70 @@ def build_router(ctx: AppContext) -> APIRouter:
         device_id: str | None = None,
         activity_id: str | None = None,
         project_id: str | None = None,
+        tag_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """Journal: whole sessions overlapping the window, newest first."""
         moment = now()
-        flt = ReportFilter(start, end, device_id, activity_id, project_id)
+        flt = ReportFilter(start, end, device_id, activity_id, project_id, tag_id)
         return [journal_out(e, moment) for e in ctx.reports.journal(flt)]
+
+    # ------------------------------------------------------------- tags and billing
+    @router.get("/tags")
+    def list_tags() -> list[dict[str, Any]]:
+        """All tags by name."""
+        return [tag_out(t) for t in ctx.tag_service.list_tags()]
+
+    @router.post("/tags", status_code=201)
+    def create_tag(body: TagCreate) -> dict[str, Any]:
+        """Create a tag (names are unique, case-insensitive)."""
+        return tag_out(ctx.tag_service.create_tag(body.name, body.color))
+
+    @router.put("/tags/{tag_id}")
+    def update_tag(tag_id: str, body: TagUpdate) -> dict[str, Any]:
+        """Rename or recolour a tag."""
+        return tag_out(ctx.tag_service.update_tag(tag_id, body.name, body.color))
+
+    @router.delete("/tags/{tag_id}", status_code=204)
+    def delete_tag(tag_id: str) -> None:
+        """Delete a tag; it disappears from all entries and activities."""
+        ctx.tag_service.delete_tag(tag_id)
+
+    @router.put("/sessions/{session_id}/tags")
+    def set_session_tags(session_id: str, body: TagIds) -> list[dict[str, Any]]:
+        """Replace the tags of an entry."""
+        return [tag_out(t) for t in ctx.tag_service.set_session_tags(session_id, body.tag_ids)]
+
+    @router.get("/activities/{activity_id}/defaults")
+    def get_activity_defaults(activity_id: str) -> dict[str, Any]:
+        """Default tags and note template of an activity."""
+        data = ctx.tag_service.get_activity_defaults(activity_id)
+        tags: Any = data["tags"]
+        return {"tags": [tag_out(t) for t in tags], "note_template": data["note_template"]}
+
+    @router.put("/activities/{activity_id}/defaults")
+    def set_activity_defaults(activity_id: str, body: ActivityDefaults) -> dict[str, Any]:
+        """Set the tags new entries of the activity get and its note template."""
+        ctx.tag_service.set_activity_defaults(activity_id, body.tag_ids, body.note_template)
+        return get_activity_defaults(activity_id)
+
+    @router.get("/projects/{project_id}/billing")
+    def get_billing(project_id: str) -> dict[str, Any]:
+        """Budget, hourly rate and billable flag of a project."""
+        return billing_out(ctx.tag_service.get_billing(project_id))
+
+    @router.put("/projects/{project_id}/billing")
+    def set_billing(project_id: str, body: BillingBody) -> dict[str, Any]:
+        """Set budget (minutes), hourly rate (cents) and billable flag of a project."""
+        return billing_out(
+            ctx.tag_service.set_billing(
+                project_id, body.budget_minutes, body.hourly_rate_cents, body.billable
+            )
+        )
+
+    @router.get("/reports/budgets")
+    def budgets() -> list[dict[str, Any]]:
+        """Used time, budget share and amount per project with billing information."""
+        return [budget_out(b) for b in ctx.reports.budgets()]
 
     # ---------------------------------------------------------------------- system
     def autostart_out() -> dict[str, Any]:

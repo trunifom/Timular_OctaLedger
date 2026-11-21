@@ -465,6 +465,7 @@ class ApiClient:
         device_id: str | None = None,
         activity_id: str | None = None,
         project_id: str | None = None,
+        tag_id: str | None = None,
     ) -> list[dict[str, Any]]:
         """Whole sessions overlapping the window, newest first."""
         result: list[dict[str, Any]] = self._get(
@@ -474,6 +475,7 @@ class ApiClient:
             device_id=device_id,
             activity_id=activity_id,
             project_id=project_id,
+            tag_id=tag_id,
         )
         return result
 
@@ -621,6 +623,83 @@ class ApiClient:
         result: dict[str, Any] = self._post(
             f"/devices/{device_id}/remove", {"delete_data": delete_data}
         )
+        return result
+
+    def tags(self) -> list[dict[str, Any]]:
+        """All tags."""
+        result: list[dict[str, Any]] = self._get("/tags")
+        return result
+
+    def create_tag(self, name: str, color: str | None = None) -> dict[str, Any]:
+        """Create a tag."""
+        body: dict[str, Any] = {"name": name}
+        if color:
+            body["color"] = color
+        result: dict[str, Any] = self._post("/tags", body)
+        return result
+
+    def update_tag(
+        self, tag_id: str, name: str | None = None, color: str | None = None
+    ) -> dict[str, Any]:
+        """Rename or recolour a tag."""
+        body = {k: v for k, v in (("name", name), ("color", color)) if v is not None}
+        result: dict[str, Any] = self._request("PUT", f"/tags/{tag_id}", json=body)
+        return result
+
+    def delete_tag(self, tag_id: str) -> None:
+        """Delete a tag."""
+        self._request("DELETE", f"/tags/{tag_id}")
+
+    def set_session_tags(self, session_id: str, tag_ids: list[str]) -> list[dict[str, Any]]:
+        """Replace the tags of an entry."""
+        result: list[dict[str, Any]] = self._request(
+            "PUT", f"/sessions/{session_id}/tags", json={"tag_ids": tag_ids}
+        )
+        return result
+
+    def activity_defaults(self, activity_id: str) -> dict[str, Any]:
+        """Default tags and note template of an activity."""
+        result: dict[str, Any] = self._get(f"/activities/{activity_id}/defaults")
+        return result
+
+    def set_activity_defaults(
+        self, activity_id: str, tag_ids: list[str], note_template: str | None
+    ) -> dict[str, Any]:
+        """Set default tags and note template of an activity."""
+        result: dict[str, Any] = self._request(
+            "PUT",
+            f"/activities/{activity_id}/defaults",
+            json={"tag_ids": tag_ids, "note_template": note_template},
+        )
+        return result
+
+    def project_billing(self, project_id: str) -> dict[str, Any]:
+        """Budget, hourly rate and billable flag of a project."""
+        result: dict[str, Any] = self._get(f"/projects/{project_id}/billing")
+        return result
+
+    def set_project_billing(
+        self,
+        project_id: str,
+        budget_minutes: int | None,
+        hourly_rate_cents: int | None,
+        billable: bool,
+    ) -> dict[str, Any]:
+        """Set budget, hourly rate and billable flag of a project."""
+        result: dict[str, Any] = self._request(
+            "PUT",
+            f"/projects/{project_id}/billing",
+            json={
+                "budget_minutes": budget_minutes,
+                "hourly_rate_cents": hourly_rate_cents,
+                "billable": billable,
+            },
+        )
+        return result
+
+    def budgets(self) -> list[dict[str, Any]]:
+        """Used time, budget share and amount per project with billing information."""
+        result: list[dict[str, Any]] = self._get("/reports/budgets")
         return result
 
     def balance(self, first: date, last: date, tz: str | None = None) -> dict[str, Any]:

@@ -260,3 +260,67 @@ def test_holiday_and_break_settings_have_defaults_and_help(api_server: RunningAp
     assert at.text_input(key="set_holiday_region").value == ""
     assert at.selectbox(key="set_break_region").value == "off"
     assert "keine Rechtsberatung" in at.selectbox(key="set_break_region").help
+
+
+def test_tags_billing_and_budget_pages(api_server: RunningApi) -> None:
+    client = api_server.client
+    activity = client.create_item("activities", "Code")["id"]
+    project = client.create_item("projects", "Alpha")["id"]
+    tag = client.create_tag("Kunde", "#112233")
+    at = open_page(api_server, "catalog")
+    assert [t.label for t in at.tabs][:3] == ["Tätigkeiten", "Projekte", "Tags"]
+    assert at.text_input(key=f"tag_name_{tag['id']}").value == "Kunde"
+    at.multiselect(key=f"act_tags_{activity}").select(tag["id"]).run()
+    at.button(key=f"act_defaults_save_{activity}").click().run()
+    assert [t["name"] for t in client.activity_defaults(activity)["tags"]] == ["Kunde"]
+    at.number_input(key=f"proj_budget_{project}").set_value(2.0)
+    at.number_input(key=f"proj_rate_{project}").set_value(100.0)
+    at.checkbox(key=f"proj_billable_{project}").check().run()
+    at.button(key=f"proj_billing_save_{project}").click().run()
+    saved = client.project_billing(project)
+    assert (saved["budget_minutes"], saved["hourly_rate_cents"], saved["billable"]) == (
+        120,
+        10000,
+        True,
+    )
+    stats = open_page(api_server, "statistics")
+    assert "Projekte & Budget" in [t.label for t in stats.tabs]
+    assert any("Alpha" in m.value for m in stats.markdown)
+    widgets = [*at.number_input, *at.multiselect, *at.checkbox, *at.text_area]
+    assert all(w.help for w in widgets if w.key and w.key.startswith(("proj_", "act_")))
+
+
+def test_the_journal_offers_tag_filter_and_entry_tags(api_server: RunningApi) -> None:
+    client = api_server.client
+    activity = client.create_item("activities", "Code")["id"]
+    tag = client.create_tag("Fokus")
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    start = now - timedelta(hours=3)
+    session = client.add_session(activity, start, start + timedelta(hours=1))
+    at = open_page(api_server, "journal")
+    assert at.selectbox(key="journal_tag").help
+    at.multiselect(key=f"entry_tags_{session['id']}").select("Fokus").run()
+    at.button(key=f"entry_tags_save_{session['id']}").click().run()
+    assert client.journal(start - timedelta(hours=1), now)[0]["tags"] == ["Fokus"]
+    assert client.journal(start - timedelta(hours=1), now, tag_id=tag["id"])
+
+
+def test_budget_reminder_text(api_server: RunningApi) -> None:
+    from octaledger.domain.attention import AttentionItem, AttentionKind
+
+    with api_server.storage.transaction() as repos:
+        repos.attention.add(
+            AttentionItem(
+                kind=AttentionKind.REMINDER,
+                created_at=datetime.now(timezone.utc),
+                payload={
+                    "reason": "budget",
+                    "project": "Alpha",
+                    "percent": 80,
+                    "used_minutes": 96,
+                    "budget_minutes": 120,
+                },
+            )
+        )
+    at = open_page(api_server, "journal")
+    assert any("Budget „Alpha“ zu 80 % verbraucht" in w.value for w in at.warning)

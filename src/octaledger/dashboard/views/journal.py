@@ -87,8 +87,18 @@ def _quick_ranges() -> None:
 
 
 def _filters(
-    activities: list[dict[str, Any]], projects: list[dict[str, Any]], devices: list[dict[str, Any]]
-) -> tuple[date, date, dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    activities: list[dict[str, Any]],
+    projects: list[dict[str, Any]],
+    devices: list[dict[str, Any]],
+    tags: list[dict[str, Any]],
+) -> tuple[
+    date,
+    date,
+    dict[str, Any] | None,
+    dict[str, Any] | None,
+    dict[str, Any] | None,
+    dict[str, Any] | None,
+]:
     today = date.today()
     _quick_ranges()
     first, second = st.columns(2)
@@ -106,7 +116,7 @@ def _filters(
         format="DD.MM.YYYY",
         help="Letzter Tag des Zeitraums, einschließlich.",
     )
-    a_col, p_col, d_col = st.columns(3)
+    a_col, p_col, d_col, t_col = st.columns(4)
     activity = a_col.selectbox(
         "Tätigkeit",
         [None, *activities],
@@ -128,7 +138,14 @@ def _filters(
         format_func=lambda d: ALL if d is None else d["alias"],
         help="Nur Zeiten, die dieser Tracker erzeugt hat.",
     )
-    return start, end, activity, project, device
+    tag = t_col.selectbox(
+        "Tag",
+        [None, *tags],
+        key="journal_tag",
+        format_func=lambda t: ALL if t is None else t["name"],
+        help="Nur Zeiten mit diesem Tag anzeigen.",
+    )
+    return start, end, activity, project, device, tag
 
 
 def _journal(
@@ -138,7 +155,9 @@ def _journal(
     projects: list[dict[str, Any]],
     devices: list[dict[str, Any]],
 ) -> None:
-    start, end, activity, project, device = _filters(activities, projects, devices)
+    ok_t, tags = call(client.tags)
+    tags = tags if ok_t and tags is not None else []
+    start, end, activity, project, device, tag = _filters(activities, projects, devices, tags)
     if end < start:
         st.error("Das Ende liegt vor dem Beginn. Bitte den Zeitraum korrigieren.")
         return
@@ -149,6 +168,7 @@ def _journal(
         device_id=device["id"] if device else None,
         activity_id=activity["id"] if activity else None,
         project_id=project["id"] if project else None,
+        tag_id=tag["id"] if tag else None,
     )
     if not ok or entries is None:
         return
@@ -169,6 +189,7 @@ def _journal(
                     "Gerät": e["device_alias"] or "von Hand",
                     "Qualität": QUALITY_LABELS.get(e["quality"], e["quality"]),
                     "Rev.": e["revision"],
+                    "Tags": ", ".join(e.get("tags", [])),
                     "Notiz": e["note"] or "",
                 }
                 for e in entries
@@ -184,6 +205,7 @@ def _journal(
         entries,
         [a for a in activities if not a["archived"]],
         [p for p in projects if not p["archived"]],
+        tags,
     )
 
 
@@ -198,6 +220,7 @@ def _edit(
     entries: list[dict[str, Any]],
     activities: list[dict[str, Any]],
     projects: list[dict[str, Any]],
+    tags: list[dict[str, Any]],
 ) -> None:
     st.subheader("Eintrag bearbeiten")
     entry = st.selectbox(
@@ -210,7 +233,9 @@ def _edit(
     if entry is None:
         return
     sid = entry["id"]
-    correct_tab, split_tab, delete_tab = st.tabs(["Korrigieren", "Teilen", "Löschen"])
+    correct_tab, tags_tab, split_tab, delete_tab = st.tabs(
+        ["Korrigieren", "Tags", "Teilen", "Löschen"]
+    )
     with correct_tab:
         _correct_form(client, tz, entry, activities, projects)
         if entry["quality"] == "uncertain" and st.button(
@@ -220,6 +245,8 @@ def _edit(
         ):
             if call(client.confirm_session, sid)[0]:
                 st.rerun()
+    with tags_tab:
+        _tag_form(client, entry, tags)
     with split_tab:
         _split_form(client, tz, entry)
     with delete_tab:
@@ -242,6 +269,30 @@ def _edit(
         ):
             if call(client.delete_session, sid, reason)[0]:
                 st.rerun()
+
+
+def _tag_form(client: ApiClient, entry: dict[str, Any], tags: list[dict[str, Any]]) -> None:
+    """Choose the tags of one entry."""
+    sid = entry["id"]
+    if not tags:
+        st.info("Noch keine Tags. Legen Sie sie unter *Tätigkeiten & Projekte* → *Tags* an.")
+        return
+    by_name = {t["name"]: t["id"] for t in tags}
+    chosen = st.multiselect(
+        "Tags dieses Eintrags",
+        list(by_name),
+        default=[n for n in entry.get("tags", []) if n in by_name],
+        key=f"entry_tags_{sid}",
+        help="Wählen Sie die Tags, die zu diesem Eintrag gehören. Die Änderung wird im Protokoll "
+        "festgehalten.",
+    )
+    if st.button(
+        "💾 Tags speichern",
+        key=f"entry_tags_save_{sid}",
+        help="Speichert die Tags dieses Eintrags.",
+    ):
+        if call(client.set_session_tags, sid, [by_name[n] for n in chosen])[0]:
+            st.rerun()
 
 
 def _datetime_inputs(prefix: str, tz: str, iso_value: str | None, label: str) -> tuple[date, time]:

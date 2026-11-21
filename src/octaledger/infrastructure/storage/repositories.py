@@ -57,6 +57,7 @@ from octaledger.domain.models import (
     new_id,
 )
 from octaledger.domain.schedule import Absence, AbsenceKind, WorkSchedule
+from octaledger.domain.tags import ProjectBilling, Tag
 from octaledger.domain.time_rules import ensure_utc, utc_now
 from octaledger.infrastructure.storage.database import Database, translate_sqlite_error
 
@@ -1748,6 +1749,186 @@ class AbsenceRepository:
             )
 
 
+class TagRepository:
+    """Tags on entries, default tags and note templates of activities, billing of projects."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _tag(row: sqlite3.Row) -> Tag:
+        return _load(lambda: Tag(row["name"], row["color"], row["id"]), "tag", row["id"])
+
+    # ------------------------------------------------------------------------ tags
+    def add(self, tag: Tag) -> Tag:
+        """Store a tag (names are unique, case-insensitive)."""
+        with _db_errors("add tag"):
+            self._c.execute(
+                "INSERT INTO tags (id, name, color) VALUES (?, ?, ?)", (tag.id, tag.name, tag.color)
+            )
+        return tag
+
+    def get(self, tag_id: str) -> Tag | None:
+        """Return a tag or ``None``."""
+        with _db_errors("read tag"):
+            row = self._c.execute("SELECT * FROM tags WHERE id = ?", (tag_id,)).fetchone()
+        return None if row is None else self._tag(row)
+
+    def require(self, tag_id: str) -> Tag:
+        """Return a tag or raise :class:`NotFoundError`."""
+        tag = self.get(tag_id)
+        if tag is None:
+            raise NotFoundError(f"Tag {tag_id} not found", user_message="Diesen Tag gibt es nicht.")
+        return tag
+
+    def list_all(self) -> list[Tag]:
+        """Return all tags by name."""
+        with _db_errors("list tags"):
+            rows = self._c.execute("SELECT * FROM tags ORDER BY name COLLATE NOCASE").fetchall()
+        return [self._tag(r) for r in rows]
+
+    def update(self, tag: Tag) -> Tag:
+        """Rename or recolour a tag."""
+        self.require(tag.id)
+        with _db_errors("update tag"):
+            self._c.execute(
+                "UPDATE tags SET name = ?, color = ? WHERE id = ?", (tag.name, tag.color, tag.id)
+            )
+        return tag
+
+    def delete(self, tag_id: str) -> None:
+        """Delete a tag (it disappears from all entries and activities)."""
+        self.require(tag_id)
+        with _db_errors("delete tag"):
+            self._c.execute("DELETE FROM tags WHERE id = ?", (tag_id,))
+
+    # ----------------------------------------------------------- tags of entries
+    def of_session(self, session_id: str) -> list[Tag]:
+        """Return the tags of one entry."""
+        with _db_errors("read session tags"):
+            rows = self._c.execute(
+                "SELECT t.* FROM tags t JOIN session_tags s ON s.tag_id = t.id "
+                "WHERE s.session_id = ? ORDER BY t.name COLLATE NOCASE",
+                (session_id,),
+            ).fetchall()
+        return [self._tag(r) for r in rows]
+
+    def by_session(self) -> dict[str, list[Tag]]:
+        """Return the tags of every tagged entry (one query for lists)."""
+        with _db_errors("read session tags"):
+            rows = self._c.execute(
+                "SELECT s.session_id AS sid, t.* FROM tags t "
+                "JOIN session_tags s ON s.tag_id = t.id ORDER BY t.name COLLATE NOCASE"
+            ).fetchall()
+        result: dict[str, list[Tag]] = {}
+        for row in rows:
+            result.setdefault(row["sid"], []).append(self._tag(row))
+        return result
+
+    def sessions_with(self, tag_id: str) -> set[str]:
+        """Return the ids of the entries that carry a tag."""
+        with _db_errors("read tagged sessions"):
+            rows = self._c.execute(
+                "SELECT session_id FROM session_tags WHERE tag_id = ?", (tag_id,)
+            ).fetchall()
+        return {str(r["session_id"]) for r in rows}
+
+    def set_session_tags(self, session_id: str, tag_ids: Sequence[str]) -> None:
+        """Replace the tags of an entry."""
+        with _db_errors("write session tags"):
+            self._c.execute("DELETE FROM session_tags WHERE session_id = ?", (session_id,))
+            self._c.executemany(
+                "INSERT INTO session_tags (session_id, tag_id) VALUES (?, ?)",
+                [(session_id, t) for t in dict.fromkeys(tag_ids)],
+            )
+
+    # ------------------------------------------------------ defaults of activities
+    def activity_tags(self, activity_id: str) -> list[Tag]:
+        """Return the tags a new entry of the activity receives automatically."""
+        with _db_errors("read activity tags"):
+            rows = self._c.execute(
+                "SELECT t.* FROM tags t JOIN activity_tags a ON a.tag_id = t.id "
+                "WHERE a.activity_id = ? ORDER BY t.name COLLATE NOCASE",
+                (activity_id,),
+            ).fetchall()
+        return [self._tag(r) for r in rows]
+
+    def set_activity_tags(self, activity_id: str, tag_ids: Sequence[str]) -> None:
+        """Replace the default tags of an activity."""
+        with _db_errors("write activity tags"):
+            self._c.execute("DELETE FROM activity_tags WHERE activity_id = ?", (activity_id,))
+            self._c.executemany(
+                "INSERT INTO activity_tags (activity_id, tag_id) VALUES (?, ?)",
+                [(activity_id, t) for t in dict.fromkeys(tag_ids)],
+            )
+
+    def note_template(self, activity_id: str) -> str | None:
+        """Return the note template of an activity, if any."""
+        with _db_errors("read note template"):
+            row = self._c.execute(
+                "SELECT template FROM activity_notes WHERE activity_id = ?", (activity_id,)
+            ).fetchone()
+        return None if row is None else str(row["template"])
+
+    def set_note_template(self, activity_id: str, template: str | None) -> None:
+        """Set (or, with ``None``, remove) the note template of an activity."""
+        with _db_errors("write note template"):
+            if template is None:
+                self._c.execute("DELETE FROM activity_notes WHERE activity_id = ?", (activity_id,))
+            else:
+                self._c.execute(
+                    "INSERT INTO activity_notes (activity_id, template) VALUES (?, ?) "
+                    "ON CONFLICT (activity_id) DO UPDATE SET template = excluded.template",
+                    (activity_id, template),
+                )
+
+    # ---------------------------------------------------------------- billing
+    def billing(self, project_id: str) -> ProjectBilling:
+        """Return the billing of a project (an empty one if nothing is set)."""
+        with _db_errors("read project billing"):
+            row = self._c.execute(
+                "SELECT * FROM project_billing WHERE project_id = ?", (project_id,)
+            ).fetchone()
+        if row is None:
+            return ProjectBilling(project_id)
+        return ProjectBilling(
+            project_id, row["budget_minutes"], row["hourly_rate_cents"], bool(row["billable"])
+        )
+
+    def all_billing(self) -> dict[str, ProjectBilling]:
+        """Return the billing of every project that has any."""
+        with _db_errors("read project billing"):
+            rows = self._c.execute("SELECT * FROM project_billing").fetchall()
+        return {
+            str(r["project_id"]): ProjectBilling(
+                r["project_id"], r["budget_minutes"], r["hourly_rate_cents"], bool(r["billable"])
+            )
+            for r in rows
+        }
+
+    def set_billing(self, billing: ProjectBilling) -> None:
+        """Store the billing (an empty one removes the row)."""
+        with _db_errors("write project billing"):
+            if billing.is_empty:
+                self._c.execute(
+                    "DELETE FROM project_billing WHERE project_id = ?", (billing.project_id,)
+                )
+                return
+            self._c.execute(
+                "INSERT INTO project_billing (project_id, budget_minutes, hourly_rate_cents, "
+                "billable) VALUES (?, ?, ?, ?) ON CONFLICT (project_id) DO UPDATE SET "
+                "budget_minutes = excluded.budget_minutes, "
+                "hourly_rate_cents = excluded.hourly_rate_cents, billable = excluded.billable",
+                (
+                    billing.project_id,
+                    billing.budget_minutes,
+                    billing.hourly_rate_cents,
+                    int(billing.billable),
+                ),
+            )
+
+
 class StateRepository:
     """Tiny persistent key/value store for application state (active tracker, pause)."""
 
@@ -1801,6 +1982,11 @@ SIMPLE_TABLES: Final[dict[str, tuple[str, ...]]] = {
         "sun_minutes",
     ),
     "absences": ("id", "start_date", "end_date", "kind", "target_minutes", "note"),
+    "tags": ("id", "name", "color"),
+    "session_tags": ("session_id", "tag_id"),
+    "activity_tags": ("activity_id", "tag_id"),
+    "activity_notes": ("activity_id", "template"),
+    "project_billing": ("project_id", "budget_minutes", "hourly_rate_cents", "billable"),
 }
 
 
@@ -2006,6 +2192,7 @@ class Repositories:
     buttons: DeviceButtonRepository
     schedule: ScheduleRepository
     absences: AbsenceRepository
+    tags: TagRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -2029,6 +2216,7 @@ class Repositories:
             ("buttons", DeviceButtonRepository(connection)),
             ("schedule", ScheduleRepository(connection)),
             ("absences", AbsenceRepository(connection)),
+            ("tags", TagRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

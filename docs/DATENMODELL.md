@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0006`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0007`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -64,6 +64,8 @@ audit_log      app_state     (allein stehend)
 | `face_actions` | **Steuerungsmodus:** welche Aktion eine Seite auslöst | 0003 |
 | `integration_jobs` | **Steuerungsmodus:** Warteschlange („Outbox“) und Verlauf | 0003 |
 | `device_buttons` | welche Aktion ein kurzer/langer Tastendruck des Würfels auslöst (keine Zeile = nichts) | 0005 |
+| `tags`, `session_tags`, `activity_tags`, `activity_notes` | Tags, Tags je Eintrag, Standard-Tags und Notizvorlage je Tätigkeit | 0007 |
+| `project_billing` | Budget (Minuten), Stundensatz (Rappen/Cent), abrechenbar je Projekt | 0007 |
 | `work_schedule` | Soll je Wochentag in Minuten, versioniert nach Gültig-ab-Datum | 0006 |
 | `absences` | Ferien, Krankheit, eigene Feiertage (ein Zeitraum, optional abweichendes Tagessoll) | 0006 |
 | `attention_items` | **Rückfragen-Zentrale:** Fragen, die auf eine Entscheidung warten (Lücke nach Verbindungsverlust …) | 0004 |
@@ -126,6 +128,10 @@ Prüfspur: `session_id` (`CASCADE`), `field_name`, `old_value`, `new_value`, `re
 Schlüssel/Wert (`key` 1–100 Zeichen, `value` Text, meist JSON, `updated_at`): u. a. **der aktive Würfel** und **ob pausiert ist**. Überlebt Neustarts.
 
 Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stopped, session}`): Die Verbindung riss um `at`; `stopped` zeigt, ob die Frist schon abgelaufen und der Eintrag beendet ist. Der Schlüssel verschwindet bei Rückkehr in der Frist, nach einer Handlung des Anwenders oder wenn der Würfel nach der Frist zurückkommt; er überlebt einen Neustart des Agenten.
+
+### Tags und Abrechnung (0007)
+
+`tags(id, name [eindeutig, ohne Groß-/Kleinschreibung], color)`, `session_tags(session_id, tag_id)` (löscht sich mit Eintrag oder Tag), `activity_tags(activity_id, tag_id)`, `activity_notes(activity_id, template ≤ 500 Zeichen)`, `project_billing(project_id, budget_minutes, hourly_rate_cents, billable)`. **Geld steht nie in den Einträgen**: Der Betrag wird im Bericht aus Minuten und Satz berechnet und dort gerundet. Alle fünf Tabellen sind Teil der Sicherung (Schema 3, `tables`).
 
 ### `work_schedule` und `absences` (0006)
 
@@ -228,12 +234,12 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
     "integrations": [], "face_actions": [],
     "raw_events": [], "sessions": [], "corrections": [], "audit_log": [],
     "app_state": {},
-    "tables": {"device_buttons": [], "work_schedule": [], "absences": []}
+    "tables": {"device_buttons": [], "work_schedule": [], "absences": [], "tags": [], "session_tags": [], "activity_tags": [], "activity_notes": [], "project_billing": []}
   }
 }
 ```
 
-* **Schema 3** enthält zusätzlich den Abschnitt `tables` mit den einfachen Tabellen `device_buttons`, `work_schedule` und `absences` (Spalten und Reihenfolge: `SIMPLE_TABLES` in `repositories.py`; beim Wiederherstellen prüft die Datenbank selbst jede Zeile, ein Fehler bricht alles ab). Ältere Dateien bleiben lesbar.
+* **Schema 3** enthält zusätzlich den Abschnitt `tables` mit den einfachen Tabellen `device_buttons`, `work_schedule`, `absences`, `tags`, `session_tags`, `activity_tags`, `activity_notes` und `project_billing` (Spalten und Reihenfolge: `SIMPLE_TABLES` in `repositories.py`; beim Wiederherstellen prüft die Datenbank selbst jede Zeile, ein Fehler bricht alles ab). Ältere Dateien bleiben lesbar.
 * **Schema 2** enthält zusätzlich `integrations` und `face_actions`; **Schema 1** (ohne Steuerungsmodus) bleibt lesbar – fehlende Abschnitte gelten als leer.
 * **Nicht enthalten:** `secrets.json` (Zugangsdaten) und `integration_jobs` (Laufzeitdaten). Nach einer Wiederherstellung auf einem anderen Rechner trägt man
   die Zugangsdaten der Verbindungen neu ein – eine bewusste Abwägung, damit eine Sicherung gefahrlos aufbewahrt werden kann.
@@ -247,7 +253,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 UTF-8 **mit BOM** (öffnet sich in Excel korrekt), Trennzeichen `;` (wählbar: `,` oder Tabulator), eine Zeile je Sitzung. Spalten:
 
 `session_id`, `started_local`, `ended_local`, `started_utc`, `ended_utc`, `duration_seconds`, `duration_hms`, `running`, `activity`, `project`,
-`device`, `source`, `quality`, `revision`, `note`.
+`device`, `source`, `quality`, `revision`, `note`, `tags` (Namen, mit Komma getrennt), `billable` (`yes`/`no`), `amount` (Betrag aus Minuten × Satz, auf zwei Stellen gerundet, leer ohne Satz).
 
 Texte, die mit `=`, `+`, `-`, `@` oder einem Steuerzeichen beginnen, erhalten ein vorangestelltes `'` – so kann eine Zelle in Excel **nie als Formel**
 ausgeführt werden (Schutz vor Formel-Injektion). Dateinamen erzeugt das Programm; sie bleiben im Ordner `exports/`.

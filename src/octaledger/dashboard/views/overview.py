@@ -354,7 +354,9 @@ def _start_form(
                 "Notiz (optional)",
                 key="start_note",
                 max_chars=500,
-                help="Freier Text, z. B. „Angebot Müller“. Erscheint im Zeitjournal und im Export.",
+                help="Freier Text, z. B. „Angebot Müller“. Erscheint im Zeitjournal und im Export. "
+                "Bleibt das Feld leer, wird die Notizvorlage der Tätigkeit verwendet (falls sie "
+                "eine hat).",
             )
             if st.form_submit_button(
                 "Start",
@@ -362,11 +364,15 @@ def _start_form(
                 type="primary",
                 help="Startet jetzt einen Eintrag mit der gewählten Tätigkeit.",
             ):
+                text = note.strip() or None
+                if text is None:
+                    ok_d, defaults = call(client.activity_defaults, activity["id"])
+                    text = (defaults or {}).get("note_template") if ok_d else None
                 started, _ = call(
                     client.start_tracking,
                     activity["id"],
                     project["id"] if project else None,
-                    note.strip() or None,
+                    text,
                 )
                 if started:
                     st.rerun()

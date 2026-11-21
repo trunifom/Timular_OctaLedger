@@ -30,6 +30,7 @@ from zoneinfo import ZoneInfo
 from octaledger.core.errors import ValidationError
 from octaledger.domain.models import Activity, Project, Quality, Session
 from octaledger.domain.schedule import Absence, AbsenceKind, WorkSchedule, target_minutes
+from octaledger.domain.tags import amount_cents, budget_fraction
 from octaledger.domain.time_rules import (
     Interval,
     clip_interval,
@@ -62,7 +63,7 @@ class ReportFilter:
     Attributes:
         start: Window start (UTC, inclusive).
         end: Window end (UTC, exclusive); must be after ``start``.
-        device_id / activity_id / project_id: Optional exact-match filters.
+        device_id / activity_id / project_id / tag_id: Optional exact-match filters.
     """
 
     start: datetime
@@ -70,6 +71,7 @@ class ReportFilter:
     device_id: str | None = None
     activity_id: str | None = None
     project_id: str | None = None
+    tag_id: str | None = None
 
     def __post_init__(self) -> None:
         """Normalise to UTC and validate the window."""
@@ -90,6 +92,21 @@ class DayTotal:
     device_time: timedelta
     personal_time: timedelta
     uncertain_time: timedelta
+
+
+@dataclass(frozen=True, slots=True)
+class ProjectBudget:
+    """Budget use of one project (see :meth:`ReportService.budgets`)."""
+
+    project_id: str
+    name: str
+    color: str
+    used: timedelta
+    budget_minutes: int | None
+    fraction: float | None
+    hourly_rate_cents: int | None
+    amount_cents: int | None
+    billable: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -166,6 +183,9 @@ class JournalEntry:
     project_name: str | None
     device_alias: str | None
     duration: timedelta
+    tags: tuple[str, ...] = ()
+    billable: bool = False
+    amount_cents: int | None = None
 
 
 def _local_dates(window: Interval, tz: ZoneInfo) -> list[date]:
@@ -354,6 +374,9 @@ class ReportService:
             )
             activities = {a.id: a for a in repos.activities.list_all(include_archived=True)}
             projects = {p.id: p for p in repos.projects.list_all(include_archived=True)}
+            if flt.tag_id is not None:
+                tagged = repos.tags.sessions_with(flt.tag_id)
+                sessions = [s for s in sessions if s.id in tagged]
         return build_report(sessions, activities, projects, flt, tz, now=self._clock())
 
     def day_report(self, day: date, timezone_name: str = "UTC", **filters: str | None) -> Report:
@@ -374,6 +397,41 @@ class ReportService:
             day, parse_timezone(timezone_name), week_starts_on=week_starts_on
         )
         return self.report(ReportFilter(start, end, **filters), timezone_name)
+
+    def budgets(self) -> list[ProjectBudget]:
+        """Used time, budget, share and amount per project (all time; running entries to now).
+
+        Only projects with a budget, a rate or the billable flag appear. The amount is computed
+        here from the stored rate and rounded to whole cents; stored entries are never changed.
+        """
+        now = ensure_utc(self._clock(), name="now")
+        with self._storage.read() as repos:
+            billing = repos.tags.all_billing()
+            names = {p.id: p for p in repos.projects.list_all(include_archived=True)}
+            used: dict[str, timedelta] = defaultdict(timedelta)
+            for session in repos.sessions.list_all():
+                if session.project_id in billing and session.project_id is not None:
+                    used[session.project_id] += session.duration(now)
+        result: list[ProjectBudget] = []
+        for project_id, bill in billing.items():
+            project = names.get(project_id)
+            if project is None:
+                continue
+            spent = used.get(project_id, timedelta(0))
+            result.append(
+                ProjectBudget(
+                    project_id=project_id,
+                    name=project.name,
+                    color=project.color,
+                    used=spent,
+                    budget_minutes=bill.budget_minutes,
+                    fraction=budget_fraction(spent, bill.budget_minutes),
+                    hourly_rate_cents=bill.hourly_rate_cents,
+                    amount_cents=amount_cents(spent, bill.hourly_rate_cents),
+                    billable=bill.billable,
+                )
+            )
+        return sorted(result, key=lambda b: b.name.casefold())
 
     def balance(
         self,
@@ -443,6 +501,11 @@ class ReportService:
             activities = {a.id: a.name for a in repos.activities.list_all(include_archived=True)}
             projects = {p.id: p.name for p in repos.projects.list_all(include_archived=True)}
             devices = {d.id: d.alias for d in repos.devices.list_all()}
+            tags = repos.tags.by_session()
+            billing = repos.tags.all_billing()
+            if flt.tag_id is not None:
+                tagged = repos.tags.sessions_with(flt.tag_id)
+                sessions = [s for s in sessions if s.id in tagged]
         entries = [
             JournalEntry(
                 session=s,
@@ -450,6 +513,13 @@ class ReportService:
                 project_name=projects.get(s.project_id) if s.project_id else None,
                 device_alias=devices.get(s.device_id) if s.device_id else None,
                 duration=s.duration(now),
+                tags=tuple(t.name for t in tags.get(s.id, [])),
+                billable=billing[s.project_id].billable if s.project_id in billing else False,
+                amount_cents=(
+                    amount_cents(s.duration(now), billing[s.project_id].hourly_rate_cents)
+                    if s.project_id in billing
+                    else None
+                ),
             )
             for s in sessions
         ]

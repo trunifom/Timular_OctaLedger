@@ -42,6 +42,7 @@ from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.api.security import TOKEN_FILE_NAME, load_or_create_token
 from octaledger.application.battery_watch import BatteryWatch
+from octaledger.application.budget_watch import BudgetWatch
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
@@ -178,6 +179,7 @@ class AgentRuntime:
             lambda: self.context.settings.settings.notifications,
             lambda device_id: self._device_name(device_id),
         )
+        self._budget_watch = BudgetWatch(storage, self.context.reports)
         self._relay = NotificationRelay(
             storage,
             [WinToastNotifier()],
@@ -191,6 +193,7 @@ class AgentRuntime:
                 self.context.attention.expire_old,
                 self.context.workday.tick,
                 self._battery_watch.check,
+                self._budget_watch.check,
                 self._relay.check,
                 self._refresh_tray,
             ]

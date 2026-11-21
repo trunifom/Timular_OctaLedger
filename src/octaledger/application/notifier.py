@@ -67,6 +67,8 @@ def describe(item: AttentionItem) -> tuple[str, str]:
         return "Arbeitsende", "Ihr Eintrag wurde automatisch beendet. Haben Sie länger gearbeitet?"
     if item.kind is AttentionKind.BREAK_HINT:
         return "Pause?", "Heute viel Arbeitszeit ohne erfasste Pause (nur ein Hinweis)."
+    if reason == "budget":
+        return "Budget fast verbraucht", "Ein Projekt hat 80 % oder 100 % seines Budgets erreicht."
     if reason == "battery":
         return "Batterie fast leer", "Bitte den Würfel bald laden."
     if reason == "no_timer":

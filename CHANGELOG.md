@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Tags, Vorlagen, Budgets, AP-41)
+- Tags je Eintrag (Filter im Journal), Standard-Tags und Notizvorlage je Tätigkeit, Budget/Stundensatz/abrechenbar je Projekt mit Warnung bei 80 % und 100 %, Auswertung „Projekte & Budget“. Migration 0007.
+- CSV-Export: neue Spalten `tags`, `billable`, `amount` (am Ende). Beträge nur im Bericht berechnet und gerundet.
+
 ### Hinzugefügt (Soll, Saldo, Pausenhinweise, AP-40)
 - Soll je Wochentag (versioniert nach Gültig-ab-Datum), Abwesenheiten, optionale gesetzliche Feiertage (Extra `holidays`), Saldo je lokalem Tag (Reiter „Soll und Saldo“ auf *Statistik*, `GET /reports/balance`). Migration 0006.
 - Pausenhinweise (Voreinstellung aus; Orientierung, keine Rechtsberatung) als Rückfrage `break_hint`.

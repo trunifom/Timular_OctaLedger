@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 
 from octaledger.application.outbox import QueueResult, enqueue_face_action
+from octaledger.application.tag_service import TagService
 from octaledger.core.errors import InvalidStateError, ValidationError
 from octaledger.core.settings import (
     BaselinePolicy,
@@ -203,6 +204,7 @@ class TrackingService:
                 source=source,
             )
         )
+        TagService.apply_default_tags(repos, session.id, session.activity_id)
         self._clear_pause(repos)
         return EventResult(Outcome.SWITCHED if running else Outcome.STARTED, session)
 
@@ -469,6 +471,7 @@ class TrackingService:
                 source=SessionSource.MANUAL,
             )
         )
+        TagService.apply_default_tags(repos, session.id, session.activity_id)
         self._clear_pause(repos)
         return EventResult(Outcome.STARTED, session)
 
@@ -681,6 +684,7 @@ class TrackingService:
                     note=note,
                 )
             )
+            TagService.apply_default_tags(repos, session.id, session.activity_id)
             self._clear_pause(repos)
         return session
 
@@ -747,6 +751,7 @@ class TrackingService:
                     source=SessionSource.MANUAL,
                 )
             )
+            TagService.apply_default_tags(repos, session.id, session.activity_id)
             self._clear_pause(repos)
         return session
 

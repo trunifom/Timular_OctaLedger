@@ -19,7 +19,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.device_service import DeviceInfo
 from octaledger.application.integration_service import IntegrationInfo, JobInfo
-from octaledger.application.reporting_service import Balance, JournalEntry, Report, Share
+from octaledger.application.reporting_service import (
+    Balance,
+    JournalEntry,
+    ProjectBudget,
+    Report,
+    Share,
+)
 from octaledger.application.tracking_service import TrackingStatus
 from octaledger.domain.attention import AttentionItem
 from octaledger.domain.models import (
@@ -30,6 +36,7 @@ from octaledger.domain.models import (
     Session,
 )
 from octaledger.domain.schedule import Absence, WorkSchedule
+from octaledger.domain.tags import ProjectBilling, Tag
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.integrations.base import AdapterSpec, FieldSpec
 
@@ -201,6 +208,41 @@ class AttentionResolve(_Strict):
     activity_id: str | None = Field(default=None, max_length=64)
     project_id: str | None = Field(default=None, max_length=64)
     until: datetime | None = None
+
+
+class TagCreate(_Strict):
+    """A new tag."""
+
+    name: str = Field(max_length=100)
+    color: str | None = Field(default=None, max_length=7)
+
+
+class TagUpdate(_Strict):
+    """Rename or recolour a tag."""
+
+    name: str | None = Field(default=None, max_length=100)
+    color: str | None = Field(default=None, max_length=7)
+
+
+class TagIds(_Strict):
+    """A list of tag ids (replaces the current tags)."""
+
+    tag_ids: list[str] = Field(max_length=100)
+
+
+class ActivityDefaults(_Strict):
+    """Default tags and note template of an activity."""
+
+    tag_ids: list[str] = Field(default_factory=list, max_length=100)
+    note_template: str | None = Field(default=None, max_length=500)
+
+
+class BillingBody(_Strict):
+    """Budget (minutes), hourly rate (cents) and billable flag of a project."""
+
+    budget_minutes: int | None = Field(default=None, ge=1, le=6_000_000)
+    hourly_rate_cents: int | None = Field(default=None, ge=0, le=100_000_000)
+    billable: bool = False
 
 
 class ScheduleBody(_Strict):
@@ -504,6 +546,36 @@ def tracking_status_out(status: TrackingStatus, now: datetime) -> dict[str, Any]
     }
 
 
+def tag_out(tag: Tag) -> dict[str, Any]:
+    """Serialise a tag."""
+    return {"id": tag.id, "name": tag.name, "color": tag.color}
+
+
+def billing_out(billing: ProjectBilling) -> dict[str, Any]:
+    """Serialise budget, rate and billable flag."""
+    return {
+        "project_id": billing.project_id,
+        "budget_minutes": billing.budget_minutes,
+        "hourly_rate_cents": billing.hourly_rate_cents,
+        "billable": billing.billable,
+    }
+
+
+def budget_out(item: ProjectBudget) -> dict[str, Any]:
+    """Serialise the budget use of a project (the amount is computed, in cents)."""
+    return {
+        "project_id": item.project_id,
+        "name": item.name,
+        "color": item.color,
+        "used_seconds": seconds(item.used),
+        "budget_minutes": item.budget_minutes,
+        "fraction": None if item.fraction is None else round(item.fraction, 4),
+        "hourly_rate_cents": item.hourly_rate_cents,
+        "amount_cents": item.amount_cents,
+        "billable": item.billable,
+    }
+
+
 def schedule_out(schedule: WorkSchedule) -> dict[str, Any]:
     """Serialise one schedule version."""
     return {"valid_from": schedule.valid_from.isoformat(), "minutes": list(schedule.minutes)}
@@ -601,6 +673,9 @@ def journal_out(entry: JournalEntry, now: datetime) -> dict[str, Any]:
         activity_name=entry.activity_name,
         project_name=entry.project_name,
         device_alias=entry.device_alias,
+        tags=list(entry.tags),
+        billable=entry.billable,
+        amount_cents=entry.amount_cents,
     )
     return data
 

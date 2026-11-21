@@ -8,6 +8,7 @@ from typing import Any
 import streamlit as st
 
 from octaledger.dashboard.ui import call, page_help
+from octaledger.dashboard.views import catalog_extras as extras
 from octaledger.dashboard_client.client import ApiClient
 
 
@@ -24,11 +25,13 @@ def render(client: ApiClient, tz: str) -> None:
         "löschen. Archivieren blendet ihn aus den Auswahllisten aus; alte Zeiten und Auswertungen "
         "bleiben korrekt. Sie können ihn jederzeit wiederherstellen.",
     )
-    activities_tab, projects_tab = st.tabs(["Tätigkeiten", "Projekte"])
+    activities_tab, projects_tab, tags_tab = st.tabs(["Tätigkeiten", "Projekte", "Tags"])
     with activities_tab:
         _catalog(client, "activities", "Tätigkeit", "Tätigkeiten")
     with projects_tab:
         _catalog(client, "projects", "Projekt", "Projekte")
+    with tags_tab:
+        extras.tags_tab(client)
 
 
 def _catalog(client: ApiClient, kind: str, singular: str, plural: str) -> None:
@@ -96,6 +99,10 @@ def _item_panel(client: ApiClient, kind: str, singular: str, item: dict[str, Any
             key=f"color_{kind}_{iid}",
             help="Farbe in Diagrammen und der Übersicht.",
         )
+        if kind == "activities" and not archived:
+            extras.activity_defaults(client, item)
+        if kind == "projects" and not archived:
+            extras.project_billing(client, item)
         save, archive, delete = st.columns(3)
         if save.button(
             "💾 Speichern",

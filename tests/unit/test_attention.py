@@ -281,3 +281,56 @@ def test_schedule_absence_and_balance_endpoints(env: Env) -> None:
     assert env.call("DELETE", f"/absences/{created.json()['id']}").status_code == 204
     assert env.call("DELETE", f"/absences/{created.json()['id']}").status_code == 404
     assert env.call("DELETE", "/schedule/2026-01-01").json() == []
+
+
+# ------------------------------------------------------------- tags and billing (API)
+
+
+def test_tag_billing_and_budget_endpoints(env: Env) -> None:
+    activity = make_activity(env)
+    project = env.post("/projects", {"name": "Alpha"}).json()["id"]
+    tag = env.post("/tags", {"name": "Kunde", "color": "#112233"})
+    assert tag.status_code == 201
+    assert env.post("/tags", {"name": "kunde"}).status_code == 409
+    assert env.post("/tags", {"name": "x", "color": "rot"}).status_code == 422
+    tag_id = tag.json()["id"]
+    assert env.call("PUT", f"/tags/{tag_id}", json={"name": "Kunde A"}).json()["name"] == "Kunde A"
+    default = env.call(
+        "PUT",
+        f"/activities/{activity}/defaults",
+        json={"tag_ids": [tag_id], "note_template": "Ziel:"},
+    ).json()
+    assert default["note_template"] == "Ziel:" and default["tags"][0]["id"] == tag_id
+    assert (
+        env.call(
+            "PUT", f"/activities/{activity}/defaults", json={"tag_ids": ["0" * 32]}
+        ).status_code
+        == 404
+    )
+    billing = env.call(
+        "PUT",
+        f"/projects/{project}/billing",
+        json={"budget_minutes": 600, "hourly_rate_cents": 9000, "billable": True},
+    )
+    assert billing.status_code == 200 and billing.json()["billable"] is True
+    assert (
+        env.call("PUT", f"/projects/{project}/billing", json={"budget_minutes": 0}).status_code
+        == 422
+    )
+    assert env.get(f"/projects/{project}/billing").json()["hourly_rate_cents"] == 9000
+    started = env.post("/tracking/start", {"activity_id": activity, "project_id": project}).json()
+    assert env.get("/reports/budgets").json()[0]["name"] == "Alpha"
+    tags = env.call("PUT", f"/sessions/{started['id']}/tags", json={"tag_ids": [tag_id]}).json()
+    assert [t["name"] for t in tags] == ["Kunde A"]
+    now = datetime.now(timezone.utc)
+    journal = env.get(
+        "/sessions",
+        params={
+            "start": (now - timedelta(days=1)).isoformat(),
+            "end": (now + timedelta(days=1)).isoformat(),
+            "tag_id": tag_id,
+        },
+    ).json()
+    assert journal[0]["tags"] == ["Kunde A"] and journal[0]["billable"] is True
+    assert env.call("DELETE", f"/tags/{tag_id}").status_code == 204
+    assert env.call("DELETE", f"/tags/{tag_id}").status_code == 404

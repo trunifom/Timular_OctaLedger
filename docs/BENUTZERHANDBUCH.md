@@ -484,6 +484,12 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
 
+### Tags, Notizvorlagen, Budgets und Stundensatz
+
+- **Tags** (*Tätigkeiten & Projekte* → *Tags*): freie Etiketten für Einträge, z. B. „Kunde A“. Im **Zeitjournal** ändern Sie die Tags eines Eintrags (Reiter *Tags*) und filtern nach einem Tag. Eine **Tätigkeit** kann **Standard-Tags** vergeben: Neue Einträge (auch per Würfel) bekommen sie automatisch.
+- **Notizvorlage:** Text, der beim manuellen Start („Mit Projekt oder Notiz starten“) als Notiz verwendet wird, wenn Sie das Notizfeld leer lassen.
+- **Budget und Stundensatz** (beim Projekt): Budget in Stunden, Stundensatz und „abrechenbar“. Bei **80 %** und **100 %** des Budgets erscheint **einmal** ein Hinweis. Unter *Statistik* → *Projekte & Budget* sehen Sie Zeit, Budgetanteil und Betrag. **Beträge werden nur berechnet** (Minuten × Satz, auf ganze Rappen/Cent gerundet) und nie in den Einträgen gespeichert; ein neuer Satz ändert also nur die Berichte. Der CSV-Export enthält die Spalten `tags`, `billable` und `amount`.
+
 ### Soll, Saldo, Abwesenheiten und Pausenhinweise
 
 Auf der Seite **Statistik** gibt es den Reiter **Soll und Saldo**:

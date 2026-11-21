@@ -239,6 +239,11 @@ def _reminder(client: ApiClient, item: dict[str, Any]) -> None:
             f"{payload['recorded_minutes']} min). Nur ein Hinweis, kein Zwang; Pausen tragen "
             "Sie im Zeitjournal nach."
         )
+    elif payload.get("reason") == "budget":
+        text = (
+            f"**Budget „{payload.get('project', '')}“ zu {payload.get('percent')} % verbraucht** "
+            f"({_hm(payload.get('used_minutes', 0))} von {_hm(payload.get('budget_minutes', 0))})."
+        )
     elif payload.get("reason") == "no_timer":
         text = "**Es läuft keine Zeiterfassung**, obwohl der Arbeitstag begonnen hat. Zeit starten?"
     elif payload.get("reason") == "running_long":
@@ -250,13 +255,13 @@ def _reminder(client: ApiClient, item: dict[str, Any]) -> None:
             "Ein leerer Würfel verhält sich wie ein Verbindungsverlust – bitte bald laden."
         )
     message, action = st.columns([6, 2], vertical_alignment="center")
-    message.warning(text, icon=":material/battery_alert:")
+    message.warning(text, icon=":material/notifications:")
     if action.button(
         "Verstanden",
         key=f"att_ack_{item['id']}",
         width="stretch",
-        help="Schließt den Hinweis. Er kommt erst wieder, wenn der Würfel zwischendurch "
-        "geladen wurde.",
+        help="Schließt den Hinweis. Er kommt nur bei einem neuen Anlass wieder (z. B. nachdem "
+        "der Würfel zwischendurch geladen wurde).",
     ):
         try:
             client.dismiss_attention(item["id"])

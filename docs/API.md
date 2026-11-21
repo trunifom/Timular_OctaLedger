@@ -256,6 +256,23 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Journalzeile** = Sitzung plus `activity_name`, `project_name`, `device_alias`.
 
+### Tags, Notizvorlagen, Budgets (AP-41)
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `GET /tags` | alle Tags | – | Liste `{id, name, color}` |
+| `POST /tags` | Tag anlegen (Name eindeutig, ohne Groß-/Kleinschreibung; sonst 409) | `{"name", "color"?}` | Tag, 201 |
+| `PUT /tags/{id}` | umbenennen/umfärben | `{"name"?, "color"?}` | Tag |
+| `DELETE /tags/{id}` | Tag löschen (verschwindet überall, die Einträge bleiben) | – | 204 |
+| `PUT /sessions/{id}/tags` | Tags eines Eintrags ersetzen (Prüfspur) | `{"tag_ids": []}` | Liste der Tags |
+| `GET /activities/{id}/defaults` | Standard-Tags und Notizvorlage einer Tätigkeit | – | `{tags, note_template}` |
+| `PUT /activities/{id}/defaults` | setzen (neue Einträge der Tätigkeit bekommen die Tags automatisch) | `{"tag_ids": [], "note_template"?}` | wie oben |
+| `GET /projects/{id}/billing` | Budget, Stundensatz, abrechenbar | – | `{project_id, budget_minutes, hourly_rate_cents, billable}` |
+| `PUT /projects/{id}/billing` | setzen (alles leer/false entfernt die Angaben) | `{"budget_minutes"?, "hourly_rate_cents"?, "billable"}` | wie oben; 422 bei ungültigen Werten |
+| `GET /reports/budgets` | Zeit, Budgetanteil und Betrag je Projekt mit Angaben | – | Liste `{project_id, name, color, used_seconds, budget_minutes, fraction, hourly_rate_cents, amount_cents, billable}` |
+
+`GET /sessions` und `GET /reports*`-Journalzeilen enthalten jetzt `tags`, `billable` und `amount_cents`; `GET /sessions` akzeptiert zusätzlich `tag_id`. Beträge werden **nur im Bericht berechnet** (Minuten × Satz, auf ganze Rappen/Cent gerundet), nie in den Einträgen gespeichert. Der CSV-Export hat die Spalten `tags`, `billable`, `amount` am Ende.
+
 ### Soll, Saldo, Abwesenheiten (AP-40)
 
 | Methode und Pfad | Zweck | Anfrage | Antwort |
