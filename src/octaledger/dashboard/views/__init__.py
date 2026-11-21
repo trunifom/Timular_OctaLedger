@@ -9,7 +9,7 @@ explanation, a help tooltip on every input and understandable German error messa
 from __future__ import annotations
 
 from octaledger.dashboard.nav import PageDef
-from octaledger.dashboard.pages import (
+from octaledger.dashboard.views import (
     catalog,
     data,
     devices,

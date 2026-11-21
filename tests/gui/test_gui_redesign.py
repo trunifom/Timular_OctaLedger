@@ -10,8 +10,8 @@ from streamlit.testing.v1 import AppTest
 import octaledger.dashboard as dashboard_package
 from octaledger.core.settings import FontSize, Theme
 from octaledger.dashboard.nav import GROUPS
-from octaledger.dashboard.pages import PAGES
-from octaledger.dashboard.theme import FONT_URL, css
+from octaledger.dashboard.theme import FONT_URL, PALETTES, css, native_theme_options
+from octaledger.dashboard.views import PAGES
 from tests.conftest import RunningApi
 from tests.gui.test_gui_core import button, open_app, texts
 from tests.gui.test_gui_devices_catalog import open_page
@@ -265,3 +265,19 @@ def test_both_schemes_define_the_same_css_structure(theme: Theme) -> None:
     stylesheet = css(theme, FontSize.NORMAL)
     for selector in (".st-key-statusbar", ".ol-nav-group", '[class*="st-key-nav_"]', ".ol-card"):
         assert selector in stylesheet
+
+
+def test_package_has_no_pages_folder_next_to_the_entry_script() -> None:
+    """Streamlit turns ``pages/`` beside the entry script into an automatic (broken) menu."""
+    assert not (PACKAGE / "pages").exists()
+
+
+@pytest.mark.parametrize("theme", list(Theme))
+def test_native_theme_matches_the_palette(theme: Theme) -> None:
+    """Pop-ups, date fields and tables follow Streamlit's native theme, not only our CSS."""
+    options = native_theme_options(theme)
+    palette = PALETTES[theme]
+    assert options["theme.base"] == theme.value
+    assert options["theme.backgroundColor"] == palette.background
+    assert options["theme.secondaryBackgroundColor"] == palette.surface
+    assert options["theme.textColor"] == palette.text

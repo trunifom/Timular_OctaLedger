@@ -5,7 +5,7 @@ from datetime import date, datetime, timezone
 
 import pytest
 
-from octaledger.dashboard.pages.diagnostics import build_report
+from octaledger.dashboard.views.diagnostics import build_report
 from tests.conftest import FakeAgent, RunningApi
 from tests.gui.test_gui_core import button, open_app, texts
 from tests.gui.test_gui_devices_catalog import all_help, open_page
@@ -231,7 +231,7 @@ def test_report_is_anonymised() -> None:
 
 
 def test_navigation_now_lists_all_eight_pages(api_server: RunningApi) -> None:
-    from octaledger.dashboard.pages import PAGES
+    from octaledger.dashboard.views import PAGES
 
     at = open_app(api_server.client)
     assert len(PAGES) == 8

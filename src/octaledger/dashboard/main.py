@@ -25,10 +25,10 @@ from octaledger.core.errors import ConfigurationError, OctaLedgerError
 from octaledger.core.logging import configure_logging
 from octaledger.core.settings import FontSize, Theme, load_settings, resolve_paths
 from octaledger.dashboard.nav import DEFAULT_PAGE, GROUPS, NAV_STATE_KEY, go
-from octaledger.dashboard.pages import PAGES
 from octaledger.dashboard.shell import status_bar
-from octaledger.dashboard.theme import css
+from octaledger.dashboard.theme import apply_native_theme, css
 from octaledger.dashboard.ui import display_settings, page_help, show_error
+from octaledger.dashboard.views import PAGES
 from octaledger.dashboard_client.client import ApiClient
 
 logger = logging.getLogger(__name__)
@@ -212,6 +212,8 @@ def run() -> None:
     if client is None:
         return
     display = _load_display(client)
+    if apply_native_theme(Theme(display["theme"])):
+        st.rerun()  # the browser receives the native theme at the start of the next run
     st.markdown(
         css(Theme(display["theme"]), FontSize(display["font_size"])), unsafe_allow_html=True
     )

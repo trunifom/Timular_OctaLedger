@@ -7,7 +7,6 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from octaledger.core.settings import FontSize, Theme
-from octaledger.dashboard.pages import PAGES
 from octaledger.dashboard.theme import (
     FONT_PIXELS,
     PALETTES,
@@ -21,6 +20,7 @@ from octaledger.dashboard.ui import (
     format_local,
     to_local,
 )
+from octaledger.dashboard.views import PAGES
 from octaledger.dashboard_client.client import ApiClient
 from tests.conftest import API_TOKEN, RunningApi, free_port
 

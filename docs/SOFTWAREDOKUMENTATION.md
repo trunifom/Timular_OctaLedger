@@ -28,8 +28,8 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 19. [Lokale HTTP-API (`octaledger.api`, AP-16)](#19-lokale-http-api-octaledgerapi-ap-16)
 20. [Dashboard-Client (`octaledger.dashboard_client.client`, AP-17)](#20-dashboard-client-octaledgerdashboard_clientclient-ap-17)
 21. [Dashboard-Grundgerüst (`octaledger.dashboard`, AP-18a)](#21-dashboard-grundgerüst-octaledgerdashboard-ap-18a)
-22. [Seiten „Geräte“ und „Verwaltung“ (`dashboard.pages.devices`, `dashboard.pages.catalog`, AP-18b)](#22-seiten-geräte-und-verwaltung-dashboardpagesdevices-dashboardpagescatalog-ap-18b)
-23. [Seiten „Zeitjournal“ und „Statistik“ (`dashboard.pages.journal`, `dashboard.pages.statistics`, AP-18c)](#23-seiten-zeitjournal-und-statistik-dashboardpagesjournal-dashboardpagesstatistics-ap-18c)
+22. [Seiten „Geräte“ und „Verwaltung“ (`dashboard.views.devices`, `dashboard.views.catalog`, AP-18b)](#22-seiten-geräte-und-verwaltung-dashboardpagesdevices-dashboardpagescatalog-ap-18b)
+23. [Seiten „Zeitjournal“ und „Statistik“ (`dashboard.views.journal`, `dashboard.views.statistics`, AP-18c)](#23-seiten-zeitjournal-und-statistik-dashboardpagesjournal-dashboardpagesstatistics-ap-18c)
 24. [Seiten „Daten“, „Einstellungen“ und „Diagnose“ (AP-18d)](#24-seiten-daten-einstellungen-und-diagnose-ap-18d)
 25. [Agent-Laufzeit und Kommandozeile (`octaledger.agent.main`, `octaledger.cli`, AP-19)](#25-agent-laufzeit-und-kommandozeile-octaledgeragentmain-octaledgercli-ap-19)
 26. [Qualitätssicherung, Teststrategie und Erweiterungspunkte (AP-20)](#26-qualitätssicherung-teststrategie-und-erweiterungspunkte-ap-20)
@@ -1027,7 +1027,7 @@ fehlt, kompletter Start→Pause→Fortsetzen→Stopp-Ablauf, Projekt und Notiz, 
 unsichere Sitzungen, Tracker-Box und die Formatierungshilfen.
 Hinweis: AppTest prüft Logik und Elemente, **nicht** das visuelle Erscheinungsbild im Browser.
 
-## 22. Seiten „Geräte“ und „Verwaltung“ (`dashboard.pages.devices`, `dashboard.pages.catalog`, AP-18b)
+## 22. Seiten „Geräte“ und „Verwaltung“ (`dashboard.views.devices`, `dashboard.views.catalog`, AP-18b)
 
 ### 22.1 Geräte-Seite
 
@@ -1063,7 +1063,7 @@ Suche mit/ohne Agent, Adresse speichern (nie angezeigt), Fehlerfälle der Suche,
 Umbenennen/Löschen mit Bestätigung, Hilfetexte aller Eingaben, Escaping, kompletter Lebenszyklus
 von Tätigkeiten/Projekten, eigene Farbe, Schutz verwendeter Einträge, Duplikate, leere Kataloge.
 
-## 23. Seiten „Zeitjournal“ und „Statistik“ (`dashboard.pages.journal`, `dashboard.pages.statistics`, AP-18c)
+## 23. Seiten „Zeitjournal“ und „Statistik“ (`dashboard.views.journal`, `dashboard.views.statistics`, AP-18c)
 
 ### 23.1 Zeitjournal (drei Reiter)
 
@@ -1269,7 +1269,7 @@ Konzept, Recherche, Quellen und Begründungen: [GUI_KONZEPT.md](GUI_KONZEPT.md).
 |---|---|
 | `dashboard/theme.py` | Design-System: `PALETTES` (hell/dunkel, inkl. `input_border`), `css()` (Inter per `@font-face`, `tabular-nums`, Radien 8/12 px, Fokusring, Karten, Menü-Stile, **keine Schatten**), WCAG-Hilfen |
 | `dashboard/nav.py` | `PageDef(slug, title, icon, group, description, render)`, `GROUPS = (Alltag, Einrichten, System)`, `go(slug)` als `on_click`-Callback |
-| `dashboard/pages/__init__.py` | `PAGES: dict[slug, PageDef]` – die Reihenfolge ist die Menüreihenfolge je Gruppe |
+| `dashboard/views/__init__.py` | `PAGES: dict[slug, PageDef]` – die Reihenfolge ist die Menüreihenfolge je Gruppe |
 | `dashboard/shell.py` | `status_bar(client)` (Fragment, alle 5 s): laufender Eintrag, `tracker_summary`, Warnungen, Stopp-/Prüfen-Knopf |
 | `dashboard/main.py` | gruppiertes Menü (Buttons `nav_<slug>`, aktiver Eintrag `type="primary"`), Darstellungsschalter, Statusleiste, dann die Seite |
 | `dashboard/static/` | `Inter-Variable.woff2` (SIL OFL, `OFL.txt`), per Streamlit-Static-Serving unter `/app/static/…` |

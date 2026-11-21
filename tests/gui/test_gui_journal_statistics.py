@@ -251,7 +251,7 @@ def test_statistics_widgets_have_help_texts(api_server: RunningApi) -> None:
 
 
 def test_navigation_contains_all_pages_in_order(api_server: RunningApi) -> None:
-    from octaledger.dashboard.pages import PAGES
+    from octaledger.dashboard.views import PAGES
 
     at = open_app(api_server.client)
     slugs = list(PAGES)

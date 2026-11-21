@@ -65,15 +65,15 @@ octaledger/
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/main.py
   src/octaledger/dashboard/nav.py
-  src/octaledger/dashboard/pages/__init__.py
-  src/octaledger/dashboard/pages/catalog.py
-  src/octaledger/dashboard/pages/data.py
-  src/octaledger/dashboard/pages/devices.py
-  src/octaledger/dashboard/pages/diagnostics.py
-  src/octaledger/dashboard/pages/journal.py
-  src/octaledger/dashboard/pages/overview.py
-  src/octaledger/dashboard/pages/settings.py
-  src/octaledger/dashboard/pages/statistics.py
+  src/octaledger/dashboard/views/__init__.py
+  src/octaledger/dashboard/views/catalog.py
+  src/octaledger/dashboard/views/data.py
+  src/octaledger/dashboard/views/devices.py
+  src/octaledger/dashboard/views/diagnostics.py
+  src/octaledger/dashboard/views/journal.py
+  src/octaledger/dashboard/views/overview.py
+  src/octaledger/dashboard/views/settings.py
+  src/octaledger/dashboard/views/statistics.py
   src/octaledger/dashboard/shell.py
   src/octaledger/dashboard/static/Inter-Variable.woff2
   src/octaledger/dashboard/static/OFL.txt

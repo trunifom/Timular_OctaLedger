@@ -85,6 +85,43 @@ PALETTES: Final = {
 }
 
 
+def native_theme_options(theme: Theme) -> dict[str, str]:
+    """Streamlit's own theme options for a scheme.
+
+    CSS alone cannot recolour everything: tables are drawn on a canvas, and pop-ups, date pickers,
+    sliders and tabs take their colours from Streamlit's *native* theme, which otherwise follows the
+    operating system (dark OS + light dashboard = dark fields with dark text). Setting the native
+    theme to the same palette keeps those parts consistent with the CSS in :func:`css`.
+    """
+    p = PALETTES[theme]
+    return {
+        "theme.base": theme.value,
+        "theme.primaryColor": p.primary,
+        "theme.backgroundColor": p.background,
+        "theme.secondaryBackgroundColor": p.surface,
+        "theme.textColor": p.text,
+        "theme.borderColor": p.border,
+        "theme.sidebar.backgroundColor": p.surface,
+        "theme.sidebar.secondaryBackgroundColor": p.background,
+    }
+
+
+def apply_native_theme(theme: Theme) -> bool:
+    """Set Streamlit's native theme; return ``True`` if it changed.
+
+    Streamlit sends its theme to the browser when a script run *starts*, so a change made during a
+    run only reaches the browser with the next run. The caller therefore reruns once on ``True``.
+    """
+    from streamlit import config
+
+    changed = False
+    for key, value in native_theme_options(theme).items():
+        if config.get_option(key) != value:
+            config.set_option(key, value)
+            changed = True
+    return changed
+
+
 def css(theme: Theme, font_size: FontSize) -> str:
     """Return the ``<style>`` block for a theme and font size.
 
@@ -131,10 +168,15 @@ html, body, .stApp, .stApp button, .stApp input, .stApp textarea, .stApp select 
   border-radius: 8px;
 }}
 .stApp button {{ border-radius: 8px; font-weight: 500; }}
-.stApp button[kind="primary"] {{
+.stApp button[kind="primary"], .stApp button[kind="primaryFormSubmit"] {{
   background-color: {p.primary}; color: {p.on_primary}; border: 1px solid {p.primary};
 }}
-.stApp button[kind="primary"] p {{ color: {p.on_primary}; }}
+.stApp button[kind="primary"] *, .stApp button[kind="primaryFormSubmit"] * {{
+  color: {p.on_primary};
+}}
+.stApp button[kind="secondaryFormSubmit"] {{
+  background-color: {p.surface}; color: {p.text}; border: 1px solid {p.input_border};
+}}
 .stApp button[kind="secondary"] {{
   background-color: {p.surface}; color: {p.text}; border: 1px solid {p.input_border};
 }}

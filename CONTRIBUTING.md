@@ -32,7 +32,7 @@ laufen nur mit `OCTALEDGER_HARDWARE_TESTS=1` und nie in der CI.
   Test, Doku §9; die Tests leiten die erwartete Version aus den Paketdateien ab.
 - **Neuer Endpunkt:** Service-Methode + Test, Request-Modell (`extra="forbid"`), Route (nur `GET` für
   Lesendes), Client-Methode, Eintrag in SOFTWAREDOKUMENTATION §19/§20.
-- **Neue Dashboard-Seite:** Modul in `dashboard/pages/` mit `render(client, tz)`, Eintrag in `PAGES`,
+- **Neue Dashboard-Seite:** Modul in `dashboard/views/` mit `render(client, tz)`, Eintrag in `PAGES`,
   `page_help` + `help=` an **jedem** Feld, Texte HTML-escapen, `AppTest`-Tests.
 
 ## Daten und Geheimnisse
