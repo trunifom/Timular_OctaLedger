@@ -123,6 +123,22 @@ Streamlit-Widgets (per Tab erreichbar); Farbe ist nie das einzige Signal; Diagra
   visuelle Ergebnis im Browser. Ein manueller Blick durch alle Seiten in Hell und Dunkel, beide Schriftgrößen
   und ein schmales Fenster ist nötig.
 
+## 4a. Erweiterungen nach dem Entwurf
+
+Nach dem ursprünglichen Konzept kamen hinzu (Details und Gründe: `SOFTWAREDOKUMENTATION.md` §28–32):
+
+| Seite/Element | Idee dahinter |
+|---|---|
+| **Startseite** mit Bereichen *Willkommen / Einrichten / So funktioniert’s / Handbuch* | Anwender sollen verstehen, **was der Würfel ist**, und werden Schritt für Schritt geführt; die Dokumentation ist ohne Programmwechsel lesbar |
+| **Würfel live** (SVG-Würfel) | Vertrauen durch Sichtbarkeit: Man sieht in Echtzeit, was der Würfel meldet, was geprüft wird und was daraus folgt |
+| **Seiten zuordnen** (Assistent) | Der Würfel selbst zeigt die Seite, die man gerade einrichtet („Drehen Sie jetzt die Seite, die Sie meinen“) |
+| **Verbindungen** mit generisch erzeugten Formularen | Neue Arten von Anbindungen brauchen keine neue Seite; Testen, Ausprobieren, Koppeln, Entdecken stehen immer an derselben Stelle |
+| **Betriebsart pro Würfel** | Ein Würfel tut nie beides; die Oberfläche benennt den Modus überall (Statusleiste, Live, Geräte) |
+| **„So funktioniert’s“** | ehrliche Erklärung von Agent, Betriebsarten, Daten, Sicherheit und Grenzen in einfacher Sprache |
+
+Grundsätze, die für alle Ergänzungen gelten: Hilfetext an **jedem** Eingabefeld und „So funktioniert diese Seite“ auf jeder Seite (per Test erzwungen), keine Information nur
+über Farbe, lange Werte brechen um statt abgeschnitten zu werden, Fehler sind deutsch mit Handlungshinweis und Code.
+
 ## 5. Quellen
 
 - Timeular/EARLY: https://support.early.app/en/articles/675063-get-started-with-the-tracker ·

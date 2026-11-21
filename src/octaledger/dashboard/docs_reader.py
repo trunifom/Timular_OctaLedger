@@ -6,6 +6,8 @@ The start page lets users read the whole user documentation without leaving the 
 documents stay ordinary Markdown files in ``docs/`` (single source of truth, also readable on
 GitHub); this module only finds them, splits them into chapters and makes them fit a web page:
 
+* the documents on offer cover **users** (handbook, installation, glossary) and **developers**
+  (architecture, interface, data model, adapter guide, software documentation, security),
 * a document is split at its ``## `` headings, so one chapter is shown at a time,
 * the table of contents with in-page anchors is dropped (the chapter picker replaces it),
 * links to other project files cannot work inside the dashboard, so only their text is kept;
@@ -33,7 +35,19 @@ logger = logging.getLogger(__name__)
 DOCUMENTS: Final = (
     ("Benutzerhandbuch", "BENUTZERHANDBUCH.md"),
     ("Installation und Betrieb", "INSTALLATION.md"),
+    ("Glossar", "GLOSSAR.md"),
+    ("Architektur", "ARCHITEKTUR.md"),
+    ("Schnittstelle (API)", "API.md"),
+    ("Datenmodell", "DATENMODELL.md"),
+    ("Anbindungen entwickeln (Adapter)", "ADAPTER_ENTWICKLUNG.md"),
+    ("Software-Dokumentation", "SOFTWAREDOKUMENTATION.md"),
+    ("Grenzen und Quellen", "QUELLEN_UND_GRENZEN.md"),
+    ("Sicherheit", "SECURITY.md"),
 )
+
+#: Offered documents that live in the project root instead of ``docs/`` (an allow-list: a file
+#: name is never taken from the user, so this cannot be used to read arbitrary files).
+ROOT_DOCUMENTS: Final = frozenset({"SECURITY.md"})
 
 #: Documents larger than this are not shown (a defensive bound, the real files are far smaller).
 MAX_BYTES: Final = 2 * 1024 * 1024
@@ -50,9 +64,14 @@ class Chapter:
     body: str
 
 
+def project_dir() -> Path:
+    """Return the project folder (the one that contains ``docs`` next to the source tree)."""
+    return Path(octaledger.__file__).resolve().parents[2]
+
+
 def docs_dir() -> Path | None:
     """Return the ``docs`` folder of the project, or ``None`` if it is not available."""
-    candidate = Path(octaledger.__file__).resolve().parents[2] / "docs"
+    candidate = project_dir() / "docs"
     return candidate if candidate.is_dir() else None
 
 
@@ -99,7 +118,12 @@ def split_chapters(markdown: str) -> tuple[str, list[Chapter]]:
 
 def load_document(file_name: str, directory: Path | None = None) -> str | None:
     """Return the text of a document, or ``None`` if it is missing, too large or unreadable."""
-    folder = directory if directory is not None else docs_dir()
+    if directory is not None:
+        folder: Path | None = directory
+    elif file_name in ROOT_DOCUMENTS:
+        folder = project_dir()
+    else:
+        folder = docs_dir()
     if folder is None:
         return None
     path = folder / file_name

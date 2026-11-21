@@ -22,6 +22,16 @@ steuerung, Firmwareupdate oder Offlinebewegungshistorie.
 Ausgangswert kann dieselbe Meldung wie das Abonnement liefern: Duplikate tolerieren.
 Für zwei Clients Adapterressourcen und tatsächliche Parallelität praktisch testen.
 
+## Erfahrungen aus der ersten Erprobung (nicht hardwarevalidiert)
+
+Die folgenden Beobachtungen stammen aus einer ersten Inbetriebnahme mit einem echten Würfel und sind **keine** Zusicherung:
+
+- Der Würfel muss im **Kopplungsmodus** sein (Knopf lange gedrückt halten, bis er blau blinkt), sonst findet ihn die Suche nicht.
+- Er meldete sich in der Liste als „Timeular Tra…“ **ohne** den Orientierungsdienst in der Werbung; ohne Namenshinweis war er unter vielen unbenannten
+  Geräten kaum zu erkennen. Die Suche markiert deshalb Treffer, deren Name nach einem Tracker aussieht (`looks_like_tracker`); der Dienst
+  wird erst nach dem Verbinden geprüft.
+- Ein Würfel hat meist nur eine aktive Verbindung: Hersteller-App, Handy und Windows-Einstellungen sollten getrennt sein.
+
 ## Umsetzungsstand
 
 Implementiert in `src/octaledger/infrastructure/ble/` (`protocol`, `transport`, `client`, `scanner`,

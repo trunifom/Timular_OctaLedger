@@ -1,9 +1,10 @@
 # Softwaredokumentation (Entwickler)
 
 Diese Datei beschreibt Module, Schnittstellen und Entwurfsentscheidungen des
-implementierten Codes. Die Zielarchitektur steht in [ARCHITEKTUR.md](ARCHITEKTUR.md),
-die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
-[CLAUDE.md](../CLAUDE.md). Jedes Arbeitspaket (AP) ergänzt hier seinen Abschnitt.
+implementierten Codes – das ausführliche Nachschlagewerk. Den **Überblick** geben [ARCHITEKTUR.md](ARCHITEKTUR.md)
+(Bausteine, Datenflüsse), [API.md](API.md) (jeder Endpunkt), [DATENMODELL.md](DATENMODELL.md) (Tabellen, Dateien) und das
+[Glossar](GLOSSAR.md); eine Übersicht aller Dokumente steht in [README.md](README.md). Die Anforderungen stehen im
+[Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in [CLAUDE.md](../CLAUDE.md). Jedes Arbeitspaket (AP) ergänzt hier seinen Abschnitt.
 
 **Inhalt**
 
@@ -38,6 +39,7 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 29. [Zuordnungs-Assistent „Seiten zuordnen“ (`dashboard.views.faces`, AP-24)](#29-zuordnungs-assistent-seiten-zuordnen-dashboardviewsfaces-ap-24)
 30. [Startseite, geführte Einrichtung und Handbuch (`dashboard.views.start`, `dashboard.docs_reader`, AP-25)](#30-startseite-geführte-einrichtung-und-handbuch-dashboardviewsstart-dashboarddocs_reader-ap-25)
 31. [Steuerungsmodus und Integrationen (AP-26 bis AP-31)](#31-steuerungsmodus-und-integrationen-ap-26-bis-ap-31)
+32. [Dokumentationssystem (AP-32)](#32-dokumentationssystem-ap-32)
 
 ## 1. Überblick
 
@@ -47,15 +49,15 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 src/octaledger/
   core/              Fehler (§2), Logging (§3), Dateizugriff (§4), Einstellungen/Pfade (§5)
   domain/            Modelle (§6), Zustandsautomaten (§7), Zeit/Intervalle (§6, §8) - rein, ohne I/O
-  application/       Tracking (§11), Geräte/Katalog (§12), Berichte (§16), Export/Backup (§17)
+  application/       Tracking (§11), Geräte/Katalog (§12), Berichte (§16), Export/Backup (§17), Verbindungen und Versand (§31)
   infrastructure/
     storage/         SQLite, Migrationen (§9), Repositories (§10)
     ble/             Protokoll/Transport/Fake (§13), Bleak-Scanner und -Client (§14)
-    integrations/    leerer Platzhalter für optionale Adapter (F-20)
-  agent/             Supervisor (§15), Laufzeit und Start/Shutdown (§25)
+    integrations/    Adapter des Steuerungsmodus: Webhook, MQTT, Home Assistant, Hue (§31)
+  agent/             Supervisor (§15), Laufzeit und Start/Shutdown (§25), Dispatcher (§31)
   api/               Sicherheit (§18), Routen/Schemas/App (§19)
   dashboard_client/  HTTP-Client (§20)
-  dashboard/         Streamlit-Oberfläche (§21-24)
+  dashboard/         Streamlit-Oberfläche (§21-24, §27-31)
   cli.py             Kommandozeile (§25)
 ```
 
@@ -1251,8 +1253,7 @@ Dashboard-Befehl (lokal, ohne Telemetrie).
 ### 26.1 Qualitäts-Gate
 
 `scripts\run_tests.bat` = `pytest` + `ruff check` + `ruff format --check` + `mypy` (strict); dasselbe läuft in
-der CI. Stand: 900 bestanden, 2 Hardwaretests übersprungen (805 Unit, 14 Integration, 81 GUI), rund 12 000
-Zeilen Quellcode und 8 400 Zeilen Tests. Nachweisstatus der Abnahmekriterien: [TESTPLAN.md](TESTPLAN.md).
+der CI. Stand: 1127 Unit-, 18 Integrations- und 199 GUI-Tests plus 2 bewusst übersprungene Hardwaretests (Zahlen pro Lauf: `docs/TESTPLAN.md`). Nachweisstatus der Abnahmekriterien: [TESTPLAN.md](TESTPLAN.md).
 
 ### 26.2 Teststrategie (Schichten)
 
@@ -1274,7 +1275,7 @@ HTML-escaptes Label, falsche RECONNECT-Meldung beim ersten erfolgreichen Verbind
 
 Siehe [QUELLEN_UND_GRENZEN.md](QUELLEN_UND_GRENZEN.md): keine Hardwareprüfung, Protokoll nur aus
 Community-Quellen, kein visueller Browsertest, keine Leistungsmessung, keine Rechtsprüfung, Lizenz offen,
-F-20 (Integrationen) nicht umgesetzt.
+Anbindungen des Steuerungsmodus nur gegen Testziele geprüft (§31.24).
 
 ### 26.4 Erweiterungspunkte
 
@@ -1425,7 +1426,7 @@ Einstieg über den Hilfsparameter `nav` (`open_app` startet standardmäßig auf 
 
 | Teil | Aufgabe |
 |---|---|
-| `views/start.py` | Umschalter *Willkommen / Einrichten / Handbuch* (`st.radio` mit Schlüssel `start_section`, damit Knöpfe den Bereich wechseln können, was `st.tabs` nicht erlaubt) |
+| `views/start.py` | Umschalter *Willkommen / Einrichten / So funktioniert’s / Handbuch* (`st.radio` mit Schlüssel `start_section`, damit Knöpfe den Bereich wechseln können, was `st.tabs` nicht erlaubt); der Bereich „So funktioniert’s“ und die Dokumentenliste: §32 |
 | `SetupState`, `setup_state(devices)` | Stand der Einrichtung aus den echten API-Daten (aktiver Tracker zählt): Gerät vorhanden, Adresse, Verbindungszustand, belegte Seiten; `next_step` = `connect` / `faces` / `done`. Nichts wird gespeichert |
 | `_welcome` | Erklärung, Einsatzmöglichkeiten, „So geht es los“, Banner „Nächster Schritt“; Beispielbild (`EXAMPLE_FACES`, als Beispiel beschriftet) |
 | `_setup` | Drei Schritte mit Fortschritt; Schritte ②/③ sind gesperrt, bis ein Gerät existiert |
@@ -1435,8 +1436,8 @@ Einstieg über den Hilfsparameter `nav` (`open_app` startet standardmäßig auf 
 
 ### 30.2 Entscheidungen
 
-- **Handbuch = dieselben Markdown-Dateien wie auf GitHub** (einzige Quelle der Wahrheit): `BENUTZERHANDBUCH.md` und
-  `INSTALLATION.md` aus `docs/`. Aufgeteilt an den `## `-Überschriften (Codeblöcke werden beachtet), ein Kapitel pro
+- **Handbuch = dieselben Markdown-Dateien wie auf GitHub** (einzige Quelle der Wahrheit): zunächst `BENUTZERHANDBUCH.md` und
+  `INSTALLATION.md` aus `docs/`, seit AP-32 insgesamt zehn Dokumente (§32.3). Aufgeteilt an den `## `-Überschriften (Codeblöcke werden beachtet), ein Kapitel pro
   Ansicht plus Suche. Das Inhaltsverzeichnis mit Seitenankern entfällt (der Kapitel-Wähler ersetzt es), Verweise auf
   Projektdateien werden zu Text (sie würden im Dashboard ins Leere führen), `https://`-Links bleiben. Fehlt der
   Ordner `docs/` (Installation ohne Projektordner), zeigt die Seite einen Hinweis.
@@ -1855,3 +1856,61 @@ Auftrag in einer Transaktion → `ActionDispatcher` (eigener Thread) → `Integr
 Verlauf. **Nicht geprüft:** echte Geräte, Hubs und Broker (nur lokale Testziele und Attrappen); ein echter TLS-Handshake mit der Hue-Anheftung und
 mit MQTT-TLS; ein Dauerbetrieb. **Nicht vorhanden:** eigene Matter- oder Google-Home-Anbindung (über Home Assistant), Verschlüsselung der
 Zugangsdaten, Sprachsteuerung, Aktionen mit mehreren Schritten oder Bedingungen, ein Ereignisstrom von den Zielen zurück.
+
+## 32. Dokumentationssystem (AP-32)
+
+Die Dokumentation ist Teil des Produkts und wird wie Code geprüft. Dieser Abschnitt beschreibt, **welche Dokumentation es gibt, wie sie zusammenhängt und wie sie
+korrekt bleibt**.
+
+### 32.1 Die Ebenen
+
+| Ebene | Wo | Zielgruppe | Garantie |
+|---|---|---|---|
+| **Quelltext** | Docstrings (englisch) an jedem Modul, jeder Klasse und jeder Funktion; Kommentare erklären das *Warum* | Entwickler | `tests/unit/test_documentation.py::test_every_module_class_and_function_has_a_docstring` |
+| **Schnittstelle** | `docs/API.md` | Entwickler, Skript-Autoren | derselbe Test: jede Route steht in der Referenz (`test_every_route_is_documented_in_the_api_reference`, `test_catalogue_routes_are_documented`) |
+| **Architektur, Datenmodell, Sicherheit** | `docs/ARCHITEKTUR.md`, `docs/DATENMODELL.md`, `SECURITY.md` | Entwickler, Prüfer | Verweise geprüft (`test_relative_markdown_links_point_to_existing_files`) |
+| **Erweiterung** | `docs/ADAPTER_ENTWICKLUNG.md`, `CONTRIBUTING.md` | Entwickler | – |
+| **Benutzerdokumentation** | `docs/BENUTZERHANDBUCH.md`, `docs/INSTALLATION.md`, `docs/GLOSSAR.md` | Anwender | im Programm lesbar (siehe 32.3) |
+| **Dateiübersicht** | `docs/ORDNERSTRUKTUR.md` | alle | jede Quell- und Dokumentationsdatei muss aufgeführt sein (`test_every_source_and_doc_file_is_in_the_folder_structure_document`); Liste erzeugen mit `python scripts/update_ordnerstruktur.py` |
+| **Wegweiser** | `README.md` (Projekt), `docs/README.md` (nach Zielgruppe) | alle | Verweise geprüft |
+| **Oberfläche** | Startseite, „So funktioniert diese Seite“, Hilfetext an jedem Feld, Fehlermeldungen mit Code | Anwender | `tests/unit/test_gui_documentation.py` (Hilfetext an jedem Eingabefeld, `page_help` auf jeder Seite, Menübeschreibung) |
+| **Planung und Nachweise** | `docs/PFLICHTENHEFT.md`, `ROADMAP.md`, `TESTPLAN.md`, `FORTSCHRITT.md`, `CHANGELOG.md`, `QUELLEN_UND_GRENZEN.md` | Projekt | von Hand gepflegt, Zahlen aus dem Testlauf |
+
+### 32.2 Wächtertests
+
+* **`test_documentation.py`** (15): liest den Quelltext mit `ast` – jedes Modul (leere `__init__.py` ausgenommen), jede öffentliche Klasse/Funktion (auch
+  verschachtelte) hat einen Docstring; extrahiert die Routen aus `api/routes.py` per regulärem Ausdruck (mit Gegenprobe, dass überhaupt Routen gefunden werden) und prüft jede
+  gegen `docs/API.md`, wobei Platzhalter wie `{id}`/`{device_id}` normalisiert werden; die in einer Schleife registrierten Katalogrouten (Aktivitäten/Projekte) werden
+  gesondert geprüft; Dateiliste gegen `ORDNERSTRUKTUR.md`; alle relativen Markdown-Verweise (Beispiele in Codeblöcken ausgenommen) müssen existieren.
+* **`test_gui_documentation.py`** (15): jeder Aufruf eines Streamlit-Eingabeelements (`text_input`, `selectbox`, `radio`, `checkbox`, `toggle`, `slider`, `date_input` …) in
+  `dashboard/views/` trägt `help=`; jede Seite außer der Startseite ruft `page_help(`; jede Seite hat eine Menübeschreibung; jedes im Handbuch angebotene Dokument existiert und hat
+  Kapitel.
+* Beide Tests sind **statisch**: Sie laufen in Sekunden und brauchen weder Browser noch Server.
+
+### 32.3 Dokumentation in der Oberfläche
+
+* **Startseite** (`dashboard/views/start.py`) hat vier Bereiche: *Willkommen* (Was ist der Würfel, Einsatzmöglichkeiten, nächster Schritt), *Einrichten* (geführt),
+  **So funktioniert’s** (`_how_it_works`: Agent und Dashboard, die zwei Betriebsarten, Datenspeicherort, Sicherheit, ehrlicher Hinweis, was nicht geprüft ist, Knöpfe zu den
+  vertiefenden Dokumenten) und *Handbuch*.
+* **Handbuch** (`dashboard/docs_reader.py`): `DOCUMENTS` nennt zehn Dokumente – Benutzerhandbuch, Installation und Betrieb, Glossar, Architektur, Schnittstelle (API),
+  Datenmodell, Anbindungen entwickeln (Adapter), Software-Dokumentation, Grenzen und Quellen, Sicherheit. `SECURITY.md` liegt im Projektstamm; `ROOT_DOCUMENTS` ist eine feste
+  Erlaubnisliste, damit nie ein vom Anwender gelieferter Dateiname gelesen wird. Jedes Dokument wird an den `## `-Überschriften in Kapitel geteilt; Suche über Titel und Text.
+* Die Knöpfe unter „Mehr lesen“ rufen `_open_document(label)` als `on_click`-Rückruf auf: Er setzt Bereich **und** Dokumentauswahl **vor** dem nächsten Lauf (Widget-Schlüssel
+  dürfen nur in Rückrufen gesetzt werden, nicht danach).
+* **Bilder:** Die Screenshots in `docs/images/` sind für GitHub gedacht. Der Leser des Handbuchs zeigt reinen Text; Abbildungen in Dokumenten würden im Dashboard als Verweise wirken,
+  die nicht auflösbar sind – daher stehen sie nur im `README.md`.
+
+### 32.4 Screenshots
+
+Die Bilder (`docs/images/*.png`) entstehen mit einer Vorschau (Simulator, Beispieldaten für eine Arbeitswoche, ein Würfel im Zeit- und einer im Steuerungsmodus) und Playwright
+(Chromium, 1280 Pixel Breite, helles Design). Sie zeigen **keine echten Daten**. Sie sind von Hand zu erneuern, wenn sich eine Seite sichtbar ändert; der Prüfstand wird nicht
+automatisiert (Browser-Aufnahmen sind kein Testgegenstand dieses Projekts, siehe `docs/QUELLEN_UND_GRENZEN.md`).
+
+### 32.5 Ablauf einer Änderung
+
+Siehe `CONTRIBUTING.md`, Abschnitt „Dokumentation gehört zur Änderung“: Eine Änderung ist erst fertig, wenn Docstrings, API-Referenz, Datenmodell/Architektur (falls berührt),
+Benutzerhandbuch, `ORDNERSTRUKTUR.md`, `FORTSCHRITT.md` und `CHANGELOG.md` im selben Commit stimmen.
+
+### 32.6 Tests und Stand
+
+Gesamtzahl der Tests: Unit 1127, Integration 18, GUI 199 (plus 2 Hardwaretests, standardmäßig übersprungen).

@@ -54,10 +54,13 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-30 | Philips-Hue-Adapter: Lampe/Raum/Szene über die Bridge im Heimnetz, Koppeln, Entdecken, Zertifikat-Anheftung (Vertrauen beim ersten Mal); echter TLS-Handshake nicht getestet | 2026-11-21 | 21:40 | babe4c5 |
 | AP-31a | Oberfläche „Verbindungen“: Formulare aus der Selbstbeschreibung der Adapter (`forms`), Testen/Koppeln/Ausprobieren/Entdecken mit Auswahllisten, Verlauf der Aktionen | 2026-11-21 | 22:30 | f83d227 |
 | AP-31b | Steuerungsmodus in der Oberfläche: Moduswechsel pro Würfel, Aktions-Editor in „Seiten zuordnen“, Live-Ansicht und Geräte-Seite für Steuerungs-Würfel, Startseite und neues Handbuchkapitel 20 | 2026-11-21 | 23:30 | 76a1443 |
+| AP-32a | Quelltext-Dokumentation: Docstrings für die letzten verschachtelten Hilfsfunktionen (jede Funktion und Klasse ist dokumentiert) | 2026-11-21 | 15:30 | 07b7755 |
+| AP-32b | Dokumentation: API-Referenz (jeder Endpunkt), Architektur und Datenmodell neu, Sicherheit, Glossar, Adapter-Anleitung, Dokumentationsübersicht, Wächtertests (`test_documentation`), Skript für die Ordnerstruktur | 2026-11-21 | 15:40 | 242fcff |
+| AP-32c | Dokumentation Teil 2: README mit Screenshots, Startseite „So funktioniert’s“, zehn Dokumente im Handbuch der App, Wächtertests für die Oberfläche, Handbuch/Installation/BLE/Konzept/Pflichtenheft/Roadmap/Testplan/Changelog aktualisiert, Metrik-Abschneiden behoben | 2026-11-21 | 16:10 | _folgt_ |
 
 ## Offen
 
-Alle Arbeitspakete (AP-00 bis AP-31b) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
+Alle Arbeitspakete (AP-00 bis AP-32c) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
 kann** oder bewusst nicht im Umfang liegt:
 
 | ID | Thema | Wer | Hinweis |
@@ -67,6 +70,7 @@ kann** oder bewusst nicht im Umfang liegt:
 | SEC-01 | privaten **Meldeweg** für Sicherheitsprobleme in `SECURITY.md` ergänzen | Projektinhaber | vor Veröffentlichung |
 | VIS-01 | **Visueller Browsertest** aller Dashboard-Seiten (Layout, Farben, kleine Bildschirme) | Anwender | AppTest prüft nur Logik/Elemente |
 | REL-01 | Release-Prozess, Installer, Windows-Autostart | optional | Roadmap „Später“ |
-| F-20 | Integrationen (Home Assistant, Hue, MQTT, Obsidian) | optional („Kann“) | `infrastructure/integrations` ist ein leerer Platzhalter |
+| F-20 | Obsidian-Anbindung (Home Assistant, Hue, MQTT, Webhook sind umgesetzt) | optional („Kann“) | nur über den Webhook-Adapter denkbar; ein eigener Adapter folgt der Anleitung `docs/ADAPTER_ENTWICKLUNG.md` |
+| ECHT-01 | **Anbindungen mit echten Zielen** ausprobieren (Home Assistant, Hue-Bridge, MQTT-Broker) | Anwender | bisher nur gegen Testziele geprüft; Ergebnis in `docs/QUELLEN_UND_GRENZEN.md` und `docs/TESTPLAN.md` (A-17) festhalten |
 
 Veröffentlichen (`git push`) übernimmt der Projektinhaber selbst; Agenten pushen nie.

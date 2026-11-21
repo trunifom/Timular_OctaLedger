@@ -261,3 +261,56 @@ def test_every_start_page_input_has_a_help_text(api_server: RunningApi, agent: F
     assert widgets and all(w.help for w in widgets)
     section(at, "Handbuch")
     assert all(w.help for w in [*at.selectbox, *at.text_input])
+
+
+# ------------------------------------------------------------------------ how it works
+
+
+def test_how_it_works_section_explains_parts_modes_data_and_limits(
+    api_server: RunningApi,
+) -> None:
+    at = open_page(api_server, START)
+    section(at, "So funktioniert's")
+    assert not at.exception
+    text = "\n".join(str(m.value) for m in at.markdown)
+    for expected in (
+        "Zwei Programme arbeiten zusammen",
+        "kein KI-Agent",
+        "Zwei Betriebsarten",
+        "Wo liegen Ihre Daten?",
+        "nicht verschlüsselt",
+    ):
+        assert expected in text
+    assert any("nur mit einem" in w.value for w in at.warning)  # honest about the hardware status
+    assert at.code  # the schematic picture
+
+
+def test_how_it_works_links_open_the_matching_document(api_server: RunningApi) -> None:
+    at = open_page(api_server, START)
+    section(at, "So funktioniert's")
+    at.button(key="start_read_Architektur").click().run()
+    assert not at.exception
+    assert at.radio(key="start_section").value == "Handbuch"
+    assert at.selectbox(key="start_doc").value == "Architektur"
+    assert at.selectbox(key="start_chapter_ARCHITEKTUR.md").options
+
+
+@pytest.mark.parametrize(
+    "label,file_name",
+    [
+        ("Glossar", "GLOSSAR.md"),
+        ("Schnittstelle (API)", "API.md"),
+        ("Datenmodell", "DATENMODELL.md"),
+        ("Anbindungen entwickeln (Adapter)", "ADAPTER_ENTWICKLUNG.md"),
+        ("Sicherheit", "SECURITY.md"),
+        ("Software-Dokumentation", "SOFTWAREDOKUMENTATION.md"),
+    ],
+)
+def test_manual_offers_the_developer_documents_too(
+    api_server: RunningApi, label: str, file_name: str
+) -> None:
+    at = open_page(api_server, START)
+    section(at, "Handbuch")
+    at.selectbox(key="start_doc").select(label).run()
+    assert not at.exception
+    assert at.selectbox(key=f"start_chapter_{file_name}").options

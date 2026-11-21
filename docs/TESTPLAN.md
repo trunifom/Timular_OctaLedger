@@ -1,16 +1,16 @@
 # Testplan und Teststand
 
-## 1. Automatische Tests (Stand: nach der GUI-Überarbeitung, AP-21)
+## 1. Automatische Tests (Stand: nach Steuerungsmodus und Dokumentation)
 
 `scripts\run_tests.bat` führt aus: `pytest`, `ruff check .`, `ruff format --check .`, `mypy` (strict).
 
 | Schicht | Ort | Anzahl | Was geprüft wird |
 |---|---|---|---|
-| Unit | `tests/unit` | 805 | Fehler, Logging, Dateizugriff, Einstellungen, Domäne, Zustandsautomaten, Zeitalgebra, Datenbank/Migrationen, Repositories, Services, BLE-Protokoll, Fake-Transport, Bleak-Schicht (Stubs), Supervisor, Reporting, Export/Restore, API-Sicherheit, API, Dashboard-Client, CLI |
-| Integration | `tests/integration` | 14 | echter Server + echter Client über HTTP; **ganzer Agent** (BLE-Thread + API-Thread) mit synthetischem Tracker |
-| GUI | `tests/gui` | 104 | alle 8 Dashboard-Seiten mit `streamlit.testing.v1.AppTest` gegen den **echten** API-Server: Bedienabläufe, Hilfetexte, Fehlermeldungen, Hell/Dunkel, Schriftgröße, HTML-Escaping |
+| Unit | `tests/unit` | 1127 | Fehler, Logging, Dateizugriff, Einstellungen, Domäne, Zustandsautomaten, Zeitalgebra, Datenbank/Migrationen, Repositories, Services, BLE-Protokoll, Fake-Transport, Bleak-Schicht (Stubs), Supervisor, Reporting, Export/Restore, API-Sicherheit, API, Dashboard-Client, CLI; **Steuerungsmodus:** Moduswechsel, Warteschlange, Dispatcher, Geheimnisspeicher, die vier Adapter (Webhook gegen echten lokalen HTTP-Server, MQTT gegen Fake-Broker auf Protokollebene, Home Assistant, Hue); **Dokumentation:** Wächtertests |
+| Integration | `tests/integration` | 18 | echter Server + echter Client über HTTP; **ganzer Agent** (BLE-Thread + API-Thread) mit synthetischem Tracker, auch die Kette Drehung → Aktion im Steuerungsmodus |
+| GUI | `tests/gui` | 199 | alle 11 Dashboard-Seiten (inkl. Startseite, Würfel live, Seiten zuordnen, Verbindungen) mit `streamlit.testing.v1.AppTest` gegen den **echten** API-Server: Bedienabläufe, Hilfetexte, Fehlermeldungen, Hell/Dunkel, Schriftgröße, HTML-Escaping |
 | Hardware | `tests/hardware` | 2 | **manuell**, standardmäßig übersprungen (`OCTALEDGER_HARDWARE_TESTS=1`) |
-| **Summe** | | **925** | **923 bestanden, 2 übersprungen** |
+| **Summe** | | **1346** | **1342 bestanden, 4 übersprungen**: 2 Hardwaretests (bewusst, nur manuell), 1 Test der POSIX-Dateirechte (unter Windows nicht anwendbar) und der Wächtertest „Seite erklärt sich“ für die Startseite (sie ist selbst die Erklärung); ein zeitabhängiger GUI-Test überspringt nur in bestimmten UTC-Stunden |
 
 Grenzen der automatischen Tests (ehrlich):
 
@@ -21,6 +21,12 @@ Grenzen der automatischen Tests (ehrlich):
 - GUI-Tests mit Beispieldaten „heute 00:00–03:00 UTC“ werden zwischen 00:00 und 03:30 UTC übersprungen.
 - Zeitabhängige Asynchron-Tests (Supervisor, Agent) nutzen kleine echte Zeiten mit beschränktem Polling;
   sie wurden mehrfach wiederholt ausgeführt (stabil), können aber auf sehr langsamen Rechnern Zeit brauchen.
+
+### Dokumentation als Testgegenstand
+
+`tests/unit/test_documentation.py` und `tests/unit/test_gui_documentation.py` machen aus Dokumentationsregeln Testfehler: Docstring an jedem Modul, jeder Klasse und jeder Funktion;
+jeder Endpunkt steht in `docs/API.md`; jede Quell- und Dokumentationsdatei steht in `docs/ORDNERSTRUKTUR.md`; kein Verweis zwischen den Markdown-Dateien führt ins Leere;
+jedes Eingabefeld jeder Seite hat einen Hilfetext; jede Seite hat „So funktioniert diese Seite“; jedes im Handbuch angebotene Dokument existiert und hat Kapitel.
 
 ## 2. Abnahmekriterien (Pflichtenheft §10) – Nachweisstatus
 
@@ -37,6 +43,17 @@ Grenzen der automatischen Tests (ehrlich):
 | A-09 | JSON-Backup in leerer Umgebung restaurierbar | Rundlauftest, CLI-/GUI-Tests | – |
 | A-10 | Keine Tokens/echten Daten im Repository | `.gitignore` (DB, Logs, Token, `.env`), synthetische Fixtures; Stichprobe `git grep` ohne Treffer | – |
 | A-11 | pytest, Ruff, mypy bestehen | `scripts\run_tests.bat` grün (siehe oben) | – |
+
+### Abnahme des Steuerungsmodus (A-12 bis A-17)
+
+| ID | Kriterium | Software-Nachweis | Nachweis mit echten Zielen |
+|---|---|---|---|
+| A-12 | Moduswechsel pro Würfel; Zeiterfassung bleibt unberührt, andere Würfel behalten ihren Modus | `test_control_mode`: `test_control_events_never_create_or_touch_time_entries`, `test_other_devices_keep_their_modes_when_one_switches`, `test_a_running_time_entry_blocks_switching_that_tracker_to_control` | – |
+| A-13 | Eine Drehung löst genau **eine** Aktion aus; Baseline, „neutral“ und Seiten ohne Aktion lösen nichts aus | `test_a_face_change_queues_exactly_the_action_of_that_face`, `test_the_job_is_tied_to_the_event_so_a_trigger_cannot_be_sent_twice`, `test_only_a_real_face_change_triggers_anything`; Kette: `test_turning_the_cube_in_control_mode_sends_the_action_and_records_no_time` | **offen** |
+| A-14 | Aktionen verfallen nach 30 s; die Warteschlange ist begrenzt; Reihenfolge bleibt erhalten | `test_overdue_jobs_expire_instead_of_being_sent_late`, `test_the_queue_is_bounded_and_says_why_it_dropped_an_action`, `test_jobs_are_sent_in_the_order_they_were_created` | – |
+| A-15 | Wiederholung nur wenn die Anfrage **sicher nicht ankam**; höchstens 3 Versuche; ein fehlschlagender Adapter blockiert nichts | `test_a_transient_error_is_retried_later_and_then_succeeds`, `test_a_permanent_error_is_not_retried`, `test_retries_stop_after_the_attempts_are_used_up`, `test_a_crashing_adapter_does_not_stop_the_dispatcher`; Adapter-Tests je Fehlerklasse | **offen** |
+| A-16 | Zugangsdaten stehen nie in Datenbank, Sicherung, API-Antwort oder Protokoll | `test_secrets_go_to_the_secret_store_and_never_into_the_settings`, `test_stored_and_loaded_secrets_are_masked_in_log_text`, API-Test „Zugangsdaten tauchen nie in Antworten oder Sicherungen auf“ | – |
+| A-17 | Jede Anbindung funktioniert mit einem **echten** Ziel (Home Assistant, Hue-Bridge, MQTT-Broker, Webhook-Ziel) | – | **offen** (Tester: „Verbindung testen“, „Jetzt ausprobieren“, dann Würfel drehen; Ergebnis hier eintragen) |
 
 ## 3. Manueller Hardwaretest
 

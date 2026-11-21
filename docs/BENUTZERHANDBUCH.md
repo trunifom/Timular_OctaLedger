@@ -1,8 +1,9 @@
 # Benutzerhandbuch
 
 Dieses Handbuch richtet sich an **Anwender** von OctaLedger. Installation und Start:
-[INSTALLATION.md](INSTALLATION.md). Technische Details für Entwickler:
-[SOFTWAREDOKUMENTATION.md](SOFTWAREDOKUMENTATION.md).
+[INSTALLATION.md](INSTALLATION.md). Fachbegriffe: [GLOSSAR.md](GLOSSAR.md). Technische Details für Entwickler:
+[SOFTWAREDOKUMENTATION.md](SOFTWAREDOKUMENTATION.md), [ARCHITEKTUR.md](ARCHITEKTUR.md) und [API.md](API.md). Eine Übersicht aller
+Dokumente: [README.md](README.md).
 
 > **Ehrlicher Stand:** Die komplette Software ist umgesetzt und automatisch getestet – der
 > Tracker-Teil jedoch bisher **nur mit einem Simulator**, noch nicht mit echten Würfeln. Das
@@ -39,6 +40,11 @@ OctaLedger erfasst Arbeitszeit lokal auf Ihrem Rechner mit einem kompatiblen
 Timeular-/ZEI-Würfel. Sie drehen den Würfel auf die Seite einer Tätigkeit, OctaLedger
 startet die Zeit und speichert sie in einer lokalen Datenbank. Es wird kein
 Herstellerkonto und keine Cloud benötigt.
+
+Jeder Würfel hat eine von **zwei Betriebsarten**: **Zeit erfassen** (Standard; jede Seite ist eine Tätigkeit) oder **Dinge steuern**
+(jede Seite löst eine Aktion aus, zum Beispiel Licht schalten; siehe Kapitel 20). Zwei Programme arbeiten zusammen: der **Agent**
+(läuft im Hintergrund, hält die Bluetooth-Verbindung, speichert alles; kein KI-Agent) und das **Dashboard** (die Oberfläche, die
+Sie im Browser sehen). Das Dashboard darf geschlossen werden, der Agent erfasst weiter.
 
 ## 2. Grundbegriffe
 
@@ -145,7 +151,7 @@ Sie beantwortet drei Fragen, egal wo Sie gerade sind:
    Zeitjournal.
 
 ### Bereich „Startseite“
-Jede neue Sitzung beginnt hier. Die Seite hat drei Bereiche, die Sie oben auswählen:
+Jede neue Sitzung beginnt hier. Die Seite hat vier Bereiche, die Sie oben auswählen:
 
 - **Willkommen:** erklärt in einfachen Worten, was der Timeular-Würfel ist, wofür Sie OctaLedger einsetzen
   können (Arbeitszeit ohne Aufwand, Auswertung nach Tätigkeit und Projekt, Fokus und Pausen, lokal und
@@ -157,9 +163,14 @@ Jede neue Sitzung beginnt hier. Die Seite hat drei Bereiche, die Sie oben auswä
   Ausprobieren) mit Fortschrittsanzeige. Schritte, für die noch etwas fehlt, sind gesperrt. Beim Verbinden
   genügt eine Suche und ein Klick; ein bereits eingerichteter Würfel wird als „ist eingerichtet“ mit seinem
   Zustand angezeigt, und unter „Anderen Würfel suchen oder neu verbinden“ ersetzen Sie ihn.
-- **Handbuch:** die vollständige Anleitung zum Nachlesen, ohne das Programm zu verlassen: das
-  *Benutzerhandbuch* und *Installation und Betrieb*. Wählen Sie ein **Kapitel** oder suchen Sie einen Begriff
-  (zeigt nur passende Kapitel). Verweise auf andere Dateien erscheinen als Text, Weblinks bleiben klickbar.
+- **So funktioniert’s:** erklärt in Kürze, was im Hintergrund passiert: wie **Agent** und **Dashboard** zusammenarbeiten (und dass der
+  Agent kein KI-Agent ist), die **zwei Betriebsarten**, **wo Ihre Daten liegen**, **wie sicher** das ist und **was noch nicht
+  geprüft** wurde (echter Würfel, echte Smarthome-Geräte). Darunter führen Knöpfe zu den vertiefenden Dokumenten.
+- **Handbuch:** die vollständige Dokumentation zum Nachlesen, ohne das Programm zu verlassen. Für Anwender: *Benutzerhandbuch*,
+  *Installation und Betrieb*, *Glossar*. Für Entwickler: *Architektur*, *Schnittstelle (API)*, *Datenmodell*, *Anbindungen entwickeln
+  (Adapter)*, *Software-Dokumentation*, *Grenzen und Quellen* und *Sicherheit*. Wählen Sie ein **Dokument** und ein **Kapitel** oder
+  suchen Sie einen Begriff (zeigt nur passende Kapitel). Verweise auf andere Dateien erscheinen als Text, Weblinks bleiben klickbar.
+  Die Bilder des Projekts (Screenshots) finden Sie in der `README.md` auf GitHub.
 
 ### Bereich „Übersicht“
 Von oben nach unten:
@@ -661,6 +672,32 @@ Bluetooth-Verbindungen an Ihrem Adapter zuverlässig laufen, müssen Sie ausprob
 Kalibrierung) oder der Würfel liegt auf keiner stabilen Seite (neutral).
 
 **Die Zeiten stimmen nicht mit der Uhr überein.** Prüfen Sie in den *Einstellungen* die **Zeitzone**.
+
+**Was ist dieser „Agent“? Ist das eine KI?** Nein. Der Agent ist ein gewöhnliches Hintergrundprogramm ohne Sprachmodell. Er hält die
+Bluetooth-Verbindung zum Würfel, erkennt Drehungen, speichert sie und (im Steuerungsmodus) sendet die Aktionen. Er ist ein eigenes
+Programm, damit die Erfassung weiterläuft, wenn Sie den Browser schließen.
+
+**Wozu braucht die Schnittstelle ein Token?** Weil jede Webseite in Ihrem Browser Anfragen an Ihren eigenen Rechner (`127.0.0.1`)
+stellen könnte. Ohne das geheime Token (Datei `api_token` im Datenordner) lehnt der Agent jede Anfrage ab. Das Dashboard liest es
+selbstständig; Sie müssen es nie eintippen.
+
+**Kann ein Würfel Zeit erfassen und der andere das Licht schalten?** Ja. Die Betriebsart gilt **pro Würfel** (Kapitel 20).
+
+**Kann ich Matter- oder Google-Home-Geräte schalten?** Indirekt: OctaLedger spricht beides nicht selbst, aber **Home Assistant**. Binden
+Sie Ihre Geräte dort ein und legen Sie in OctaLedger eine Home-Assistant-Verbindung an.
+
+**Ein Licht reagiert nicht, wenn ich drehe.** Prüfen Sie unter *Verbindungen* den **Verlauf**: *erledigt* heißt, das Ziel hat die Aktion
+angenommen; *fehlgeschlagen* nennt den Grund; *abgelaufen* heißt, das Ziel war länger als 30 Sekunden nicht erreichbar. Probieren Sie
+die Aktion dort mit *Jetzt ausprobieren*.
+
+**Sind meine Zugangsdaten (Passwörter, Tokens) in der Sicherung?** Nein, bewusst nicht. Nach einer Wiederherstellung auf einem anderen
+Rechner tragen Sie sie bei den Verbindungen neu ein; die Verbindungen und die Aktionen der Seiten sind in der Sicherung enthalten.
+
+**Kann ich Statistiken in Excel auswerten?** Ja: *Daten* → *CSV-Export*. Die Datei öffnet sich in Excel direkt (UTF-8 mit BOM, Trennzeichen
+Semikolon); Texte, die mit `=` oder `+` beginnen, sind entschärft.
+
+**Wo finde ich mehr?** Auf der Startseite im Bereich **Handbuch**: Glossar (alle Begriffe), Architektur (wie es gebaut ist), Schnittstelle
+(für eigene Skripte), Sicherheit (Schutz und Grenzen). Eine Übersicht aller Dokumente: [README.md](README.md).
 
 ## 20. Dinge steuern: der Steuerungsmodus
 

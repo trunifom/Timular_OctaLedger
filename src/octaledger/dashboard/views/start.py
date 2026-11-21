@@ -1,6 +1,6 @@
 """Start page: what the cube is, what OctaLedger is good for, guided setup and the manual.
 
-Three sections, chosen with a segmented picker (a picker instead of ``st.tabs`` so that buttons
+Four sections, chosen with a segmented picker (a picker instead of ``st.tabs`` so that buttons
 elsewhere on the page can switch the section):
 
 * **Willkommen** - plain-language explanation of the Timeular cube and of what the software can be
@@ -9,7 +9,10 @@ elsewhere on the page can switch the section):
   every face an activity. The cube is found with one search and registered, assigned and connected
   with **one** click, so users never have to understand "register", "assign address" and "connect"
   as separate steps.
-* **Handbuch** - the user documentation from ``docs/``, one chapter at a time, with search.
+* **So funktioniert's** - how the parts fit together (agent and dashboard, the two modes,
+  where the data lives, what is safe and what is not tested yet) with links into the manual.
+* **Handbuch** - the documentation from ``docs/`` (user and developer documents), one
+  chapter at a time, with search.
 
 Nothing on this page invents data: the example picture is labelled as an example and is replaced
 by the user's real faces as soon as a tracker exists.
@@ -37,7 +40,8 @@ from octaledger.dashboard.ui import STATE_LABELS, STATE_LEVEL, call, status_dot
 from octaledger.dashboard_client.client import ApiClient
 
 SECTION_KEY = "start_section"
-SECTIONS = ("Willkommen", "Einrichten", "Handbuch")
+DOC_KEY = "start_doc"
+SECTIONS = ("Willkommen", "Einrichten", "So funktioniert's", "Handbuch")
 FLASH_KEY = "start_flash"
 READY = "ready"
 DEFAULT_ALIAS = "Mein Würfel"
@@ -115,12 +119,15 @@ def render(client: ApiClient, tz: str) -> None:
         horizontal=True,
         label_visibility="collapsed",
         help="Willkommen: Was ist das? · Einrichten: Schritt für Schritt starten · "
-        "Handbuch: die ganze Anleitung zum Nachlesen.",
+        "So funktioniert's: Aufbau, Betriebsarten, Daten, Sicherheit · "
+        "Handbuch: die ganze Dokumentation zum Nachlesen.",
     )
     if section == "Willkommen":
         _welcome(devices, state)
     elif section == "Einrichten":
         _setup(client, devices, state)
+    elif section == "So funktioniert's":
+        _how_it_works()
     else:
         _manual()
 
@@ -447,18 +454,124 @@ def _use(client: ApiClient, device: dict[str, Any] | None, alias: str, address: 
     st.rerun()
 
 
+# ------------------------------------------------------------------------------ how it works
+
+
+def _open_document(label: str) -> None:
+    """``on_click`` callback: open the manual at the document ``label``."""
+    st.session_state[SECTION_KEY] = "Handbuch"
+    st.session_state[DOC_KEY] = label
+
+
+def _how_it_works() -> None:
+    """Explain the parts of OctaLedger, the two modes, the data and the safeguards."""
+    st.markdown("## So funktioniert OctaLedger")
+    st.markdown(
+        "Kurz erklärt, was im Hintergrund passiert – damit Sie wissen, worauf Sie sich verlassen "
+        "können und wo die Grenzen sind."
+    )
+
+    st.markdown("### Zwei Programme arbeiten zusammen")
+    st.markdown(
+        "* **Der Agent** läuft im Hintergrund. Er hält die Bluetooth-Verbindung zum Würfel, "
+        "erkennt Drehungen, speichert alles und schaltet im Steuerungsmodus Ihre Geräte. "
+        "Er ist ein gewöhnliches Programm – **kein KI-Agent** und ohne Sprachmodell.\n"
+        "* **Dieses Dashboard** (was Sie gerade sehen) zeigt die Daten und nimmt Eingaben "
+        "entgegen. Es erfasst nichts selbst: **Sie dürfen das Fenster jederzeit schließen**, die "
+        "Erfassung läuft weiter."
+    )
+    st.code(
+        "Würfel ──Bluetooth──►  AGENT  ──speichert──►  Datenbank (Ihr Benutzerprofil)\n"
+        "                         │  ▲\n"
+        "                         │  └── lokale Schnittstelle (nur dieser Rechner, mit Token)\n"
+        "                         │                 ▲\n"
+        "                         │                 └── DASHBOARD (dieses Fenster)\n"
+        "                         └──Aktionen──►  Home Assistant · Hue · MQTT · Webhook",
+        language=None,
+    )
+
+    st.markdown("### Zwei Betriebsarten – pro Würfel")
+    left, right = st.columns(2)
+    with left, st.container(border=True):
+        st.markdown("**Zeit erfassen** (Standard)")
+        st.markdown(
+            "Jede Seite ist eine **Tätigkeit**. Drehen Sie auf eine andere Seite, endet die "
+            "vorige Zeit und die neue beginnt. Abgebrochene Verbindungen werden als *unsicher* "
+            "markiert, nie geraten."
+        )
+    with right, st.container(border=True):
+        st.markdown("**Dinge steuern**")
+        st.markdown(
+            "Jede Seite ist eine **Aktion** (Licht an, Szene, Nachricht). Es entstehen **keine** "
+            "Zeiten. Aktionen werden zuerst gespeichert, dann gesendet, und verfallen nach "
+            "30 Sekunden."
+        )
+
+    st.markdown("### Wo liegen Ihre Daten?")
+    st.markdown(
+        "Alles liegt **auf diesem Computer** in Ihrem Benutzerprofil (Ort: Seite *Diagnose* oder "
+        "`octaledger paths`). Es gibt kein Konto, keine Cloud und keine Telemetrie. "
+        "Zugangsdaten zu Ihren Geräten liegen **getrennt** und stehen **nie** in Sicherungen. "
+        "Sicherung und Wiederherstellung finden Sie auf der Seite *Daten*."
+    )
+
+    st.markdown("### Wie sicher ist das?")
+    st.markdown(
+        "* Die Schnittstelle des Agenten ist **nur von diesem Rechner** erreichbar und durch ein "
+        "geheimes Token geschützt; fremde Webseiten können nichts auslösen.\n"
+        "* OctaLedger **liest nur** vom Würfel und schreibt nie hinein.\n"
+        "* Passwörter und Tokens erscheinen **nie** im Protokoll.\n"
+        "* Die Datenbank und `secrets.json` sind **nicht verschlüsselt**; sie sind so geschützt "
+        "wie Ihr Windows-Benutzerprofil."
+    )
+
+    st.markdown("### Was ist noch nicht geprüft?")
+    st.warning(
+        "Die Software ist umfassend automatisch getestet, aber bisher **nur mit einem "
+        "Simulator** – nicht mit einem echten Würfel. Die Anbindungen (Home Assistant, Hue, MQTT, "
+        "Webhook) sind gegen Testserver geprüft, nicht gegen Ihre Geräte. Probieren Sie jede "
+        "Aktion mit *Ausprobieren*, bevor Sie sich darauf verlassen.",
+        icon=":material/science:",
+    )
+
+    st.markdown("### Mehr lesen")
+    reading = (
+        ("Architektur", "Bausteine, Datenflüsse und die Gründe dahinter."),
+        ("Schnittstelle (API)", "Jeder Endpunkt, zum Beispiel für eigene Skripte."),
+        ("Datenmodell", "Welche Dateien und Tabellen es gibt."),
+        ("Anbindungen entwickeln (Adapter)", "Eine eigene Verbindungsart hinzufügen."),
+        ("Sicherheit", "Bedrohungen, Maßnahmen und ehrliche Grenzen."),
+        ("Glossar", "Alle Fachbegriffe."),
+    )
+    for row in (reading[:3], reading[3:]):
+        for column, (label, hint) in zip(st.columns(3), row, strict=True):
+            column.button(
+                label,
+                key=f"start_read_{label}",
+                on_click=_open_document,
+                args=(label,),
+                width="stretch",
+                help=hint,
+            )
+
+
 # ------------------------------------------------------------------------------ manual
 
 
 def _manual() -> None:
     st.markdown("## Handbuch")
-    st.caption("Die vollständige Anleitung zum Nachlesen, ohne das Programm zu verlassen.")
+    st.caption(
+        "Die vollständige Dokumentation zum Nachlesen, ohne das Programm zu verlassen. Für "
+        "Anwender: Benutzerhandbuch, Installation, Glossar. Für Entwickler: Architektur, "
+        "Schnittstelle, Datenmodell, Adapter, Software-Dokumentation."
+    )
     label = st.selectbox(
         "Dokument",
         [name for name, _ in DOCUMENTS],
-        key="start_doc",
-        help="Benutzerhandbuch: Bedienung und Begriffe. Installation und Betrieb: Einrichten, "
-        "Starten, Sicherung, Fehlersuche.",
+        key=DOC_KEY,
+        help="Benutzerhandbuch: Bedienung. Installation und Betrieb: Einrichten, Starten, "
+        "Fehlersuche. Glossar: Fachbegriffe. Architektur, Schnittstelle (API), Datenmodell, "
+        "Adapter und Software-Dokumentation: für Entwickler. Sicherheit: Schutz und Grenzen.",
     )
     file_name = dict(DOCUMENTS)[label]
     text = load_document(file_name)

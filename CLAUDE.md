@@ -74,6 +74,10 @@ Streamlit-Dashboard. Unabhängig von Timeular/EARLY.
 |---|---|---|
 | Endanwender | `docs/BENUTZERHANDBUCH.md` | Bedienung, Begriffe, Abläufe, Fehlerhilfe |
 | Entwickler | `docs/SOFTWAREDOKUMENTATION.md` + `docs/ARCHITEKTUR.md` | Module, Schnittstellen, Datenfluss, Entscheidungen |
+| Schnittstelle | `docs/API.md` | jeder Endpunkt (ein Test erzwingt Vollständigkeit) |
+| Daten | `docs/DATENMODELL.md` | Dateien, Tabellen, Regeln, Sicherungsformat |
+| Erweiterung | `docs/ADAPTER_ENTWICKLUNG.md` | neue Art von Verbindung hinzufügen |
+| Begriffe, Übersicht | `docs/GLOSSAR.md`, `docs/README.md` | Fachbegriffe, Wegweiser durch alle Dokumente |
 | Betrieb | `docs/INSTALLATION.md` | Installation, Start, Konfiguration, Backup, Fehlersuche |
 | Prozess | `docs/FORTSCHRITT.md` | Erledigt/offen mit Datum, Uhrzeit, Commit |
 
@@ -105,7 +109,7 @@ Schichten: `domain` → `application` → `infrastructure` / `api` / `agent`; `d
 `dashboard_client` mit der API. Der Agent ist der einzige reguläre DB-Schreiber. **Ein** AsyncIO-Loop
 (eigener Thread) besitzt alle BLE-Clients. Details: `docs/ARCHITEKTUR.md`.
 
-**Arbeitsstand (siehe `docs/FORTSCHRITT.md`):** Alle Arbeitspakete AP-00 bis AP-31b sind umgesetzt (AP-22 bis AP-25: Live-Daten, Seite „Würfel live“, Assistent „Seiten zuordnen“, Startseite mit geführter Einrichtung und Handbuch; AP-26 bis AP-31: Steuerungsmodus mit Adapter-Baukasten, Warteschlange, Webhook, MQTT, Home Assistant, Hue und Oberfläche, siehe `docs/SOFTWAREDOKUMENTATION.md` §31). **Offen
+**Arbeitsstand (siehe `docs/FORTSCHRITT.md`):** Alle Arbeitspakete AP-00 bis AP-32c sind umgesetzt (AP-22 bis AP-25: Live-Daten, Seite „Würfel live“, Assistent „Seiten zuordnen“, Startseite mit geführter Einrichtung und Handbuch; AP-26 bis AP-31: Steuerungsmodus mit Adapter-Baukasten, Warteschlange, Webhook, MQTT, Home Assistant, Hue und Oberfläche, siehe `docs/SOFTWAREDOKUMENTATION.md` §31; AP-32: umfassende Dokumentation und Wächtertests, §32). **Offen
 und nicht von Agenten lösbar:** Hardwaretest mit echten Trackern (Anleitung: `docs/INSTALLATION.md` §5,
 Matrix in `docs/TESTPLAN.md`), Lizenzwahl (**den Nutzer daran erinnern, bevor veröffentlicht wird**),
 Namens-/Markenprüfung, privater Sicherheits-Meldeweg, F-20 (Integrationen, „Kann“).

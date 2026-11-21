@@ -1,7 +1,7 @@
 # Software-Pflichtenheft: OctaLedger
 
 Version: 0.1, Planungsstand 19. November 2026; Umsetzungsstand siehe Abschnitt 11.
-Status: Soll-Spezifikation, **umgesetzt bis auf F-20** (Kann) und die Hardwareprüfung.
+Status: Soll-Spezifikation, **umgesetzt** (F-20 ohne Obsidian) bis auf die Hardwareprüfung.
 Muss/Soll/Kann bezeichnen Zielprioritäten, keine Lieferzusage.
 
 ## 1. Zweck und Zielgruppe
@@ -157,6 +157,6 @@ im Hardwaretest messen. Betriebliche Rechtskonformität separat prüfen.
 | F-17 | ✅ ⏳ | Reconnect mit begrenztem Backoff; bewusster Stopp beendet Reconnect |
 | F-18 | ✅ ⏳ | optionaler Batteriestand; fehlender Dienst wird toleriert |
 | F-19 | ✅ | anonymisierter Diagnosebericht (Diagnose-Seite) |
-| F-20 | ⏳ nicht umgesetzt | optionale Integrationen (`infrastructure/integrations` ist ein leerer Platzhalter) |
+| F-20 | ✅ ⏳ teilweise | Steuerungsmodus mit Adaptern für **Home Assistant, Hue, MQTT und Webhook** (`infrastructure/integrations`); **Obsidian ist nicht umgesetzt** (nur über den Webhook-Adapter denkbar). Matter und Google Home nur über Home Assistant. Nur gegen Testziele geprüft ⏳ |
 
 Abnahmekriterien A-01 bis A-11: Nachweisstatus in [TESTPLAN.md](TESTPLAN.md).

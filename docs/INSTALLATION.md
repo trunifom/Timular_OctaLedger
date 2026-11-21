@@ -55,8 +55,10 @@ Prüfen:
 - **Der Agent erfasst, das Dashboard zeigt an.** Das Dashboard darf jederzeit geschlossen werden.
 - Beim **ersten Start** legt der Agent Datenordner, Datenbank, Einstellungen und das API-Token an.
 - Das Dashboard bindet nur an `127.0.0.1` und sendet **keine Telemetrie** (`.streamlit/config.toml`).
-- Mit dem **aktiven Tracker** verbindet der Agent automatisch, sobald eine Bluetooth-Adresse
-  gespeichert ist.
+- Mit dem **aktiven Tracker** und mit **jedem Würfel im Steuerungsmodus** verbindet der Agent automatisch,
+  sobald eine Bluetooth-Adresse gespeichert ist.
+- Ports: die API des Agenten hört auf `127.0.0.1:8765`, das Dashboard auf `127.0.0.1:8501`. Beide sind **nur von diesem
+  Rechner** erreichbar; es ist **keine Firewall-Freigabe** nötig (und keine sinnvoll).
 
 ## 4. Datenablage und Konfiguration
 
@@ -96,6 +98,9 @@ gehört nie ins Repository, in Screenshots oder Tickets (Logs maskieren es autom
 
 ## 5. Bluetooth und Hardwaretest
 
+0. Ein Würfel, der sich nicht finden lässt, ist meist nicht im **Kopplungsmodus**: Den Knopf am Würfel **lange gedrückt halten**, bis
+   er **blau blinkt**, dann sofort suchen. Er darf nicht gleichzeitig mit dem Handy, der Hersteller-App oder den Windows-Bluetooth-
+   Einstellungen verbunden sein. Der Würfel meldet sich in der Liste oft als „Timeular Tra…“ (die Startseite markiert solche Treffer).
 1. Würfel laden und einmal drehen (weckt ihn). Hersteller-App schließen.
 2. `.venv\Scripts\python.exe -m octaledger scan` listet Geräte in der Nähe (verbindet nichts).
 3. Im Dashboard (Bereich **Geräte**): registrieren, suchen, Adresse speichern, **Verbinden**,
@@ -112,6 +117,23 @@ gehört nie ins Repository, in Screenshots oder Tickets (Logs maskieren es autom
 5. Ergebnisse (Modell, Firmware, Windows, Adapter, Treiber, Python, Bleak, App-Version) in die
    Kompatibilitätsmatrix von [TESTPLAN.md](TESTPLAN.md) eintragen. **Erst danach** gelten die
    Abnahmekriterien mit Hardwarebezug (A-01, A-05) als geprüft.
+
+## 5a. Netzwerk für den Steuerungsmodus
+
+Der Steuerungsmodus sendet **von diesem Rechner aus** an Ihre Geräte; es gehen keine Verbindungen von außen herein.
+
+| Anbindung | Ziel und Port (üblich) | Voraussetzung |
+|---|---|---|
+| Home Assistant | `http://<adresse>:8123` | Ein „langlebiges Zugriffstoken“ (Home Assistant → Profil, ganz unten) |
+| Philips Hue | die Bridge im Heimnetz (HTTPS, Port 443) | Zugriff auf das Heimnetz; Koppeln durch Drücken des Knopfs an der Bridge |
+| MQTT | `<broker>:1883` (ohne TLS) oder `:8883` (TLS) | Broker erreichbar; ggf. Benutzername/Passwort |
+| Webhook | beliebige `http(s)`-Adresse | Ziel erreichbar |
+
+* Der Rechner muss im **selben Netz** wie das Ziel sein (ein VPN oder ein Gastnetz kann es trennen).
+* Ein **Proxy** der Umgebung wird **ignoriert**: Anfragen ins eigene Netz gehen bewusst direkt.
+* Weiterleitungen (HTTP 301/302) werden **nicht befolgt**; tragen Sie die endgültige Adresse ein.
+* Beim Einrichten helfen *Verbindung testen* und *Jetzt ausprobieren* (Seite **Verbindungen**). Sie prüfen Erreichbarkeit, Zugang und Wirkung.
+* Die Zugangsdaten liegen in `secrets.json` (siehe Abschnitt 4), nicht in der Sicherung.
 
 ## 6. Sicherung und Wiederherstellung
 
@@ -165,4 +187,8 @@ Richtlinien: [CLAUDE.md](../CLAUDE.md), [CONTRIBUTING.md](../CONTRIBUTING.md).
 | Datenbank beschädigt (`OL-STORAGE-003`) | Dashboard → Diagnose → „Datenbank prüfen“; Sicherung wiederherstellen |
 | `Zugriff verweigert` bei Cache-Ordnern in Tests | `-p no:cacheprovider` ist in `pyproject.toml` gesetzt |
 | `ModuleNotFoundError: octaledger` | `pip install -e ".[dev]"` im aktiven venv |
+| Verbindung: „Das Ziel ist nicht erreichbar“ (`OL-INTEG-002`) | Adresse/Port prüfen, Gerät eingeschaltet, gleiches Netz (Abschnitt 5a) |
+| Verbindung: Zugang abgelehnt (`OL-INTEG-001`) | Token/Passwort in der Verbindung neu eintragen (Feld leer lassen = alten Wert behalten) |
+| Licht reagiert nicht, Verlauf zeigt „erledigt“ | Die Aktion wurde angenommen: Gerät/Szene in der Aktion prüfen (*Geräte auflisten* verwenden) |
+| Aktion „abgelaufen“ | Das Ziel war länger als 30 Sekunden nicht erreichbar; erneut drehen |
 | Ausgabe enthält `[OL-…-nnn]` | stabiler Fehlercode, Bedeutung in [SOFTWAREDOKUMENTATION.md](SOFTWAREDOKUMENTATION.md) §2.2 |

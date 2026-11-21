@@ -96,8 +96,8 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 
 ## 4. Zeit- und Datenformate
 
-* **Zeitstempel** sind ISO-8601 mit Zeitzone, in Antworten stets **UTC** (`2026-11-21T08:30:00+00:00`). Eingaben ohne Zeitzone gelten als UTC;
-  das Dashboard rechnet für die Anzeige in die eingestellte Zeitzone um.
+* **Zeitstempel** sind ISO-8601 mit Zeitzone, in Antworten stets **UTC** (`2026-11-21T08:30:00+00:00`). Eingaben **müssen** eine Zeitzone enthalten (`…Z` oder `+01:00`); Zeiten ohne Zeitzone
+  werden mit **422** abgelehnt, statt sie still zu raten. Das Dashboard rechnet für die Anzeige in die eingestellte Zeitzone um.
 * **Dauern** sind ganze **Sekunden** (`*_seconds`).
 * **IDs** sind Texte (UUID); **Seiten** sind Zahlen 1–8.
 * **Farben** sind `#rrggbb`.
@@ -149,6 +149,10 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `POST /scan` | Bluetooth-Suche (nur auf Anforderung, verbindet nie selbst) | `{"seconds"?: 5.0}` | Liste von Treffern |
 
 `connect`, `disconnect` und `scan` brauchen den BLE-Agenten; läuft die API ohne ihn, antworten sie mit **503**.
+
+**Moduswechsel (`PUT /devices/{id}/mode`):** Läuft gerade eine **vom Würfel erzeugte** Sitzung dieses Würfels, antwortet die API mit **409** (zuerst beenden). Ist der Würfel der aktive
+Tracker und wird auf `control` gestellt, geht die Rolle „aktiv“ an einen anderen Zeit-Würfel über (oder an keinen); ein Steuerungs-Würfel kann nicht per `activate` aktiv werden. Das Setzen des
+bereits gültigen Modus ist harmlos. Zurück auf `time` macht den Würfel zum aktiven Tracker, wenn keiner aktiv ist.
 
 **Gerät** (Antwort von fast allen Geräte-Endpunkten):
 

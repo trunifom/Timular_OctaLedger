@@ -160,6 +160,11 @@ html, body, .stApp, .stApp button, .stApp input, .stApp textarea, .stApp select 
   color: {p.text}; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
 }}
 .stApp [data-testid="stMetricValue"] {{ font-weight: 600; }}
+/* Long durations such as "34 h 20 min" must wrap instead of ending in an ellipsis. */
+.stApp [data-testid="stMetricValue"] {{ font-size: 2rem; }}
+.stApp [data-testid="stMetricValue"] > div {{
+  white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2;
+}}
 
 /* Controls: 8 px radius, 3:1 borders, visible focus. */
 .stApp input, .stApp textarea, .stApp [data-baseweb="select"] > div,

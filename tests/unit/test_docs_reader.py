@@ -86,6 +86,6 @@ def test_the_shipped_documents_exist_and_have_chapters() -> None:
         text = load_document(file_name)
         assert text, file_name
         _, chapters = split_chapters(text)
-        assert len(chapters) >= 5, file_name
+        assert len(chapters) >= 3, file_name
         assert all(c.body for c in chapters), file_name
         assert "](#" not in "\n".join(c.body for c in chapters)  # no dead in-page anchors

@@ -11,13 +11,17 @@
 
 ## Was geprüft wurde
 
-- **Alle automatischen Tests** (900 bestanden, 2 Hardwaretests übersprungen), `ruff check`,
+- **Alle automatischen Tests** (1344 Tests, 2 Hardwaretests bewusst übersprungen), `ruff check`,
   `ruff format --check` und `mypy --strict` auf **Windows 11 (10.0.26300), Python 3.12.3**, mit den
   Versionen aus `constraints-tested.txt` (u. a. Bleak 3.1.0, Streamlit 1.67.0, FastAPI 0.165.0).
 - Die komplette Kette Tracker-**Simulator** → Agent → Datenbank → API → Dashboard-Client sowie jede
   Dashboard-Seite mit `AppTest` gegen den echten API-Server.
 - Im Repository liegen keine Datenbanken, Logs, Tokens oder `.env`-Dateien (außer der leeren
   `.env.example`).
+
+- **Aussehen im Browser:** Für die Bilder in `docs/images/` und die Sichtprüfung wurden die Seiten mit Playwright (Chromium) gegen eine
+  Vorschau mit Simulator und Beispieldaten aufgenommen. Das zeigt das Rendering in **einem** Browser bei 1280 Pixeln Breite, ersetzt aber keinen Test auf kleinen
+  Bildschirmen oder in anderen Browsern.
 
 ## Was **nicht** geprüft wurde (Grenzen)
 

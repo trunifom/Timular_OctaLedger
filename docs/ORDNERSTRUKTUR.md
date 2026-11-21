@@ -28,6 +28,13 @@ octaledger/
   docs/GITHUB.md
   docs/GLOSSAR.md
   docs/GUI_KONZEPT.md
+  docs/images/seiten-aktionen.png
+  docs/images/seiten-zuordnen.png
+  docs/images/startseite.png
+  docs/images/statistik.png
+  docs/images/uebersicht.png
+  docs/images/verbindungen.png
+  docs/images/wuerfel-live.png
   docs/INSTALLATION.md
   docs/ORDNERSTRUKTUR.md
   docs/PFLICHTENHEFT.md
@@ -167,6 +174,7 @@ octaledger/
   tests/unit/test_errors.py
   tests/unit/test_export_service.py
   tests/unit/test_fileio.py
+  tests/unit/test_gui_documentation.py
   tests/unit/test_integration_service.py
   tests/unit/test_integrations_storage.py
   tests/unit/test_logging.py
