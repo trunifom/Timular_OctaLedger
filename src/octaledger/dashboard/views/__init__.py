@@ -19,10 +19,19 @@ from octaledger.dashboard.views import (
     live,
     overview,
     settings,
+    start,
     statistics,
 )
 
 _DEFINITIONS = (
+    PageDef(
+        "start",
+        "Startseite",
+        "home",
+        "Start",
+        "Was ist der Würfel? Einrichten Schritt für Schritt und das Handbuch zum Nachlesen",
+        start.render,
+    ),
     PageDef(
         "overview",
         "Übersicht",

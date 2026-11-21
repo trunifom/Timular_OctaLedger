@@ -36,6 +36,7 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 27. [GUI-Überarbeitung: Design-System, Navigation, Statusleiste (AP-21)](#27-gui-überarbeitung-design-system-navigation-statusleiste-ap-21)
 28. [Live-Ansicht und Würfelgrafik (`dashboard.views.live`, `dashboard.cube`, AP-23)](#28-live-ansicht-und-würfelgrafik-dashboardviewslive-dashboardcube-ap-23)
 29. [Zuordnungs-Assistent „Seiten zuordnen“ (`dashboard.views.faces`, AP-24)](#29-zuordnungs-assistent-seiten-zuordnen-dashboardviewsfaces-ap-24)
+30. [Startseite, geführte Einrichtung und Handbuch (`dashboard.views.start`, `dashboard.docs_reader`, AP-25)](#30-startseite-geführte-einrichtung-und-handbuch-dashboardviewsstart-dashboarddocs_reader-ap-25)
 
 ## 1. Überblick
 
@@ -1281,7 +1282,7 @@ Konzept, Recherche, Quellen und Begründungen: [GUI_KONZEPT.md](GUI_KONZEPT.md).
 | Modul | Aufgabe |
 |---|---|
 | `dashboard/theme.py` | Design-System: `PALETTES` (hell/dunkel, inkl. `input_border`), `css()` (Inter per `@font-face`, `tabular-nums`, Radien 8/12 px, Fokusring, Karten, Menü-Stile, **keine Schatten**), WCAG-Hilfen |
-| `dashboard/nav.py` | `PageDef(slug, title, icon, group, description, render)`, `GROUPS = (Alltag, Einrichten, System)`, `go(slug)` als `on_click`-Callback |
+| `dashboard/nav.py` | `PageDef(slug, title, icon, group, description, render)`, `GROUPS = (Start, Alltag, Einrichten, System)`, `go(slug)` als `on_click`-Callback |
 | `dashboard/views/__init__.py` | `PAGES: dict[slug, PageDef]` – die Reihenfolge ist die Menüreihenfolge je Gruppe |
 | `dashboard/shell.py` | `status_bar(client)` (Fragment, alle 5 s): laufender Eintrag, `tracker_summary`, Warnungen, Stopp-/Prüfen-Knopf |
 | `dashboard/main.py` | gruppiertes Menü (Buttons `nav_<slug>`, aktiver Eintrag `type="primary"`), Darstellungsschalter, Statusleiste, dann die Seite |
@@ -1401,3 +1402,48 @@ Zustand, neue Tätigkeit anlegen und Sprung zur nächsten Seite, Speichern gespe
 wählen, doppelter Name, Seite entfernen (Tätigkeit bleibt), freie Seite nicht entfernbar, Verbindungshinweis und
 „Jetzt verbinden“, unbekannte Adresse, „Seite N einrichten“ mit simuliertem Würfel, Abschluss mit Folgeschritten,
 Maskierung im Bild, Hilfetexte an allen Feldern. Im Browser (Chromium) angesehen; nicht mit echter Hardware.
+
+## 30. Startseite, geführte Einrichtung und Handbuch (`dashboard.views.start`, `dashboard.docs_reader`, AP-25)
+
+Jede neue Sitzung öffnet auf der **Startseite** (`DEFAULT_PAGE = "start"`, Gruppe „Start“). Die Tests setzen den
+Einstieg über den Hilfsparameter `nav` (`open_app` startet standardmäßig auf der Übersicht).
+
+### 30.1 Aufbau
+
+| Teil | Aufgabe |
+|---|---|
+| `views/start.py` | Umschalter *Willkommen / Einrichten / Handbuch* (`st.radio` mit Schlüssel `start_section`, damit Knöpfe den Bereich wechseln können, was `st.tabs` nicht erlaubt) |
+| `SetupState`, `setup_state(devices)` | Stand der Einrichtung aus den echten API-Daten (aktiver Tracker zählt): Gerät vorhanden, Adresse, Verbindungszustand, belegte Seiten; `next_step` = `connect` / `faces` / `done`. Nichts wird gespeichert |
+| `_welcome` | Erklärung, Einsatzmöglichkeiten, „So geht es los“, Banner „Nächster Schritt“; Beispielbild (`EXAMPLE_FACES`, als Beispiel beschriftet) |
+| `_setup` | Drei Schritte mit Fortschritt; Schritte ②/③ sind gesperrt, bis ein Gerät existiert |
+| `_search_and_connect`, `_use` | **Eine** Suche, **ein** Klick: registrieren (falls noch kein Tracker), Adresse speichern, verbinden. Treffer mit passendem Namen (`looks_like_tracker`) stehen oben und sind markiert; wurde keiner erkannt, erklärt eine Warnung die häufigsten Ursachen (kein Kopplungsmodus, mit Handy/Windows verbunden) |
+| `_connection_line` (Fragment, 2 s) | Zustand des Würfels; lädt die Seite einmal neu, sobald er bereit ist, damit die Folgeschritte freigeschaltet werden |
+| `dashboard/docs_reader.py` | `docs_dir`, `load_document`, `split_chapters`, `clean_links`, `search` (reine Funktionen) |
+
+### 30.2 Entscheidungen
+
+- **Handbuch = dieselben Markdown-Dateien wie auf GitHub** (einzige Quelle der Wahrheit): `BENUTZERHANDBUCH.md` und
+  `INSTALLATION.md` aus `docs/`. Aufgeteilt an den `## `-Überschriften (Codeblöcke werden beachtet), ein Kapitel pro
+  Ansicht plus Suche. Das Inhaltsverzeichnis mit Seitenankern entfällt (der Kapitel-Wähler ersetzt es), Verweise auf
+  Projektdateien werden zu Text (sie würden im Dashboard ins Leere führen), `https://`-Links bleiben. Fehlt der
+  Ordner `docs/` (Installation ohne Projektordner), zeigt die Seite einen Hinweis.
+- **Registrierung, Adresse und Verbindung sind für Anwender ein Schritt.** Die technische Dreiteilung bleibt in der
+  API und auf der Seite *Geräte*; dort wird das Suchergebnis jetzt auch ohne registrierten Tracker angezeigt
+  (Name eingeben, „Registrieren und zuordnen“), statt wie zuvor nur den Hinweis „Registrieren Sie zuerst …“.
+- **Erkennung am Namen:** Der echte Würfel meldete sich im Test als „Timeular Tra…“ ohne den Orientierungsdienst in
+  der Werbung; ohne Namenshinweis war er unter rund 40 „Unbenannten Geräten“ kaum zu finden (AP-22).
+- **Ehrlichkeit:** Das Beispielbild trägt die Beschriftung „Beispiel“; ein Hinweis auf der Willkommensseite nennt,
+  dass nicht alle Würfelmodelle erprobt sind. Die Übersicht verweist in ihrer Checkliste jetzt auf Startseite und
+  Zuordnungs-Assistent.
+- **Kleine Stilkorrekturen** (`theme.py`): gesperrte Schaltflächen sind abgeblendet, Zitate (Hinweise im Handbuch)
+  sind in voller Textfarbe lesbar.
+
+### 30.3 Tests
+
+`tests/unit/test_docs_reader.py` (8): Kapitel-Aufteilung, Codeblock-Kommentare, Verweise, Windows-Zeilenenden, Suche,
+fehlende/ungültige Dateien, **die mitgelieferten Dokumente** (mindestens fünf Kapitel, keine toten Anker).
+`tests/gui/test_gui_start.py` (19): reine Zustandslogik, neue Sitzung öffnet auf der Startseite, Willkommen
+(Erklärung, Beispiel), Banner je Stand, Suche und ein Klick (Name, Adresse, Verbindung), eigener Name, Name leer,
+nicht erkannter Würfel, Erkennung am Dienst, leere Suche, vorhandener Tracker ohne Adresse wird wiederverwendet,
+Schritte schalten frei, Handbuch (Kapitel, Suche, zweites Dokument, fehlende Dokumentation), Hilfetexte. Im Browser
+(Chromium) angesehen; nicht mit echter Hardware.

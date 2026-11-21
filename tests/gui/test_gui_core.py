@@ -37,6 +37,8 @@ def open_app(client: ApiClient | None, **state: Any) -> AppTest:
     at = AppTest.from_function(app_script, default_timeout=30)
     if client is not None:
         at.session_state["_client"] = client
+    # A new session opens on the start page; most tests exercise the overview, so they begin there.
+    state.setdefault("nav", "overview")
     for key, value in state.items():
         at.session_state[key] = value
     return at.run()

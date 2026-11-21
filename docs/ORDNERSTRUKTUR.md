@@ -64,6 +64,7 @@ octaledger/
   src/octaledger/core/settings.py
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/cube.py
+  src/octaledger/dashboard/docs_reader.py
   src/octaledger/dashboard/main.py
   src/octaledger/dashboard/nav.py
   src/octaledger/dashboard/views/__init__.py
@@ -76,6 +77,7 @@ octaledger/
   src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
   src/octaledger/dashboard/views/settings.py
+  src/octaledger/dashboard/views/start.py
   src/octaledger/dashboard/views/statistics.py
   src/octaledger/dashboard/shell.py
   src/octaledger/dashboard/static/Inter-Variable.woff2

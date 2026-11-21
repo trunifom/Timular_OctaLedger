@@ -93,7 +93,12 @@ def test_scan_with_no_results_and_no_devices_give_hints(
     assert any("Keine Geräte gefunden" in i.value for i in at.info)
     agent.scan_results = FakeAgent().scan_results
     button(at, "Nach Geräten suchen").click().run()
-    assert any("Registrieren Sie zuerst" in i.value for i in at.info)
+    # No tracker exists yet: the result is still shown and can be registered right away.
+    assert "ZEI" in at.selectbox(key="scan_pick").options[0]
+    assert at.text_input(key="scan_new_alias").value == "Mein Würfel"
+    at.button(key="scan_register").click().run()
+    (device,) = api_server.client.devices()
+    assert device["alias"] == "Mein Würfel" and device["has_address"]
 
 
 def test_scan_failure_shows_bluetooth_message(api_server: RunningApi, agent: FakeAgent) -> None:

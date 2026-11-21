@@ -181,6 +181,7 @@ html, body, .stApp, .stApp button, .stApp input, .stApp textarea, .stApp select 
   background-color: {p.surface}; color: {p.text}; border: 1px solid {p.input_border};
 }}
 .stApp button[kind="tertiary"] {{ color: {p.primary}; }}
+.stApp button:disabled {{ opacity: 0.5; cursor: not-allowed; }}
 .stApp :focus-visible {{ outline: 3px solid {p.primary} !important; outline-offset: 2px; }}
 
 /* Cards: bordered containers, expanders and forms share one look (no shadows). */
@@ -207,6 +208,10 @@ html, body, .stApp, .stApp button, .stApp input, .stApp textarea, .stApp select 
 }}
 [class*="st-key-nav_"] button[kind="secondary"]:hover {{ border-color: {p.input_border}; }}
 [class*="st-key-nav_"] button[kind="primary"] {{ font-weight: 600; }}
+
+/* Quotes (notes in the manual): Streamlit greys them out, which is too faint to read. */
+.stApp blockquote {{ border-left: 4px solid {p.input_border}; }}
+.stApp blockquote, .stApp blockquote p {{ color: {p.text}; }}
 
 /* Helper classes used by pages. */
 .ol-card {{

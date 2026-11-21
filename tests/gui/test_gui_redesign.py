@@ -27,14 +27,15 @@ def goto(at: AppTest, slug: str) -> AppTest:
 
 
 def test_menu_is_grouped_by_task_in_the_documented_order() -> None:
-    assert GROUPS == ("Alltag", "Einrichten", "System")
+    assert GROUPS == ("Start", "Alltag", "Einrichten", "System")
     order = {group: [p.slug for p in PAGES.values() if p.group == group] for group in GROUPS}
     assert order == {
+        "Start": ["start"],
         "Alltag": ["overview", "live", "journal", "statistics"],
         "Einrichten": ["devices", "faces", "catalog"],
         "System": ["data", "settings", "diagnostics"],
     }
-    assert len(PAGES) == 10
+    assert len(PAGES) == 11
 
 
 def test_group_headings_are_shown_and_the_active_page_is_filled(api_server: RunningApi) -> None:
@@ -249,6 +250,8 @@ def test_css_has_readability_features() -> None:
     assert ":focus-visible" in stylesheet and "outline: 3px" in stylesheet  # visible keyboard focus
     assert "font-size: 20px" in stylesheet and "max-width: 1200px" in stylesheet
     assert "border-radius: 12px" in stylesheet and "box-shadow" not in stylesheet
+    assert "button:disabled" in stylesheet  # a locked button must look locked
+    assert "blockquote" in stylesheet  # notes in the manual must stay readable
 
 
 def test_ui_texts_use_entry_not_session_for_time_records() -> None:

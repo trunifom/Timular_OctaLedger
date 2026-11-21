@@ -56,7 +56,7 @@ Begriffe, Status immer Icon **und** Text.
 
 | Frage | Entscheidung | Begründung |
 |---|---|---|
-| Wie ist das Menü aufgebaut? | Seitenleiste, **drei Gruppen**: *Alltag* (Übersicht, Zeitjournal, Statistik), *Einrichten* (Geräte, Verwaltung), *System* (Daten, Einstellungen, Diagnose) | Häufiges oben, Einmal-Aufgaben in der Mitte, Technik unten; Kernaufgabe ≤ 1 Klick |
+| Wie ist das Menü aufgebaut? | Seitenleiste, **vier Gruppen**: *Start* (Startseite mit Erklärung, geführter Einrichtung und Handbuch; jede neue Sitzung beginnt dort), *Alltag* (Übersicht, Würfel live, Zeitjournal, Statistik), *Einrichten* (Geräte, Seiten zuordnen, Verwaltung), *System* (Daten, Einstellungen, Diagnose) | Häufiges oben, Einmal-Aufgaben in der Mitte, Technik unten; Kernaufgabe ≤ 1 Klick |
 | Wie wird die aktive Seite gezeigt? | gefüllter (primärer) Menü-Button mit Icon **und** Text; Seitentitel = Menülabel | NN/g: Position muss erkennbar sein; Farbe nie allein |
 | Was sieht man auf *jeder* Seite? | **Statusleiste** oben: laufender Eintrag + Timer, Tracker-Verbindung (Text+Symbol), Warnung bei Verbindungsverlust, Hinweis auf unbestätigte Einträge, Stopp-Knopf | Timeular-Hauptproblem: Abbruch unbemerkt |
 | Was zeigt die Startseite? | (1) *Erste Schritte*-Checkliste, (2) großer Timer, (3) *Schnellstart*-Kacheln der meistgenutzten Tätigkeiten, (4) *Heute*/*Woche* + Einträge des Tages, (5) Start mit Projekt/Notiz eingeklappt | Toggl/RescueTime-Muster, schlanker Timer-Screen |

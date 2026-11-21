@@ -81,18 +81,18 @@ def _first_steps(client: ApiClient) -> None:
         return  # the checklist is a convenience; real errors are shown by the page itself
     steps = [
         ("Tätigkeiten anlegen", bool(activities), "catalog", "Zur Verwaltung"),
-        ("Tracker registrieren", bool(devices), "devices", "Zu den Geräten"),
+        ("Tracker registrieren", bool(devices), "start", "Zur Einrichtung"),
         (
             "Bluetooth-Gerät zuordnen",
             any(d["has_address"] for d in devices),
-            "devices",
-            "Zu den Geräten",
+            "start",
+            "Zur Einrichtung",
         ),
         (
             "Würfelseiten Tätigkeiten zuordnen",
             any(d["configured_faces"] for d in devices),
-            "devices",
-            "Zu den Geräten",
+            "faces",
+            "Seiten zuordnen",
         ),
         ("Ersten Eintrag erfassen", bool(entries), "overview", "Jetzt starten"),
     ]

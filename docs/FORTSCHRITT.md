@@ -43,6 +43,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-22 | Live-Daten: Rohwert, wartender Wert und Verlauf im Agenten (`DeviceStatus`, `LiveEvent`), Endpunkt `GET /devices/{id}/live`, Client `live_view`; Würfel-Erkennung am Namen im Scanner | 2026-11-21 | 13:10 | _folgt_ |
 | AP-23 | Seite „Würfel live“: schematische Würfelgrafik (SVG), Fluss Funk → Prüfung → Software, Verlauf in Sätzen (`dashboard.cube`, `views.live`) | 2026-11-21 | 14:00 | _folgt_ |
 | AP-24 | Assistent „Seiten zuordnen“: Würfelbild mit Live-Anzeige, Seite auswählen, vorhandene oder neue Tätigkeit zuordnen, Sprung zur nächsten freien Seite (`views.faces`) | 2026-11-21 | 14:40 | _folgt_ |
+| AP-24a | Tests laufen im temporären Profilordner (nicht im echten Benutzerprofil, kein Konflikt mit laufendem Agent) | 2026-11-21 | 14:20 | bcb5d20 |
+| AP-25 | Startseite (Willkommen, geführte Einrichtung mit einem Klick, Handbuch zum Nachlesen), Standardseite, Suchergebnis auch ohne Tracker auf der Geräte-Seite (`views.start`, `docs_reader`) | 2026-11-21 | 15:30 | _folgt_ |
 
 ## Offen
 

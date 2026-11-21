@@ -89,17 +89,18 @@ def _scan_section(client: ApiClient, devices: list[dict[str, Any]]) -> None:
             "und in der Nähe?"
         )
         return
-    if not devices:
-        st.info("Registrieren Sie zuerst einen Tracker, dem Sie das gefundene Gerät zuordnen.")
-        return
     pick = st.selectbox(
         "Gefundenes Gerät",
         results,
         key="scan_pick",
-        format_func=lambda r: r["label"] + (" ✅ passender Dienst" if r["is_candidate"] else ""),
-        help="✅ markiert Geräte, die den erwarteten Orientierungsdienst anbieten. Andere Geräte "
-        "werden nicht ausgeblendet, falls Ihr Würfel anders meldet.",
+        format_func=_scan_label,
+        help="✅ markiert Geräte, die den erwarteten Orientierungsdienst anbieten, „vermutlich Ihr "
+        "Würfel“ solche mit passendem Namen. Andere Geräte werden nicht ausgeblendet, falls Ihr "
+        "Würfel anders meldet.",
     )
+    if not devices:
+        _register_found(client, pick)
+        return
     target = st.selectbox(
         "Zuordnen zu Tracker",
         devices,
@@ -114,6 +115,39 @@ def _scan_section(client: ApiClient, devices: list[dict[str, Any]]) -> None:
     ):
         if call(client.set_device_address, target["id"], pick["address"])[0]:
             st.success(f"Gerät dem Tracker „{target['alias']}“ zugeordnet.")
+            st.session_state.pop("_scan", None)
+            st.rerun()
+
+
+def _scan_label(result: dict[str, Any]) -> str:
+    """Picker label: the signal-strength label plus hints that this is probably the cube."""
+    hint = ""
+    if result["is_candidate"]:
+        hint = " ✅ passender Dienst"
+    elif result["looks_like_tracker"]:
+        hint = " ← vermutlich Ihr Würfel"
+    return f"{result['label']}{hint}"
+
+
+def _register_found(client: ApiClient, pick: dict[str, Any]) -> None:
+    """No tracker exists yet: name it and register + assign the found device in one step."""
+    alias = st.text_input(
+        "Name für den neuen Tracker",
+        value="Mein Würfel",
+        key="scan_new_alias",
+        max_chars=100,
+        help="Frei wählbar, nur zur Anzeige. Der Tracker wird angelegt und dem gefundenen Gerät "
+        "zugeordnet.",
+    ).strip()
+    if st.button(
+        "➕ Registrieren und zuordnen",
+        key="scan_register",
+        type="primary",
+        disabled=not alias,
+        help="Legt den Tracker an und speichert die Bluetooth-Adresse des gefundenen Geräts.",
+    ):
+        created, device = call(client.register_device, alias)
+        if created and device and call(client.set_device_address, device["id"], pick["address"])[0]:
             st.session_state.pop("_scan", None)
             st.rerun()
 

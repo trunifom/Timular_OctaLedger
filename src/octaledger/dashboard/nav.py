@@ -3,8 +3,9 @@
 Menu structure (research: ``docs/GUI_KONZEPT.md``): eight destinations are fine as long as they are
 **grouped** by the user's task, most frequent first, configuration and technology last:
 
-* **Alltag** - Übersicht, Zeitjournal, Statistik (the daily work, one click away)
-* **Einrichten** - Geräte, Verwaltung (done once, changed rarely)
+* **Start** - Startseite: what the cube is, guided setup, the manual (every new session opens here)
+* **Alltag** - Übersicht, Würfel live, Zeitjournal, Statistik (the daily work, one click away)
+* **Einrichten** - Geräte, Seiten zuordnen, Verwaltung (done once, changed rarely)
 * **System** - Daten, Einstellungen, Diagnose (backup, preferences, troubleshooting)
 
 Every entry has an icon **and** a text; the active page is filled (not only coloured) and every page
@@ -21,8 +22,8 @@ import streamlit as st
 from octaledger.dashboard_client.client import ApiClient
 
 #: Group headings in menu order.
-GROUPS: tuple[str, ...] = ("Alltag", "Einrichten", "System")
-DEFAULT_PAGE = "overview"
+GROUPS: tuple[str, ...] = ("Start", "Alltag", "Einrichten", "System")
+DEFAULT_PAGE = "start"
 NAV_STATE_KEY = "nav"
 
 

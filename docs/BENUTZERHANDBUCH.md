@@ -62,13 +62,18 @@ Würfel ist geladen.
 
 1. **Starten:** Doppelklick auf `scripts\start_all.bat`. Es öffnen sich der Agent (kleines
    Fenster, bitte offen lassen) und das Dashboard im Browser.
-2. **Tätigkeiten anlegen:** Bereich **Verwaltung** → Reiter *Tätigkeiten* → z. B. „Meeting“,
-   „Entwicklung“, „Pause“ anlegen (mindestens eine pro Würfelseite, die Sie nutzen).
-3. **Tracker registrieren:** Bereich **Geräte** → Namen eingeben → *Registrieren*.
-4. **Würfel finden:** Würfel einmal drehen (weckt ihn), *Nach Geräten suchen*, Ihr Gerät und den
-   Tracker wählen, *Adresse speichern*, danach *Verbinden*. Im Kasten erscheint **Bereit**.
-5. **Seiten zuordnen:** Eine Seite nach oben halten – „👈 Seite N liegt oben“ erscheint –, Tätigkeit
-   wählen; für alle genutzten Seiten wiederholen, dann *Kalibrierung speichern*.
+2. **Startseite öffnen:** Jede neue Sitzung beginnt auf der **Startseite**. Dort erklärt der Bereich
+   *Willkommen*, was der Würfel ist, und der Kasten „Nächster Schritt“ führt Sie weiter. Wählen Sie
+   **Einrichten**.
+3. **Würfel verbinden:** Halten Sie den Knopf am Würfel gedrückt, bis er **blau blinkt**, und klicken Sie
+   sofort auf *Würfel suchen*. Wählen Sie den Eintrag „Timeular …“ (er ist als „vermutlich Ihr Würfel“
+   markiert) und klicken Sie **Diesen Würfel verwenden und verbinden**. Name, Adresse und Verbindung
+   erledigt OctaLedger in einem Schritt; darunter erscheint **Bereit**.
+4. **Seiten zuordnen:** Klicken Sie **Seiten zuordnen**. Legen Sie den Würfel auf eine Seite – im Bild
+   sehen Sie sofort, welche oben liegt –, klicken Sie **Seite N einrichten**, wählen Sie eine Tätigkeit
+   oder tippen Sie einen neuen Namen, und speichern Sie. Wiederholen Sie das für die Seiten, die Sie
+   nutzen (Tätigkeiten müssen Sie nicht vorher anlegen).
+5. **Ausprobieren:** Im Bereich **Würfel live** sehen Sie, wie sich Drehungen auswirken.
 6. **Arbeiten:** Würfel auf die Seite der aktuellen Tätigkeit legen. In der **Übersicht** läuft die
    Zeit. Drehen Sie auf eine andere Seite, wechselt die Tätigkeit.
 7. **Auswerten:** Bereich **Statistik** (Tag/Woche) und **Zeitjournal** (Korrekturen).
@@ -114,11 +119,12 @@ Meldungen erscheinen als eine verständliche Zeile mit Fehlercode, z. B.
 ## 5. Das Dashboard bedienen
 
 ### Die Seitenleiste (Menü)
-Das Menü ist nach Ihren Aufgaben in **drei Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
+Das Menü ist nach Ihren Aufgaben in **vier Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
 Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entspricht immer dem Menütext.
 
 | Gruppe | Einträge | Wofür |
 |---|---|---|
+| **Start** | Startseite | Was ist der Würfel? Geführte Einrichtung und dieses Handbuch zum Nachlesen |
 | **Alltag** | Übersicht · Würfel live · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
 | **Einrichten** | Geräte · Seiten zuordnen · Verwaltung | einmal einrichten: Würfel verbinden, den Seiten Tätigkeiten geben, Tätigkeiten und Projekte anlegen |
 | **System** | Daten · Einstellungen · Diagnose | Sicherung/Export, persönliche Einstellungen, Fehlersuche |
@@ -136,6 +142,23 @@ Sie beantwortet drei Fragen, egal wo Sie gerade sind:
 3. **Muss ich etwas tun?** Eine Warnung erscheint, wenn der Tracker **keine Werte liefert** (dann wird die
    Würfelbewegung nicht erfasst) oder wenn Einträge **unsicher** sind; **Jetzt prüfen** springt zum
    Zeitjournal.
+
+### Bereich „Startseite“
+Jede neue Sitzung beginnt hier. Die Seite hat drei Bereiche, die Sie oben auswählen:
+
+- **Willkommen:** erklärt in einfachen Worten, was der Timeular-Würfel ist, wofür Sie OctaLedger einsetzen
+  können (Arbeitszeit ohne Aufwand, Auswertung nach Tätigkeit und Projekt, Fokus und Pausen, lokal und
+  privat) und wie es in vier Schritten losgeht. Das Bild zeigt ein **Beispiel** mit erfundenen Namen; Ihre
+  eigenen Seiten sehen Sie nach der Einrichtung in *Seiten zuordnen* und *Würfel live*. Der Kasten
+  **„Nächster Schritt“** richtet sich nach dem echten Stand: Würfel verbinden, Seiten zuordnen oder – wenn
+  alles eingerichtet ist – zur Übersicht.
+- **Einrichten:** die geführte Einrichtung in drei Schritten (Würfel verbinden, Seiten zuordnen,
+  Ausprobieren) mit Fortschrittsanzeige. Schritte, für die noch etwas fehlt, sind gesperrt. Beim Verbinden
+  genügt eine Suche und ein Klick; ein bereits eingerichteter Würfel wird als „ist eingerichtet“ mit seinem
+  Zustand angezeigt, und unter „Anderen Würfel suchen oder neu verbinden“ ersetzen Sie ihn.
+- **Handbuch:** die vollständige Anleitung zum Nachlesen, ohne das Programm zu verlassen: das
+  *Benutzerhandbuch* und *Installation und Betrieb*. Wählen Sie ein **Kapitel** oder suchen Sie einen Begriff
+  (zeigt nur passende Kapitel). Verweise auf andere Dateien erscheinen als Text, Weblinks bleiben klickbar.
 
 ### Bereich „Übersicht“
 Von oben nach unten:

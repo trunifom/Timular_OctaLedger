@@ -234,7 +234,7 @@ def test_navigation_now_lists_all_eight_pages(api_server: RunningApi) -> None:
     from octaledger.dashboard.views import PAGES
 
     at = open_app(api_server.client)
-    assert len(PAGES) == 10
+    assert len(PAGES) == 11
     for slug in PAGES:  # every page renders without an exception
         at.sidebar.button(key=f"nav_{slug}").click().run()
         assert not at.exception, slug
