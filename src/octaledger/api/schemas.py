@@ -37,6 +37,7 @@ from octaledger.domain.models import (
     Session,
 )
 from octaledger.domain.schedule import Absence, WorkSchedule
+from octaledger.domain.steps import ActionStep
 from octaledger.domain.tags import ProjectBilling, Tag
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.integrations.base import AdapterSpec, FieldSpec
@@ -108,12 +109,33 @@ class ModeBody(_Strict):
     mode: str = Field(min_length=1, max_length=20)
 
 
-class ActionAssign(_Strict):
-    """Give a face an action of a connection."""
+class ConditionBody(_Strict):
+    """When a step may run: a time window (HH:MM, may span midnight) and/or weekdays."""
+
+    start: str = Field(default="", max_length=5)
+    end: str = Field(default="", max_length=5)
+    weekdays: str = Field(default="", max_length=20)
+
+
+class StepBody(_Strict):
+    """One step of a face's chain."""
 
     integration_id: str = Field(min_length=1, max_length=64)
     label: str = Field(max_length=200)
     params: dict[str, Any]
+    delay_ms: int = Field(default=0, ge=0, le=300_000)
+    continue_on_error: bool = False
+    enabled: bool = True
+    condition: ConditionBody | None = None
+
+
+class ActionAssign(_Strict):
+    """Give a face one action of a connection, or a chain of ``steps``."""
+
+    integration_id: str | None = Field(default=None, min_length=1, max_length=64)
+    label: str | None = Field(default=None, max_length=200)
+    params: dict[str, Any] | None = None
+    steps: list[StepBody] | None = Field(default=None, min_length=1, max_length=10)
 
 
 class CatalogCreate(_Strict):
@@ -533,6 +555,20 @@ def integration_out(info: IntegrationInfo) -> dict[str, Any]:
     }
 
 
+def step_out(step: ActionStep) -> dict[str, Any]:
+    """Serialise one step of a chain."""
+    return {
+        "position": step.position,
+        "integration_id": step.integration_id,
+        "label": step.label,
+        "params": dict(step.params),
+        "delay_ms": step.delay_ms,
+        "continue_on_error": step.continue_on_error,
+        "enabled": step.enabled,
+        "condition": None if step.condition is None else step.condition.to_json(),
+    }
+
+
 def job_out(info: JobInfo) -> dict[str, Any]:
     """Serialise one entry of the action history."""
     job = info.job
@@ -541,6 +577,7 @@ def job_out(info: JobInfo) -> dict[str, Any]:
         "integration": info.integration_name,
         "label": job.label,
         "face": job.face,
+        "step": job.step + 1,
         "status": job.status.value,
         "attempts": job.attempts,
         "error": job.last_error,

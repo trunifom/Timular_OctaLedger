@@ -37,6 +37,7 @@ from octaledger.core.errors import (
     ValidationError,
 )
 from octaledger.domain.attention import AttentionItem, AttentionKind, AttentionStatus
+from octaledger.domain.conditions import parse_condition
 from octaledger.domain.models import (
     Activity,
     ButtonAction,
@@ -57,6 +58,7 @@ from octaledger.domain.models import (
     new_id,
 )
 from octaledger.domain.schedule import Absence, AbsenceKind, WorkSchedule
+from octaledger.domain.steps import ActionStep
 from octaledger.domain.tags import ProjectBilling, Tag
 from octaledger.domain.time_rules import ensure_utc, utc_now
 from octaledger.infrastructure.storage.database import Database, translate_sqlite_error
@@ -672,7 +674,94 @@ class FaceActionRepository:
         """Remove the action of a face (no error if none existed)."""
         with _db_errors("clear face action"):
             self._c.execute(
+                "DELETE FROM face_action_steps WHERE device_id = ? AND face = ?", (device_id, face)
+            )
+            self._c.execute(
                 "DELETE FROM face_actions WHERE device_id = ? AND face = ?", (device_id, face)
+            )
+
+
+class StepRepository:
+    """The steps of a face's chain (see :class:`ActionStep`)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> ActionStep:
+        return _load(
+            lambda: ActionStep(
+                device_id=row["device_id"],
+                face=row["face"],
+                position=row["position"],
+                integration_id=row["integration_id"],
+                label=row["label"],
+                params=_from_json(row["params"]),
+                delay_ms=row["delay_ms"],
+                continue_on_error=bool(row["continue_on_error"]),
+                enabled=bool(row["enabled"]),
+                condition=(
+                    None
+                    if row["condition"] is None
+                    else parse_condition(_from_json(row["condition"]))
+                ),
+            ),
+            "action step",
+            f"{row['device_id']}/{row['face']}/{row['position']}",
+        )
+
+    def list_for(self, device_id: str, face: int) -> list[ActionStep]:
+        """Return the chain of one face in order (empty if it has none)."""
+        with _db_errors("read action steps"):
+            rows = self._c.execute(
+                "SELECT * FROM face_action_steps WHERE device_id = ? AND face = ? "
+                "ORDER BY position",
+                (device_id, face),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def list_for_device(self, device_id: str) -> list[ActionStep]:
+        """Return every step of a device ordered by face and position."""
+        with _db_errors("read action steps"):
+            rows = self._c.execute(
+                "SELECT * FROM face_action_steps WHERE device_id = ? ORDER BY face, position",
+                (device_id,),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def replace(self, device_id: str, face: int, steps: Sequence[ActionStep]) -> None:
+        """Replace the whole chain of a face (the caller provides the transaction)."""
+        with _db_errors("write action steps"):
+            self._c.execute(
+                "DELETE FROM face_action_steps WHERE device_id = ? AND face = ?", (device_id, face)
+            )
+            self._c.executemany(
+                "INSERT INTO face_action_steps (device_id, face, position, integration_id, label, "
+                "params, delay_ms, continue_on_error, enabled, condition) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        s.device_id,
+                        s.face,
+                        s.position,
+                        s.integration_id,
+                        s.label,
+                        _to_json(s.params),
+                        s.delay_ms,
+                        int(s.continue_on_error),
+                        int(s.enabled),
+                        None if s.condition is None else _to_json(s.condition.to_json()),
+                    )
+                    for s in steps
+                ],
+            )
+
+    def clear(self, device_id: str, face: int) -> None:
+        """Remove the chain of a face."""
+        with _db_errors("clear action steps"):
+            self._c.execute(
+                "DELETE FROM face_action_steps WHERE device_id = ? AND face = ?", (device_id, face)
             )
 
 
@@ -701,6 +790,9 @@ class JobRepository:
                 expires_at=from_db_time(row["expires_at"]),
                 next_attempt_at=from_db_time(row["next_attempt_at"]),
                 finished_at=_opt_time(row["finished_at"]),
+                chain_id=row["chain_id"],
+                step=row["step"],
+                continue_on_error=bool(row["continue_on_error"]),
             ),
             "integration job",
             row["id"],
@@ -716,8 +808,8 @@ class JobRepository:
             cursor = self._c.execute(
                 "INSERT OR IGNORE INTO integration_jobs (id, idempotency_key, integration_id, "
                 "device_id, face, label, params, status, attempts, last_error, created_at, "
-                "expires_at, next_attempt_at, finished_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "expires_at, next_attempt_at, finished_at, chain_id, step, continue_on_error) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     job.id,
                     job.idempotency_key,
@@ -733,6 +825,9 @@ class JobRepository:
                     to_db_time(job.expires_at),
                     to_db_time(job.next_attempt_at or job.created_at),
                     None if job.finished_at is None else to_db_time(job.finished_at),
+                    job.chain_id,
+                    job.step,
+                    int(job.continue_on_error),
                 ),
             )
         return cursor.rowcount == 1
@@ -760,7 +855,7 @@ class JobRepository:
         with _db_errors("list due jobs"):
             rows = self._c.execute(
                 "SELECT * FROM integration_jobs WHERE status = 'pending' AND next_attempt_at <= ? "
-                "ORDER BY created_at, id LIMIT ?",
+                "ORDER BY created_at, step, id LIMIT ?",
                 (to_db_time(now), limit),
             ).fetchall()
         return [self._from_row(r) for r in rows]
@@ -795,6 +890,34 @@ class JobRepository:
                 "WHERE id = ?",
                 (attempts, error, to_db_time(next_attempt_at), job_id),
             )
+
+    def expire_unsent_steps(self, device_id: str, now: datetime, message: str) -> int:
+        """Expire the not yet sent *later or delayed* steps of earlier chains of a device.
+
+        Called when the cube is turned again: a step that is still waiting for its delay (or that
+        is a later step) belongs to a face the user already left. A job that is due now is
+        unaffected, so two quick turns still send "on" and then "off" in order.
+        """
+        with _db_errors("expire unsent steps"):
+            cursor = self._c.execute(
+                "UPDATE integration_jobs SET status = 'expired', last_error = ?, finished_at = ? "
+                "WHERE status = 'pending' AND device_id = ? "
+                "AND (step > 0 OR next_attempt_at > ?)",
+                (message, to_db_time(now), device_id, to_db_time(now)),
+            )
+        return cursor.rowcount
+
+    def expire_following_steps(
+        self, chain_id: str, after_step: int, now: datetime, message: str
+    ) -> int:
+        """Expire the pending steps of a chain that come after a failed step."""
+        with _db_errors("expire following steps"):
+            cursor = self._c.execute(
+                "UPDATE integration_jobs SET status = 'expired', last_error = ?, finished_at = ? "
+                "WHERE status = 'pending' AND chain_id = ? AND step > ?",
+                (message, to_db_time(now), chain_id, after_step),
+            )
+        return cursor.rowcount
 
     def expire_overdue(self, now: datetime, message: str) -> int:
         """Expire every pending job whose time ran out; returns how many."""
@@ -1982,6 +2105,18 @@ SIMPLE_TABLES: Final[dict[str, tuple[str, ...]]] = {
         "sun_minutes",
     ),
     "absences": ("id", "start_date", "end_date", "kind", "target_minutes", "note"),
+    "face_action_steps": (
+        "device_id",
+        "face",
+        "position",
+        "integration_id",
+        "label",
+        "params",
+        "delay_ms",
+        "continue_on_error",
+        "enabled",
+        "condition",
+    ),
     "tags": ("id", "name", "color"),
     "session_tags": ("session_id", "tag_id"),
     "activity_tags": ("activity_id", "tag_id"),
@@ -2190,6 +2325,7 @@ class Repositories:
     jobs: JobRepository
     attention: AttentionRepository
     buttons: DeviceButtonRepository
+    steps: StepRepository
     schedule: ScheduleRepository
     absences: AbsenceRepository
     tags: TagRepository
@@ -2214,6 +2350,7 @@ class Repositories:
             ("jobs", JobRepository(connection)),
             ("attention", AttentionRepository(connection)),
             ("buttons", DeviceButtonRepository(connection)),
+            ("steps", StepRepository(connection)),
             ("schedule", ScheduleRepository(connection)),
             ("absences", AbsenceRepository(connection)),
             ("tags", TagRepository(connection)),

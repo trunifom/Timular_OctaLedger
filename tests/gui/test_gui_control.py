@@ -333,3 +333,37 @@ def test_history_sentences_differ_by_mode() -> None:
     assert control_text[0].endswith("Die Aktion „Lampe“ wird gesendet.")
     assert control_text[1].endswith("Diese Seite hat keine Aktion.")
     assert "Das löst noch nichts aus." in control_text[2] and "unsicher" not in control_text[3]
+
+
+def test_a_face_can_get_several_steps_with_delay_and_condition(api_server: RunningApi) -> None:
+    cid = make_connection(api_server)
+    did = control_device(api_server)
+    at = open_page(api_server, FACES)
+    base = prefix(did)
+    at.text_input(key=f"{base}_label").input("Fokus").run()
+    at.selectbox(key=f"{base}_{cid}_action").select_index(0).run()  # ping needs a target
+    target_key = next(
+        t.key for t in at.text_input if t.key and t.key.startswith(f"{base}_{cid}_ping")
+    )
+    at.text_input(key=target_key).input("licht").run()
+    at.button(key=f"{base}_add").click().run()
+    second = f"{base}_s1"
+    assert at.number_input(key=f"{second}_delay").value == 0.0  # a new step starts with no delay
+    at.button(key=f"{base}_drop").click().run()  # the form can shrink again ...
+    assert not [w for w in at.number_input if w.key == f"{second}_delay"]
+    at.button(key=f"{base}_add").click().run()  # ... and grow
+    at.text_input(key=f"{second}_label").input("Musik").run()
+    target2 = next(
+        t.key for t in at.text_input if t.key and t.key.startswith(f"{second}_{cid}_ping")
+    )
+    at.text_input(key=target2).input("radio").run()
+    at.number_input(key=f"{second}_delay").set_value(3.0).run()
+    at.text_input(key=f"{second}_from").input("08:00").run()
+    at.text_input(key=f"{second}_to").input("18:00").run()
+    assert all(
+        w.help for w in (at.number_input(key=f"{second}_delay"), at.checkbox(key=f"{second}_goon"))
+    )
+    at.button(key=f"{base}_save").click().run()
+    chain = api_server.client.action_chains(did)["1"]
+    assert [(s["label"], s["delay_ms"]) for s in chain] == [("Fokus", 0), ("Musik", 3000)]
+    assert chain[1]["condition"] == {"start": "08:00", "end": "18:00", "weekdays": ""}

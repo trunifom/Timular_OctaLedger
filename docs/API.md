@@ -190,7 +190,8 @@ die *Namen* gesetzter Geheimnisse (`secrets_set`).
 
 | Methode und Pfad | Zweck | Anfrage | Antwort |
 |---|---|---|---|
-| `PUT /devices/{id}/actions/{1..8}` | Seite im Steuerungsmodus eine Aktion geben (vom Adapter geprüft) | `{"integration_id", "label", "params"}` | **Gerät** |
+| `PUT /devices/{id}/actions/{1..8}` | Seite im Steuerungsmodus eine Aktion **oder eine Kette von Schritten** geben (vom Adapter geprüft; die Einzelform setzt die Kette auf einen Schritt zurück) | `{"integration_id", "label", "params"}` **oder** `{"steps": [{"integration_id", "label", "params", "delay_ms"?, "continue_on_error"?, "enabled"?, "condition"?: {"start","end","weekdays"}}]}` (1 bis 10 Schritte, Verzögerungen zusammen ≤ 5 min) | **Gerät** |
+| `GET /devices/{id}/chains` | die Schritte jeder Seite mit Aktion (eine einzelne Aktion = ein Schritt) | – | `{"1": [{position, integration_id, label, params, delay_ms, continue_on_error, enabled, condition}], …}` |
 | `DELETE /devices/{id}/actions/{1..8}` | Aktion einer Seite entfernen | – | **Gerät** |
 | `GET /adapters` | die Arten von Verbindung samt Formularbeschreibung | – | Liste von **Adapter** |
 | `GET /integrations` | alle Verbindungen | – | Liste von **Verbindung** |

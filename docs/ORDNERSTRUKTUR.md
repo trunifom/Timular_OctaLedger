@@ -133,11 +133,13 @@ octaledger/
   src/octaledger/domain/__init__.py
   src/octaledger/domain/attention.py
   src/octaledger/domain/break_rules.py
+  src/octaledger/domain/conditions.py
   src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
   src/octaledger/domain/orientation.py
   src/octaledger/domain/schedule.py
   src/octaledger/domain/state_machine.py
+  src/octaledger/domain/steps.py
   src/octaledger/domain/tags.py
   src/octaledger/domain/time_rules.py
   src/octaledger/domain/workday.py
@@ -166,6 +168,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0005_buttons.sql
   src/octaledger/infrastructure/storage/migrations/0006_work.sql
   src/octaledger/infrastructure/storage/migrations/0007_tags_budgets.sql
+  src/octaledger/infrastructure/storage/migrations/0008_action_steps.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -197,6 +200,7 @@ octaledger/
   tests/integration/test_agent_runtime.py
   tests/integration/test_client_server.py
   tests/unit/__init__.py
+  tests/unit/test_action_chains.py
   tests/unit/test_adapter_demo_and_hints.py
   tests/unit/test_adapter_homeassistant.py
   tests/unit/test_adapter_hue.py

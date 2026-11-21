@@ -158,7 +158,11 @@ class AgentRuntime:
         self._dispatcher = ActionDispatcher(integrations)
         self.context = AppContext(
             storage=storage,
-            tracking=TrackingService(storage, settings.tracking),
+            tracking=TrackingService(
+                storage,
+                settings.tracking,
+                timezone=lambda: self.context.settings.settings.display.timezone,
+            ),
             devices=DeviceService(storage),
             catalog=CatalogService(storage),
             reports=ReportService(storage),

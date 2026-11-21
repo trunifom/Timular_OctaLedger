@@ -60,6 +60,8 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Aktionskette** – die geordneten Schritte, die eine Würfelseite im Steuerungsmodus auslöst (je Schritt: Verbindung, Aktion, Verzögerung, optional ein Zeitfenster). Ein neuer Seitenwechsel verwirft die noch nicht gesendeten Schritte der vorigen Kette.
+
 **Housekeeper** – der Hintergrund-Thread im Agenten, der zeitgesteuerte Regeln prüft (Frist nach Verbindungsverlust, später Arbeitstag und Erinnerungen).
 
 **Rückfrage** – eine Frage, die auf Ihre Entscheidung wartet, z. B. was in einer Lücke nach einem Verbindungsverlust war. Sie ändert nie von selbst Zeitdaten.

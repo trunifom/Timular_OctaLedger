@@ -806,6 +806,20 @@ class ApiClient:
         result: dict[str, Any] = self._get("/system/capabilities")
         return result
 
+    def assign_steps(
+        self, device_id: str, face: int, steps: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Give a face a chain of steps."""
+        result: dict[str, Any] = self._request(
+            "PUT", f"/devices/{device_id}/actions/{face}", json={"steps": steps}
+        )
+        return result
+
+    def action_chains(self, device_id: str) -> dict[str, list[dict[str, Any]]]:
+        """The steps of every face of a device that has an action."""
+        result: dict[str, list[dict[str, Any]]] = self._get(f"/devices/{device_id}/chains")
+        return result
+
     def device_buttons(self, device_id: str) -> dict[str, str | None]:
         """The actions of the short and long button press (``None`` = nothing)."""
         result: dict[str, Any] = self._get(f"/devices/{device_id}/buttons")

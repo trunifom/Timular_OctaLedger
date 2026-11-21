@@ -369,3 +369,51 @@ def test_find_endpoint_searches_only_for_adapters_that_can(env: Env, tmp_path: P
     assert [i["address"] for i in both] == ["192.168.1.5", "192.168.1.9"]
     assert env.post("/adapters/nope/find", {}).status_code == 422
     assert env.post("/adapters/hue/find", {"online": "vielleicht"}).status_code == 422
+
+
+# ----------------------------------------------------------------- action chains (API)
+
+
+def test_chain_endpoints(env: Env) -> None:
+    integrations = env.context.integrations
+    assert integrations is not None
+    lamp = integrations.create("fake", "Lampe", {"host": "h", "password": "richtig"}).integration.id
+    device = env.post("/devices", {"alias": "Steuerung"}).json()["id"]
+    assert env.call("PUT", f"/devices/{device}/mode", json={"mode": "control"}).status_code == 200
+    step = {"integration_id": lamp, "label": "Licht", "params": {"action": "ping", "target": "x"}}
+    done = env.call(
+        "PUT",
+        f"/devices/{device}/actions/1",
+        json={
+            "steps": [
+                step,
+                {
+                    **step,
+                    "label": "Musik",
+                    "delay_ms": 2500,
+                    "condition": {"start": "08:00", "end": "18:00"},
+                },
+            ]
+        },
+    )
+    assert done.status_code == 200
+    chains = env.get(f"/devices/{device}/chains").json()
+    assert [s["label"] for s in chains["1"]] == ["Licht", "Musik"]
+    assert chains["1"][1]["delay_ms"] == 2500 and chains["1"][1]["condition"]["start"] == "08:00"
+    assert env.get("/devices").json()[0]["actions"]["1"]["label"] == "Licht"  # step 1 mirrored
+    # the old single form still works and resets the chain to one step
+    single = env.call("PUT", f"/devices/{device}/actions/1", json=step)
+    assert single.status_code == 200
+    assert len(env.get(f"/devices/{device}/chains").json()["1"]) == 1
+    for body in (
+        {},
+        {"steps": []},
+        {"steps": [{**step, "delay_ms": 400_000}]},
+        {"steps": [{**step, "condition": {"start": "25:00", "end": "26:00"}}]},
+        {"steps": [{**step, "params": {"action": "nope"}}]},
+    ):
+        assert env.call("PUT", f"/devices/{device}/actions/2", json=body).status_code in (
+            400,
+            422,
+        ), body
+    assert env.get(f"/devices/{device}/chains").json().get("2") is None

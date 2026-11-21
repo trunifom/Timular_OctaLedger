@@ -18,12 +18,16 @@ service (which sends it) agree on them.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Final
+from zoneinfo import ZoneInfo
 
+from octaledger.domain.conditions import holds
 from octaledger.domain.models import IntegrationJob, JobStatus
+from octaledger.domain.steps import ActionStep
 from octaledger.infrastructure.storage.repositories import Repositories
 
 logger = logging.getLogger(__name__)
@@ -39,6 +43,9 @@ RETRY_DELAYS: Final = (1.0, 3.0)
 #: Finished jobs are kept this long for the history.
 HISTORY_KEEP: Final = timedelta(days=7)
 QUEUE_FULL_MESSAGE: Final = "Zu viele Aktionen warten; diese wurde verworfen."
+REPLACED_MESSAGE: Final = "Durch eine neue Seite ersetzt."
+PREVIOUS_FAILED_MESSAGE: Final = "Der vorherige Schritt ist fehlgeschlagen."
+OUTSIDE_WINDOW_MESSAGE: Final = "Übersprungen: außerhalb des Zeitfensters."
 
 
 class QueueResult(StrEnum):
@@ -55,34 +62,88 @@ class QueueResult(StrEnum):
     DUPLICATE = "duplicate"
 
 
-def enqueue_face_action(
-    repos: Repositories, device_id: str, face: int, trigger_id: str, now: datetime
-) -> QueueResult:
-    """Turn "face ``face`` of ``device_id`` came up" into a queued job, if it has an action.
-
-    Must run inside the transaction that stores the raw event ``trigger_id``.
-    """
+def chain_for(repos: Repositories, device_id: str, face: int) -> list[ActionStep]:
+    """The steps of a face: its chain, or - for older data - its single action as one step."""
+    steps = repos.steps.list_for(device_id, face)
+    if steps:
+        return steps
     action = repos.actions.get(device_id, face)
     if action is None:
+        return []
+    return [ActionStep(device_id, face, 0, action.integration_id, action.label, action.params)]
+
+
+def step_key(trigger_id: str, position: int) -> str:
+    """The idempotency key of a step: the raw event id for step 0, a derived key after that."""
+    if position == 0:
+        return trigger_id
+    return hashlib.sha256(f"{trigger_id}#{position}".encode()).hexdigest()[:32]
+
+
+def enqueue_face_action(
+    repos: Repositories,
+    device_id: str,
+    face: int,
+    trigger_id: str,
+    now: datetime,
+    tz: ZoneInfo | None = None,
+) -> QueueResult:
+    """Turn "face ``face`` of ``device_id`` came up" into queued jobs, one per step.
+
+    Must run inside the transaction that stores the raw event ``trigger_id``. Earlier steps of this
+    device that were not sent yet are cancelled first (a delayed step of the face the user just
+    left must not fire). Conditions are evaluated **now**, at the turn: a step outside its time
+    window is simply not queued.
+
+    Returns:
+        :attr:`QueueResult.QUEUED` if at least one step was queued, otherwise the reason (the
+        reason of the *first* step when nothing was queued).
+    """
+    repos.jobs.expire_unsent_steps(device_id, now, REPLACED_MESSAGE)
+    steps = [s for s in chain_for(repos, device_id, face) if s.enabled]
+    if not steps:
         logger.warning("Face %d of device %s has no action assigned", face, device_id[:8])
         return QueueResult.NO_ACTION
-    integration = repos.integrations.require(action.integration_id)
+    local = now.astimezone(tz) if tz is not None else now
+    results: list[QueueResult] = []
+    for step in steps:
+        if not holds(step.condition, local):
+            logger.info(
+                "Step %d of face %d skipped: outside its time window", step.position + 1, face
+            )
+            continue
+        results.append(_enqueue_step(repos, step, trigger_id, now))
+    if QueueResult.QUEUED in results:
+        return QueueResult.QUEUED
+    return results[0] if results else QueueResult.NO_ACTION
+
+
+def _enqueue_step(
+    repos: Repositories, step: ActionStep, trigger_id: str, now: datetime
+) -> QueueResult:
+    """Queue one step (its delay becomes the earliest send time and extends its lifetime)."""
+    integration = repos.integrations.require(step.integration_id)
     if not integration.enabled:
-        logger.info("Integration %s is switched off; action skipped", integration.name)
+        logger.info("Integration %s is switched off; step skipped", integration.name)
         return QueueResult.DISABLED
+    delay = timedelta(milliseconds=step.delay_ms)
     dropped = repos.jobs.count_pending(integration.id) >= MAX_PENDING_JOBS
     job = IntegrationJob(
-        idempotency_key=trigger_id,
+        idempotency_key=step_key(trigger_id, step.position),
         integration_id=integration.id,
-        label=action.label,
-        params=action.params,
-        expires_at=now + JOB_LIFETIME,
-        device_id=device_id,
-        face=face,
+        label=step.label,
+        params=step.params,
+        expires_at=now + delay + JOB_LIFETIME,
+        device_id=step.device_id,
+        face=step.face,
         status=JobStatus.EXPIRED if dropped else JobStatus.PENDING,
         last_error=QUEUE_FULL_MESSAGE if dropped else None,
         created_at=now,
+        next_attempt_at=now + delay,
         finished_at=now if dropped else None,
+        chain_id=trigger_id,
+        step=step.position,
+        continue_on_error=step.continue_on_error,
     )
     if not repos.jobs.enqueue(job):
         return QueueResult.DUPLICATE

@@ -625,6 +625,12 @@ class IntegrationJob:
     next_attempt_at: datetime | None = None
     finished_at: datetime | None = None
     id: str = field(default_factory=new_id)
+    #: The turn (raw event id) that queued this job; all steps of a chain share it.
+    chain_id: str | None = None
+    #: Position of the step in its chain (0 = first).
+    step: int = 0
+    #: Whether the chain goes on if this step fails.
+    continue_on_error: bool = False
 
     def __post_init__(self) -> None:
         """Validate and normalise all fields."""

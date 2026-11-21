@@ -27,6 +27,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
+from zoneinfo import ZoneInfo
 
 from octaledger.application.outbox import QueueResult, enqueue_face_action
 from octaledger.application.tag_service import TagService
@@ -123,6 +124,7 @@ class TrackingService:
         settings: TrackingSettings | None = None,
         *,
         clock: Callable[[], datetime] = utc_now,
+        timezone: Callable[[], str] = lambda: "UTC",
     ) -> None:
         """Create the service.
 
@@ -130,10 +132,12 @@ class TrackingService:
             storage: Transactional storage.
             settings: Tracking rules (baseline, neutral, disconnect policy).
             clock: Returns the current UTC time (injectable for tests).
+            timezone: Returns the display timezone; the time windows of action steps use it.
         """
         self._storage = storage
         self._settings = settings or TrackingSettings()
         self._clock = clock
+        self._timezone = timezone
 
     # ------------------------------------------------------------------ helpers
 
@@ -306,7 +310,14 @@ class TrackingService:
             or event.raw_value not in FACE_NUMBERS
         ):
             return EventResult(Outcome.STORED)
-        queued = enqueue_face_action(repos, event.device_id, event.raw_value, event.id, self._now())
+        queued = enqueue_face_action(
+            repos,
+            event.device_id,
+            event.raw_value,
+            event.id,
+            self._now(),
+            ZoneInfo(self._timezone()),
+        )
         if queued is QueueResult.QUEUED:
             return EventResult(Outcome.ACTION_QUEUED)
         return EventResult(Outcome.ACTION_SKIPPED)

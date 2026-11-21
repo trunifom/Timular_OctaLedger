@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0007`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0008`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -61,7 +61,8 @@ audit_log      app_state     (allein stehend)
 | `audit_log` | Löschungen, Bereinigungen, Wiederherstellungen | 0001 |
 | `app_state` | kleiner dauerhafter Zustand (aktiver Würfel, Pause) | 0002 |
 | `integrations` | **Steuerungsmodus:** Verbindungen (Art, Name, Einstellungen ohne Geheimnisse) | 0003 |
-| `face_actions` | **Steuerungsmodus:** welche Aktion eine Seite auslöst | 0003 |
+| `face_actions` | **Steuerungsmodus:** welche Aktion eine Seite auslöst (ab 0008: der **erste Schritt** der Kette, als Spiegel) | 0003 |
+| `face_action_steps` | **Steuerungsmodus:** alle Schritte der Kette einer Seite (Verzögerung, bei Fehler weitermachen, aktiv, Bedingung) | 0008 |
 | `integration_jobs` | **Steuerungsmodus:** Warteschlange („Outbox“) und Verlauf | 0003 |
 | `device_buttons` | welche Aktion ein kurzer/langer Tastendruck des Würfels auslöst (keine Zeile = nichts) | 0005 |
 | `tags`, `session_tags`, `activity_tags`, `activity_notes` | Tags, Tags je Eintrag, Standard-Tags und Notizvorlage je Tätigkeit | 0007 |
@@ -156,6 +157,10 @@ Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stoppe
 | `enabled` | 0/1 |
 | `created_at` | Anlegezeit |
 
+### `face_action_steps` (0008)
+
+`(device_id, face, position)` ist der Schlüssel; `position` 0 ist der erste Schritt. Spalten: `integration_id`, `label`, `params` (JSON), `delay_ms` (0–300000), `continue_on_error`, `enabled`, `condition` (JSON `{start, end, weekdays}` oder leer). Die Migration kopiert jede vorhandene Aktion als Schritt 0. `face_actions` bleibt als Spiegel von Schritt 0 bestehen: Ältere Sicherungen und Daten ohne Schrittzeile funktionieren weiter (eine Seite ohne Schritte nutzt ihre `face_actions`-Zeile als einzigen Schritt). `integration_jobs` hat dazu die Spalten `chain_id` (die auslösende Drehung), `step` und `continue_on_error`. Die Schritte sind Teil der Sicherung (Schema 3, `tables`).
+
 ### `face_actions` (0003)
 
 Primärschlüssel `(device_id, face)`; `integration_id` (`RESTRICT`: eine **benutzte Verbindung lässt sich nicht löschen**), `label` (1–100, erscheint in der
@@ -215,6 +220,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
+| 0008 | `0008_action_steps.sql` | `face_action_steps` (bestehende Aktionen werden Schritt 0), Spalten `chain_id`, `step`, `continue_on_error` bei `integration_jobs` |
 | 0003 | `0003_integrations.sql` | Spalte `devices.mode` (bestehende Würfel bleiben `time`), `integrations`, `face_actions`, `integration_jobs` |
 
 ## 7. Das Sicherungsformat (JSON, Schema 3)

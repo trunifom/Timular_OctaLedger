@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Aktionsketten und Bedingungen, AP-44)
+- Eine Seite im Steuerungsmodus kann **mehrere Schritte** haben, mit Verzögerung, „bei Fehler weitermachen“, „aktiv“ und einer Bedingung (Zeitfenster inkl. über Mitternacht, Wochentage). Migration 0008; `PUT /devices/{id}/actions/{face}` akzeptiert `steps`, `GET /devices/{id}/chains`.
+- Ein neuer Seitenwechsel verwirft noch nicht gesendete, verzögerte Schritte; ein fehlgeschlagener Schritt bricht die folgenden ab (außer „weitermachen“). Bestehende Einzelaktionen und ältere Sicherungen funktionieren unverändert.
+- Fix: Der Dispatcher prüft vor dem Senden den aktuellen Zustand eines Auftrags (ein früherer Auftrag derselben Runde kann ihn abgebrochen haben).
+
 ### Hinzugefügt (Hue erweitert und Bridge-Suche, AP-43)
 - Hue: Übergang (`transition_ms`), Szenen-Modus (`active`/`dynamic_palette`/`static`) und Szenen-Helligkeit, Mindestabstand der Anfragen (`min_interval_ms`), HTTP 429 wird später wiederholt.
 - Bridge-Suche (`Adapter.find_targets`, `can_find`, `POST /adapters/{kind}/find`): im Heimnetz per mDNS (Extra `discovery`) und nur auf Klick über Philips' Dienst; nur private Adressen werden akzeptiert.

@@ -87,6 +87,7 @@ from octaledger.api.schemas import (
     scan_out,
     schedule_out,
     session_out,
+    step_out,
     tag_out,
     tracking_status_out,
 )
@@ -244,11 +245,24 @@ def build_router(ctx: AppContext) -> APIRouter:
 
     @router.put("/devices/{device_id}/actions/{face}")
     def assign_action(device_id: str, face: int, body: ActionAssign) -> dict[str, Any]:
-        """Give a face an action of a connection (validated by the connection's adapter)."""
-        require_integrations().assign_action(
-            device_id, face, body.integration_id, body.label, body.params
-        )
+        """Give a face one action, or a chain of steps (validated by the adapters)."""
+        service = require_integrations()
+        if body.steps is not None:
+            service.assign_steps(device_id, face, [s.model_dump() for s in body.steps])
+        elif body.integration_id is not None and body.label is not None and body.params is not None:
+            service.assign_action(device_id, face, body.integration_id, body.label, body.params)
+        else:
+            raise ValidationError(
+                "Neither steps nor a complete action given",
+                user_message="Bitte eine Aktion (Verbindung, Name, Angaben) oder Schritte angeben.",
+            )
         return device_out(ctx.devices.get(device_id))
+
+    @router.get("/devices/{device_id}/chains")
+    def action_chains(device_id: str) -> dict[str, Any]:
+        """The steps of every face of a device that has an action (a single action = one step)."""
+        chains = require_integrations().list_chains(device_id)
+        return {str(face): [step_out(s) for s in steps] for face, steps in sorted(chains.items())}
 
     @router.delete("/devices/{device_id}/actions/{face}")
     def clear_action(device_id: str, face: int) -> dict[str, Any]:

@@ -18,7 +18,7 @@ passes :func:`~octaledger.infrastructure.integrations.registry.default_adapters`
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, Final
@@ -26,7 +26,9 @@ from typing import Any, Final
 from octaledger.application.outbox import (
     HISTORY_KEEP,
     MAX_ATTEMPTS,
+    PREVIOUS_FAILED_MESSAGE,
     RETRY_DELAYS,
+    chain_for,
 )
 from octaledger.core.errors import (
     IntegrationConnectionError,
@@ -35,7 +37,9 @@ from octaledger.core.errors import (
     ValidationError,
 )
 from octaledger.core.secrets import SecretStore
-from octaledger.domain.models import FaceAction, Integration, IntegrationJob
+from octaledger.domain.conditions import parse_condition
+from octaledger.domain.models import FaceAction, Integration, IntegrationJob, JobStatus
+from octaledger.domain.steps import ActionStep, check_chain
 from octaledger.domain.time_rules import utc_now
 from octaledger.infrastructure.integrations.base import Adapter, AdapterSpec
 from octaledger.infrastructure.storage.repositories import Storage
@@ -323,7 +327,65 @@ class IntegrationService:
             repos.devices.require(device_id)
             integration = repos.integrations.require(integration_id)
             cleaned = self._adapter(integration.kind).validate_action(params)
-            return repos.actions.assign(device_id, face, integration_id, label, cleaned)
+            action = repos.actions.assign(device_id, face, integration_id, label, cleaned)
+            repos.steps.replace(
+                device_id, face, [ActionStep(device_id, face, 0, integration_id, label, cleaned)]
+            )
+            return action
+
+    def get_steps(self, device_id: str, face: int) -> list[ActionStep]:
+        """The chain of a face (a single older action counts as one step)."""
+        with self._storage.read() as repos:
+            repos.devices.require(device_id)
+            return chain_for(repos, device_id, face)
+
+    def list_chains(self, device_id: str) -> dict[int, list[ActionStep]]:
+        """The chains of all faces of a device that have an action."""
+        with self._storage.read() as repos:
+            repos.devices.require(device_id)
+            return {
+                action.face: chain_for(repos, device_id, action.face)
+                for action in repos.actions.list_for_device(device_id)
+            }
+
+    def assign_steps(
+        self, device_id: str, face: int, steps: Sequence[Mapping[str, Any]]
+    ) -> list[ActionStep]:
+        """Give a face a chain of steps (all validated, stored atomically).
+
+        Each step is a mapping with ``integration_id``, ``label``, ``params`` and optionally
+        ``delay_ms``, ``continue_on_error``, ``enabled`` and ``condition``. Step 1 is also
+        written to ``face_actions`` so older readers and backups keep working.
+
+        Raises:
+            ValidationError: For an invalid step, chain, delay or condition.
+            NotFoundError: If the device or a connection does not exist.
+        """
+        with self._storage.transaction() as repos:
+            repos.devices.require(device_id)
+            built: list[ActionStep] = []
+            for position, raw in enumerate(steps):
+                integration = repos.integrations.require(str(raw.get("integration_id", "")))
+                cleaned = self._adapter(integration.kind).validate_action(raw.get("params", {}))
+                built.append(
+                    ActionStep(
+                        device_id,
+                        face,
+                        position,
+                        integration.id,
+                        str(raw.get("label", "")),
+                        cleaned,
+                        delay_ms=int(raw.get("delay_ms") or 0),
+                        continue_on_error=bool(raw.get("continue_on_error", False)),
+                        enabled=bool(raw.get("enabled", True)),
+                        condition=parse_condition(raw.get("condition")),
+                    )
+                )
+            check_chain(built)
+            first = built[0]
+            repos.actions.assign(device_id, face, first.integration_id, first.label, first.params)
+            repos.steps.replace(device_id, face, built)
+            return built
 
     def clear_action(self, device_id: str, face: int) -> None:
         """Remove the action of a face."""
@@ -354,7 +416,13 @@ class IntegrationService:
         with self._storage.read() as repos:
             due = repos.jobs.due(now, max_jobs)
         for job in due:
-            self._run(job)
+            # An earlier job of this round may have cancelled this one (a failed step cancels the
+            # steps after it), so look at its current state before sending.
+            with self._storage.read() as repos:
+                current = repos.jobs.get(job.id)
+            if current is None or current.status is not JobStatus.PENDING:
+                continue
+            self._run(current)
         return len(due)
 
     def _run(self, job: IntegrationJob) -> None:
@@ -405,6 +473,10 @@ class IntegrationService:
     def _finish(self, job: IntegrationJob, status: str, attempts: int, error: str | None) -> None:
         now = self._clock()
         with self._storage.transaction() as repos:
+            if status != "done" and job.chain_id is not None and not job.continue_on_error:
+                repos.jobs.expire_following_steps(
+                    job.chain_id, job.step, now, PREVIOUS_FAILED_MESSAGE
+                )
             if status == "done":
                 repos.jobs.mark_done(job.id, now, attempts)
             elif status == "expired":
