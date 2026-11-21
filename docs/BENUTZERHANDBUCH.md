@@ -840,7 +840,8 @@ Ein Würfel kann **Musik steuern** (*Seiten zuordnen* → „Wofür benutzen Sie
 - **Halterung:** Dass der Würfel in der Halterung eine Meldung sendet (0 oder 10), ist eine **Community-Angabe**, die an Ihrem Würfel zu bestätigen ist. Wenn nicht: eine Seite ohne Titel als „Stopp“ benutzen.
 - **Verbindungsabbruch:** Die Musik läuft zunächst weiter und wird **nach der Frist** (Voreinstellung 5 Minuten, *App* → Bei Verbindungsverlust) beendet; kommt der Würfel vorher zurück, passiert nichts.
 - Neu gestartete Musik hat wie jede Aktion einen **Verfall von 30 Sekunden**: Ein Befehl, der zu spät käme, wird verworfen (keine „späte“ Musik).
-- **Spotify direkt und der Player in der App (YouTube) folgen als eigene Pakete** (AP-49, AP-50).
+- **Spotify direkt** (Ziel „Spotify (direkt)“, AP-49): steuert ein Spotify-Gerät, das Sie ohnehin haben (Handy-App, Desktop, Lautsprecher mit Spotify Connect). Es braucht ein **Premium-Konto** und eine eigene App im Spotify-Dashboard (Anleitung: in der Verbindung aufklappen). *Koppeln* öffnet die Spotify-Anmeldung im Browser; OctaLedger wartet bis zu zwei Minuten und speichert nur eine dauerhafte Berechtigung (kein Passwort). Spotify kennt kein „Stopp“, die Halterung **pausiert**. Auf dem Zielgerät muss Spotify geöffnet sein, sonst meldet Spotify „kein aktives Gerät“. **Nicht an einem echten Konto geprüft.**
+- **Der Player in der App (YouTube) folgt als eigenes Paket** (AP-50).
 
 ### Schritt für Schritt
 1. **Verbindung anlegen und testen:** Bereich **Smarthome & Verbindungen** → *Neue Verbindung* (die **Anleitung** darunter lesen) → Art wählen, Namen und Angaben eintragen →

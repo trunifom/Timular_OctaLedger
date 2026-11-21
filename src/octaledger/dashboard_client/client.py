@@ -40,6 +40,9 @@ from octaledger.core.settings import AgentSettings
 
 logger = logging.getLogger(__name__)
 
+#: Pairing waits for the user (a browser login can take two minutes).
+PAIR_TIMEOUT: tuple[float, float] = (3.0, 150.0)
+
 #: (connect, read) timeouts in seconds.
 DEFAULT_TIMEOUT: Final = (3.0, 30.0)
 _CATALOG_KINDS: Final = ("activities", "projects")
@@ -157,6 +160,7 @@ class ApiClient:
         json: Any = None,
         params: dict[str, Any] | None = None,
         authenticated: bool = True,
+        timeout: tuple[float, float] | None = None,
     ) -> Any:
         """Send one request and return the decoded JSON body (``None`` for 204).
 
@@ -173,7 +177,7 @@ class ApiClient:
                 json=json,
                 params=clean or None,
                 headers=headers,
-                timeout=self._timeout,
+                timeout=timeout or self._timeout,
             )
         except (requests.ConnectionError, requests.Timeout) as exc:
             # Do not log the exception text verbatim: it may contain the request URL.
@@ -345,7 +349,11 @@ class ApiClient:
 
     def pair_integration(self, integration_id: str) -> str:
         """Run the one-time pairing; returns the message."""
-        return str(self._post(f"/integrations/{integration_id}/pair")["message"])
+        # Pairing may wait for the user (for example a browser login), so it gets a long read time.
+        result = self._request(
+            "POST", f"/integrations/{integration_id}/pair", json={}, timeout=PAIR_TIMEOUT
+        )
+        return str(result["message"])
 
     def discover_integration(self, integration_id: str) -> dict[str, list[dict[str, str]]]:
         """List what the target offers to choose from (lights, scenes ...)."""

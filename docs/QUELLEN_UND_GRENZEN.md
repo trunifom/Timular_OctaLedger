@@ -49,6 +49,10 @@ Die JSON-Formen für Helligkeit, Farbtemperatur (`color_temperature.mirek`), Üb
 
 Die Dienste von Home Assistant (`media_player.play_media`, `media_pause`, `media_stop`, `volume_set`) und ihre Felder stammen aus der öffentlichen Dokumentation bzw. Drittquellen und wurden nur gegen eine Attrappe getestet. Der lokale Player ist gegen eine Attrappen-Engine getestet (Reihenfolge, Ersetzen, Fehler, Warteschlange, Adress- und Ordnerregeln); **tatsächliche Wiedergabe** (MP3-Stream, lokale Datei, Lautstärke) ist nicht an echter Hardware geprüft. Nicht gebaut: der „externe Player“ (VLC/mpv als Unterprozess) als zweite Stufe.
 
+## Spotify direkt (AP-49): Stand der Prüfung
+
+Die Endpunkte (`/authorize` und `/api/token` mit PKCE, `/v1/me/player/play|pause|volume`), die Berechtigungen (`user-modify-playback-state`, `user-read-playback-state`) und die Fehlerbedeutungen (403 = Premium nötig, 404 = kein aktives Gerät, 429 = langsamer) stammen aus der öffentlichen Spotify-Dokumentation und wurden nur gegen eine lokale Attrappe getestet; die PKCE-Prüfsumme gegen das Beispiel aus RFC 7636. **Nicht geprüft:** Anmeldung und Wiedergabe mit einem echten Premium-Konto und einer echten App-Registrierung, das Verhalten bei einem vom Spotify rotierten Refresh-Token (OctaLedger behält den gespeicherten; bei „Zugang abgelehnt“ erneut koppeln) und künftige Änderungen der Spotify-Regeln für Entwickler-Apps. Die dauerhafte Berechtigung liegt wie alle Geheimnisse **unverschlüsselt** in `secrets.json` im Benutzerprofil (Zugriff nur für Ihr Windows-Konto). Beachten Sie die Spotify-Entwicklerbedingungen.
+
 ## Was **nicht** geprüft wurde (Grenzen)
 
 - **Keine echte BLE-Hardware:** Weder Scan noch Verbindung, Benachrichtigungen, Reconnect, Reichweite,

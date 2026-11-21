@@ -13,6 +13,7 @@ from octaledger.infrastructure.integrations.homeassistant import HomeAssistantAd
 from octaledger.infrastructure.integrations.hue import HueAdapter
 from octaledger.infrastructure.integrations.mqtt import MqttAdapter
 from octaledger.infrastructure.integrations.player import PlayerAdapter
+from octaledger.infrastructure.integrations.spotify import SpotifyAdapter
 from octaledger.infrastructure.integrations.webhook import WebhookAdapter
 
 
@@ -24,6 +25,7 @@ def default_adapters() -> dict[str, Adapter]:
         HomeAssistantAdapter(),
         HueAdapter(),
         PlayerAdapter(),
+        SpotifyAdapter(),
         DemoAdapter(),
     ]
     return {adapter.spec.kind: adapter for adapter in adapters}

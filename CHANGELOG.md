@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Spotify direkt, AP-49)
+- Neue Verbindungsart `spotify` (Musik-Ziel): Wiedergabe von Titel/Album/Playlist/Künstler/Podcast, Pause (= Stopp) und Lautstärke über die Spotify Web API; Kopplung per Browser mit PKCE über einen lokalen Rückkanal (`127.0.0.1`, einmaliger `state`, kein Client Secret), Zugangstoken nur im Speicher, Berechtigung im Geheimnis-Speicher.
+- Dashboard-Client: Kopplung darf bis zu 150 s warten (`PAIR_TIMEOUT`).
+
 ### Hinzugefügt (Musik-Modus, AP-48)
 - Dritte Betriebsart **Musik** je Würfel (Migration 0009, gespeichert als `control` + Kennzeichen): jede Seite ein Titel aus einem eingefügten Link (Spotify, YouTube, Stream), die Halterung und Seiten ohne Titel beenden die Musik, ein Zielwechsel stoppt das alte Ziel zuerst, eine neue Seite ersetzt nicht gesendete Befehle.
 - Ziele: Lokaler Player und Home Assistant (`ActionSpec.capability`, `Adapter.music_play_params/music_stop_params`); „Läuft gerade“ (`music_now`) erst nach tatsächlich gesendetem Befehl; Anhalten nach der Frist bei Verbindungsverlust (Housekeeper).

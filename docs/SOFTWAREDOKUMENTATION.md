@@ -1974,3 +1974,11 @@ ausgenommen. SQL steht nur in den Repositories (`SessionRepository.range_stats/d
 Eintrag bleibt, Prüfspur, Würfel mit/ohne Daten, aktive Auswahl, Zurücksetzen mit/ohne Einstellungen, Kopplung aufheben. `tests/unit/test_api.py` (+6): Endpunkte der Datenverwaltung,
 Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/test_gui_data_cleanup.py` (8), `tests/gui/test_gui_settings_areas.py` (7), erweiterte
 `test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (13 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
+
+## 34. Spotify-Adapter (`infrastructure.integrations.spotify`, AP-49)
+
+* **Aufgabe:** Fernsteuerung eines Spotify-Connect-Geräts über die Web API (Wiedergabe, Pause, Lautstärke). Musik-Ziel (`ActionSpec.capability="music"`); nur `spotify:`-Quellen, Stopp = Pause.
+* **Kopplung (`pair`)**: Authorization Code mit **PKCE (S256)**. Ein `HTTPServer` bindet **nur** `127.0.0.1:<callback_port>` (Voreinstellung 8898), öffnet die Anmeldeadresse über den einspritzbaren `open_browser`, nimmt genau einen Rückruf mit dem richtigen einmaligen `state` an (falscher `state` → 400, Kopplung läuft weiter) und tauscht den Code gegen ein Refresh-Token (Geheimnis-Speicher, nie in Einstellungen/Sicherung/Logs). Zeitlimit `PAIR_SECONDS` (120 s); der Dashboard-Client erlaubt dafür `PAIR_TIMEOUT` (150 s Lesezeit).
+* **Betrieb:** Vor jeder Anfrage liefert `_access_token` ein im Speicher zwischengespeichertes Zugangstoken (erneuert 60 s vor Ablauf, durch ein Schloss geschützt). Fehler: 401/403/404 → `IntegrationError` mit verständlichem Text (nicht wiederholt); 429 → `IntegrationConnectionError` (wiederholbar, da nicht ausgeführt).
+* **Tests:** `tests/unit/test_adapter_spotify.py` gegen eine lokale Attrappe (Token, Player, Kopplung mit simuliertem Browser, falscher `state`, Ablehnung, belegter Port, RFC-7636-Beispiel).
+* **Grenzen:** nicht an einem echten Konto geprüft (siehe `docs/QUELLEN_UND_GRENZEN.md`).
