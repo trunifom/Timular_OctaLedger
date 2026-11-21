@@ -119,7 +119,7 @@ Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entsp
 
 | Gruppe | Einträge | Wofür |
 |---|---|---|
-| **Alltag** | Übersicht · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, Einträge prüfen, auswerten |
+| **Alltag** | Übersicht · Würfel live · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
 | **Einrichten** | Geräte · Verwaltung | einmal einrichten: Würfel verbinden, Tätigkeiten und Projekte anlegen |
 | **System** | Daten · Einstellungen · Diagnose | Sicherung/Export, persönliche Einstellungen, Fehlersuche |
 
@@ -173,6 +173,24 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
 5. **⭐ Zum aktiven Tracker machen:** bewusste Übergabe an den zweiten Tracker (die Zeit des alten
    Trackers endet, es entsteht keine doppelte Zeit).
 6. **Umbenennen oder löschen:** Löschen geht nur, solange noch keine Daten aufgezeichnet wurden.
+
+### Bereich „Würfel live“
+Hier sehen Sie **in Echtzeit**, wie der Würfel liegt und was die Software daraus macht – ideal zum
+Kennenlernen und zum Prüfen, ob alles richtig eingestellt ist. Die Anzeige erneuert sich jede Sekunde.
+
+- **Das Bild** zeigt den Würfel von oben. Die Nummern sind die **technischen Seitennummern**, die der
+  Würfel meldet (nicht unbedingt die auf dem Gehäuse aufgedruckten). Jede Seite zeigt die zugeordnete
+  Tätigkeit in deren Farbe, freie Seiten sind mit „frei“ beschriftet. Die Seite, die **oben liegt**, hat
+  ein ▲ und einen dicken Rand; eine Seite mit **gestricheltem Rand** wurde gesehen, ist aber noch nicht
+  bestätigt. Das Bild ist eine schematische Darstellung, kein Foto.
+- **① Der Würfel meldet** die Seite, die er gerade sendet. **② Wird geprüft:** Eine neue Seite zählt
+  erst, wenn sie kurz ruhig liegt (Entprellzeit, Standard 0,3 s). So löst das Rollen über andere Seiten
+  nichts Falsches aus. **③ Die Software** zeigt, welche Tätigkeit läuft und seit wann.
+- **Letzte Bewegungen** listet in ganzen Sätzen, was zuletzt passiert ist (Würfel gedreht, Seite
+  angenommen, Verbindung verloren …). Der Verlauf wird nur angezeigt und nicht gespeichert; er ist leer,
+  sobald der Agent neu startet.
+- Ist der Würfel **nicht verbunden**, zeigt das Bild nur die Zuordnung, aber keine Position. Ein
+  Hinweis erklärt, wenn der Tracker nicht der aktive ist oder eine Seite noch keine Tätigkeit hat.
 
 ### Bereich „Verwaltung“
 - Reiter **Tätigkeiten** und **Projekte**: neuen Namen eingeben, **➕ anlegen**. Ohne eigene Farbe

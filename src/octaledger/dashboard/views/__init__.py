@@ -15,6 +15,7 @@ from octaledger.dashboard.views import (
     devices,
     diagnostics,
     journal,
+    live,
     overview,
     settings,
     statistics,
@@ -28,6 +29,14 @@ _DEFINITIONS = (
         "Alltag",
         "Was läuft gerade? Start, Pause, Stopp, heutige Einträge",
         overview.render,
+    ),
+    PageDef(
+        "live",
+        "Würfel live",
+        "view_in_ar",
+        "Alltag",
+        "Sehen Sie in Echtzeit, wie der Würfel liegt und was die Software daraus macht",
+        live.render,
     ),
     PageDef(
         "journal",

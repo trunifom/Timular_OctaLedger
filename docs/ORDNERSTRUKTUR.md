@@ -63,6 +63,7 @@ octaledger/
   src/octaledger/core/logging.py
   src/octaledger/core/settings.py
   src/octaledger/dashboard/__init__.py
+  src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/main.py
   src/octaledger/dashboard/nav.py
   src/octaledger/dashboard/views/__init__.py
@@ -71,6 +72,7 @@ octaledger/
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
   src/octaledger/dashboard/views/journal.py
+  src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
   src/octaledger/dashboard/views/settings.py
   src/octaledger/dashboard/views/statistics.py

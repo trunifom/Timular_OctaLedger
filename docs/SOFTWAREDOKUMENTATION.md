@@ -34,6 +34,7 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 25. [Agent-Laufzeit und Kommandozeile (`octaledger.agent.main`, `octaledger.cli`, AP-19)](#25-agent-laufzeit-und-kommandozeile-octaledgeragentmain-octaledgercli-ap-19)
 26. [Qualitätssicherung, Teststrategie und Erweiterungspunkte (AP-20)](#26-qualitätssicherung-teststrategie-und-erweiterungspunkte-ap-20)
 27. [GUI-Überarbeitung: Design-System, Navigation, Statusleiste (AP-21)](#27-gui-überarbeitung-design-system-navigation-statusleiste-ap-21)
+28. [Live-Ansicht und Würfelgrafik (`dashboard.views.live`, `dashboard.cube`, AP-23)](#28-live-ansicht-und-würfelgrafik-dashboardviewslive-dashboardcube-ap-23)
 
 ## 1. Überblick
 
@@ -1319,3 +1320,44 @@ Hosts**, Lesbarkeits-CSS (Tabellenziffern, Fokusring, Radien, keine Schatten), B
 prüfen zusätzlich Rand ≥ 3:1 und gedämpften Text auf der Karte ≥ 4,5:1. Real geprüft: `octaledger dashboard`
 liefert `/app/static/Inter-Variable.woff2` mit 200 und `wOF2`-Kopf aus.
 **Nicht** geprüft: das visuelle Erscheinungsbild im Browser.
+
+## 28. Live-Ansicht und Würfelgrafik (`dashboard.views.live`, `dashboard.cube`, AP-23)
+
+Die Seite **Würfel live** (Gruppe „Alltag“) macht sichtbar, wie Würfelbewegungen die Software beeinflussen. Sie
+liest nur `GET /devices/{id}/live` (AP-22) und ändert nichts.
+
+### 28.1 Module
+
+| Modul | Aufgabe |
+|---|---|
+| `dashboard/cube.py` | `cube_svg(theme, faces, up=, pending=, selected=, caption=)` erzeugt das SVG des Würfels von oben (Achteck mit acht Keilen, Seite 1 oben, im Uhrzeigersinn). Reine Funktion ohne Streamlit. `FaceLabel(name, color)` beschreibt eine Seite |
+| `dashboard/views/live.py` | Seite: Auswahl des Trackers, Fragment `_live` (`run_every="1s"`) mit Bild, drei Schritt-Karten und Verlauf; Helfer `face_labels`, `face_text`, `describe_event`, `pending_face`, `escape_markdown` |
+
+### 28.2 Entscheidungen
+
+- **Schematisch und ehrlich:** Die Nummern sind die *technischen* Seitennummern des Geräts; das Bild behauptet
+  nicht, wo eine Nummer aufgedruckt ist. Erst die Kalibrierung ordnet einer Nummer eine Tätigkeit zu.
+- **Farbe ist nie das einzige Signal:** oben = dicker Rand **und** ▲ **und** Zahl in der Mitte; „noch nicht
+  bestätigt“ = gestrichelter Rand. Hervorgehobene Keile werden zuletzt gezeichnet, damit Nachbarn ihren Rand nicht
+  überdecken.
+- **Lesbarkeit auf jeder Farbe:** `readable_on` wählt dunkle oder helle Schrift; auf mittleren Tönen (Standardfarbe
+  `#5B7C99`) erreicht keine von beiden 4,5:1, deshalb haben alle Beschriftungen einen Rand in der Gegenfarbe
+  (`paint-order="stroke"`). Die großen fetten Zahlen erfüllen 3:1 (WCAG für große Schrift).
+- **Beschriftung im Keil gestapelt** (Marker, Zahl, Name übereinander): Namen am Rand würden bei den linken und
+  rechten Seiten abgeschnitten. Namen werden auf 10 Zeichen gekürzt; die volle Bezeichnung steht in den Karten.
+- **Eingaben werden maskiert:** Tätigkeitsnamen gelangen mit `html.escape` ins SVG und mit `escape_markdown` in
+  Markdown-Texte (Test mit `<b>x</b>`).
+- **Ablauf in drei Karten** erklärt die Kette *Funk → Entprellung → Software*: ① `raw_value`, ② `pending_value`
+  mit der Entprellzeit in Sekunden, ③ laufende Tätigkeit samt Dauer; dazu Hinweise („nicht der aktive Tracker“,
+  „Seite hat noch keine Tätigkeit“).
+- **Verlauf** zeigt bis zu 12 Einträge als Sätze (`describe_event`); er stammt aus dem Arbeitsspeicher des Agenten
+  und wird nicht gespeichert.
+
+### 28.3 Tests
+
+`tests/unit/test_cube.py` (15): acht nummerierte Keile, Namen/Farben, ▲ + dicker Rand für „oben“, gestrichelt für
+„wartet“, Auswahlring, **Maskierung von Eingaben**, Kürzung, Lesbarkeit auf Standard- und Extremfarben.
+`tests/gui/test_gui_live.py` (7): Titel/Hilfe/leerer Zustand, nie gestartetes Gerät wird nicht als live gezeigt,
+verbundener Würfel (Seite, Schritte, Verlauf), freie Seite erklärt, nicht aktiver Tracker, Maskierung im Bild,
+laufende Zeit. Im Browser (Chromium) in Hell und Dunkel mit simuliertem Würfel angesehen; **nicht** mit echter
+Hardware.
