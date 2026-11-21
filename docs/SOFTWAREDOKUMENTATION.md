@@ -35,6 +35,7 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 26. [Qualitätssicherung, Teststrategie und Erweiterungspunkte (AP-20)](#26-qualitätssicherung-teststrategie-und-erweiterungspunkte-ap-20)
 27. [GUI-Überarbeitung: Design-System, Navigation, Statusleiste (AP-21)](#27-gui-überarbeitung-design-system-navigation-statusleiste-ap-21)
 28. [Live-Ansicht und Würfelgrafik (`dashboard.views.live`, `dashboard.cube`, AP-23)](#28-live-ansicht-und-würfelgrafik-dashboardviewslive-dashboardcube-ap-23)
+29. [Zuordnungs-Assistent „Seiten zuordnen“ (`dashboard.views.faces`, AP-24)](#29-zuordnungs-assistent-seiten-zuordnen-dashboardviewsfaces-ap-24)
 
 ## 1. Überblick
 
@@ -1361,3 +1362,42 @@ liest nur `GET /devices/{id}/live` (AP-22) und ändert nichts.
 verbundener Würfel (Seite, Schritte, Verlauf), freie Seite erklärt, nicht aktiver Tracker, Maskierung im Bild,
 laufende Zeit. Im Browser (Chromium) in Hell und Dunkel mit simuliertem Würfel angesehen; **nicht** mit echter
 Hardware.
+
+## 29. Zuordnungs-Assistent „Seiten zuordnen“ (`dashboard.views.faces`, AP-24)
+
+Ersetzt das Raten in der Dropdown-Tabelle durch einen geführten Ablauf (Gruppe „Einrichten“). Die Tabelle auf der
+Seite *Geräte* bleibt als Alternative bestehen. Genutzte API: `devices`, `list_items`, `live_view`,
+`assign_face`, `clear_face`, `create_item`, `connect_device` – es gibt **keinen neuen Endpunkt**.
+
+### 29.1 Aufbau
+
+| Teil | Aufgabe |
+|---|---|
+| `_live_picture` (Fragment, 1 s) | Würfelbild mit `selected` = bearbeitete Seite, `up`/`pending` aus der Live-Ansicht; Knopf „Seite N einrichten“, wenn oben eine andere Seite liegt als die ausgewählte |
+| `_editor` (kein Fragment) | Seitenwahl (`st.radio`, Schlüssel `faces_target_<geräte-id>`), Tätigkeit (vorhandene **oder** „Neue Tätigkeit“), Projekt, Speichern/Entfernen |
+| `_connection_hint` | Zustand „nicht verbunden“ mit „Jetzt verbinden“ (Adresse bekannt) oder Weg zur Suche |
+| `next_free_face`, `assigned_faces`, `is_new` | reine Helfer (getestet) |
+
+### 29.2 Entscheidungen
+
+- **Bild live, Eingabe ruhig:** Ein sich selbst aktualisierendes Fragment würde Text verwerfen, den der Nutzer gerade
+  tippt. Deshalb liegt nur das Bild im Fragment; die Seite wird **ausdrücklich** per Knopf übernommen und folgt dem
+  Würfel nicht von allein.
+- **Streamlit-Regel für Widget-Schlüssel:** Ein Schlüssel darf nach dem Erzeugen seines Widgets im selben Durchlauf
+  nicht geändert werden. Wünsche („nächste freie Seite“, „oben liegende Seite“) werden in `faces_pending_target`
+  abgelegt und zu Beginn des nächsten Durchlaufs **vor** dem Seitenwähler angewendet.
+- **Neue Tätigkeit direkt anlegen:** Existiert noch keine Tätigkeit, ist „Neue Tätigkeit“ vorgewählt. Speichern ist
+  gesperrt, bis ein Name eingegeben ist; ein doppelter Name wird mit Fehlercode (`OL-STATE-002`) gemeldet und
+  ordnet nichts zu. „Neue Tätigkeit“ wird **per Wert** erkannt (`is_new`), weil Streamlit die Auswahl nicht
+  als dasselbe Objekt zurückgibt (Identitätsvergleich schlug im Test fehl).
+- **Auch ohne Bluetooth nutzbar** (Seiten von Hand wählen); der Hinweis erklärt, was fehlt.
+- **Nach dem Speichern** springt der Assistent zur nächsten freien Seite (zyklisch) und zeigt eine Meldung; sind alle
+  acht belegt, folgen *Würfel live ansehen* und *Zur Übersicht*.
+
+### 29.3 Tests
+
+`tests/gui/test_gui_faces.py` (14): reine Helfer (nächste freie Seite, Umbruch, belegte Seiten), Titel/Hilfe/leerer
+Zustand, neue Tätigkeit anlegen und Sprung zur nächsten Seite, Speichern gesperrt ohne Namen, vorhandene Tätigkeit
+wählen, doppelter Name, Seite entfernen (Tätigkeit bleibt), freie Seite nicht entfernbar, Verbindungshinweis und
+„Jetzt verbinden“, unbekannte Adresse, „Seite N einrichten“ mit simuliertem Würfel, Abschluss mit Folgeschritten,
+Maskierung im Bild, Hilfetexte an allen Feldern. Im Browser (Chromium) angesehen; nicht mit echter Hardware.

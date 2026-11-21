@@ -120,7 +120,7 @@ Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entsp
 | Gruppe | Einträge | Wofür |
 |---|---|---|
 | **Alltag** | Übersicht · Würfel live · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
-| **Einrichten** | Geräte · Verwaltung | einmal einrichten: Würfel verbinden, Tätigkeiten und Projekte anlegen |
+| **Einrichten** | Geräte · Seiten zuordnen · Verwaltung | einmal einrichten: Würfel verbinden, den Seiten Tätigkeiten geben, Tätigkeiten und Projekte anlegen |
 | **System** | Daten · Einstellungen · Diagnose | Sicherung/Export, persönliche Einstellungen, Fehlersuche |
 
 - **Dunkel / Hell:** wechselt die Darstellung. **Größer / Kleiner:** wechselt zwischen normaler und
@@ -166,10 +166,11 @@ Sie auf **Neu laden**. Ihre Daten sind sicher; es wird nur nichts erfasst, solan
 3. **🔗 Verbinden:** baut die Verbindung auf. Im Kasten sehen Sie den Zustand (Bereit, Verbinde …),
    den Batteriestand und die letzte Meldung. **⛔ Trennen** beendet sie bewusst (kein automatischer
    Neuversuch).
-4. **Seiten zuordnen (Kalibrierung):** Halten Sie eine Seite nach oben; „👈 Aktuell liegt **Seite N**
-   oben“ zeigt die technische Nummer. Wählen Sie für jede der acht Seiten eine Tätigkeit (und
-   optional ein Projekt), dann **💾 Kalibrierung speichern**. Der Balken zeigt, wie viele Seiten
-   fertig sind. „– nicht belegt –“ bucht nichts.
+4. **Seiten zuordnen (Kalibrierung):** Am bequemsten geht das im Bereich **Seiten zuordnen** (siehe
+   unten) mit Bild und Live-Anzeige. Hier auf der Geräte-Seite finden Sie dieselbe Zuordnung als
+   Tabelle: „👈 Aktuell liegt **Seite N** oben“ zeigt die technische Nummer, Sie wählen für jede der
+   acht Seiten eine Tätigkeit (und optional ein Projekt) und speichern mit
+   **💾 Kalibrierung speichern**. „– nicht belegt –“ bucht nichts.
 5. **⭐ Zum aktiven Tracker machen:** bewusste Übergabe an den zweiten Tracker (die Zeit des alten
    Trackers endet, es entsteht keine doppelte Zeit).
 6. **Umbenennen oder löschen:** Löschen geht nur, solange noch keine Daten aufgezeichnet wurden.
@@ -191,6 +192,30 @@ Kennenlernen und zum Prüfen, ob alles richtig eingestellt ist. Die Anzeige erne
   sobald der Agent neu startet.
 - Ist der Würfel **nicht verbunden**, zeigt das Bild nur die Zuordnung, aber keine Position. Ein
   Hinweis erklärt, wenn der Tracker nicht der aktive ist oder eine Seite noch keine Tätigkeit hat.
+
+### Bereich „Seiten zuordnen“
+Der **Assistent**, mit dem Sie jeder der acht Würfelseiten eine Tätigkeit geben – mit Bild, Live-Anzeige
+und ohne Umwege:
+
+1. **Würfel verbinden.** Ist er noch nicht verbunden, bietet die Seite **Jetzt verbinden** an (oder
+   führt zur Suche im Bereich *Geräte*). Ohne Verbindung können Sie die Seiten trotzdem von Hand
+   einrichten.
+2. **Würfel auf eine Seite legen.** Im Bild erkennen Sie sofort, welche Seite **oben** liegt (▲, dicker
+   Rand). Der Knopf **„Seite N einrichten“** wählt genau diese Seite aus. Alternativ wählen Sie die Seite
+   in der Leiste *Seite* (ein Haken ✔ bedeutet: schon eingerichtet). Der **blaue Ring** im Bild zeigt,
+   welche Seite Sie gerade bearbeiten.
+3. **Tätigkeit festlegen:** Wählen Sie eine vorhandene Tätigkeit **oder** *➕ Neue Tätigkeit anlegen …* und
+   tippen Sie einen **Namen** (z. B. „Kundengespräch“). Die Tätigkeit wird beim Speichern angelegt.
+   Optional wählen Sie ein Projekt.
+4. **Seite N speichern.** Der Assistent springt zur **nächsten freien Seite** und sagt, dass Sie den
+   Würfel darauf drehen sollen. **Entfernen** löst die Tätigkeit von der Seite (die Tätigkeit selbst
+   bleibt erhalten).
+5. Sind alle acht Seiten eingerichtet, zeigt die Seite die nächsten Schritte: *Würfel live ansehen* oder
+   *Zur Übersicht*.
+
+Die Nummern im Bild sind die **technischen Seitennummern**, die der Würfel meldet. Sie müssen nicht mit
+einer Aufschrift auf dem Gehäuse übereinstimmen – diese Zuordnung stellt die Verbindung zu Ihren
+Tätigkeiten erst her. Tipp: Notieren Sie sich die Zuordnung (z. B. mit kleinen Aufklebern).
 
 ### Bereich „Verwaltung“
 - Reiter **Tätigkeiten** und **Projekte**: neuen Namen eingeben, **➕ anlegen**. Ohne eigene Farbe

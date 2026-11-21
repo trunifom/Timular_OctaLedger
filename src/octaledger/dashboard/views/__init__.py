@@ -14,6 +14,7 @@ from octaledger.dashboard.views import (
     data,
     devices,
     diagnostics,
+    faces,
     journal,
     live,
     overview,
@@ -61,6 +62,14 @@ _DEFINITIONS = (
         "Einrichten",
         "Würfel registrieren, verbinden und die acht Seiten zuordnen",
         devices.render,
+    ),
+    PageDef(
+        "faces",
+        "Seiten zuordnen",
+        "touch_app",
+        "Einrichten",
+        "Sehen Sie, welche Seite oben liegt, und geben Sie ihr eine Tätigkeit",
+        faces.render,
     ),
     PageDef(
         "catalog",

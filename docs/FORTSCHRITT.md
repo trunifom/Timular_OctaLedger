@@ -42,6 +42,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-21b | Speichern von Dateien wiederholt kurz, wenn Windows das Ziel sperrt (`WinError 5`) | 2026-11-21 | 12:40 | _folgt_ |
 | AP-22 | Live-Daten: Rohwert, wartender Wert und Verlauf im Agenten (`DeviceStatus`, `LiveEvent`), Endpunkt `GET /devices/{id}/live`, Client `live_view`; Würfel-Erkennung am Namen im Scanner | 2026-11-21 | 13:10 | _folgt_ |
 | AP-23 | Seite „Würfel live“: schematische Würfelgrafik (SVG), Fluss Funk → Prüfung → Software, Verlauf in Sätzen (`dashboard.cube`, `views.live`) | 2026-11-21 | 14:00 | _folgt_ |
+| AP-24 | Assistent „Seiten zuordnen“: Würfelbild mit Live-Anzeige, Seite auswählen, vorhandene oder neue Tätigkeit zuordnen, Sprung zur nächsten freien Seite (`views.faces`) | 2026-11-21 | 14:40 | _folgt_ |
 
 ## Offen
 

@@ -71,6 +71,7 @@ octaledger/
   src/octaledger/dashboard/views/data.py
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
+  src/octaledger/dashboard/views/faces.py
   src/octaledger/dashboard/views/journal.py
   src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
