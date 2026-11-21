@@ -1626,3 +1626,40 @@ Inhalt, Inhaltstyp, Zugangskopf, `User-Agent`), kein Zugangskopf ohne Geheimnis,
 Host werden wiederholt, **Zeitlimit nach dem Senden nicht**, **Umgebungs-Proxys werden ignoriert**, Prüfung (404 = erreichbar,
 401/503 gemeldet, unerreichbar), Auslieferung mit dem Programm und **ein eingereihter Auftrag erreicht über den Dienst das Ziel**.
 Nicht geprüft: echte Geräte und Dienste (siehe `QUELLEN_UND_GRENZEN.md`).
+
+### 31.13 MQTT-Adapter (`infrastructure.integrations.mqtt`, AP-28)
+
+MQTT ist der Standard des Smarthomes (Mosquitto, Home Assistant, Zigbee2MQTT, Tasmota, ESPHome, Node-RED). Eine Drehung wird zu
+**einer veröffentlichten Nachricht** (Thema und Inhalt, z. B. `zigbee2mqtt/schreibtischlampe/set` mit `{"state": "TOGGLE"}`).
+Eine *Verbindung* hat Adresse, Port (Standard 1883), optional Benutzername und Passwort (Geheimnis) sowie TLS (Port 8883) mit
+einstellbarer Zertifikatsprüfung; die *Aktion* `publish` hat Thema, Inhalt, QoS (0 oder 1, Standard 1) und `retain`.
+
+**Warum das Protokoll hier selbst gesprochen wird (nur Standardbibliothek):** Gebraucht wird nur ein *Veröffentlicher*:
+verbinden, ein PUBLISH senden, trennen – wenige Bytes eines einfachen, vollständig spezifizierten Protokolls (MQTT 3.1.1). Das
+gibt genau das, was die Warteschlange braucht und eine allgemeine Client-Bibliothek nicht liefert: ein **hartes Zeitlimit für jeden
+Schritt** (auch das Verbinden) und die **genaue Antwort auf „ist die Nachricht sicher *nicht* hinausgegangen?“** – die Grundlage der
+Wiederholungsregel. Keine neue Abhängigkeit, kein Hintergrund-Thread, nach jeder Aktion bleibt nichts verbunden. Jeder Versuch
+nutzt eine frische Client-Kennung (`octaledger-<zufall>`), Clean Session, Keep-Alive 15 s.
+
+**Wiederholungsregel:** Scheitert das **Verbinden/Anmelden** (abgelehnt, nicht erreichbar, Name unbekannt, Zeitlimit, Broker legt
+beim Anmelden auf), wurde nichts veröffentlicht → `IntegrationConnectionError` (wird wiederholt). Falsche Zugangsdaten, fehlende
+Berechtigung, ein Ziel, das kein MQTT spricht, und ein fehlgeschlagener TLS-Handshake sind **dauerhaft** (`IntegrationError`, mit
+verständlicher Meldung je CONNACK-Code). Alles **nach** dem Schreiben des PUBLISH (keine Bestätigung bei QoS 1, Verbindung
+abgebrochen) lässt den Ausgang offen und ist **dauerhaft** – ein erneutes „TOGGLE“ könnte das Licht zweimal umschalten.
+
+**Sicherheit und Grenzen:** Antworten des Brokers sind auf 1 KiB begrenzt, Themen dürfen keine Platzhalter (`+`, `#`), kein `$`
+am Anfang und keine NUL-Zeichen enthalten, die Adresse darf kein `mqtt://` oder keinen Pfad enthalten. MQTT 3.1.1, **nur Senden**
+(kein Abonnieren), QoS 0/1, keine WebSockets, keine Client-Zertifikate, Textinhalte bis 500 Zeichen. `check` meldet sich an und
+trennt wieder, ohne etwas zu veröffentlichen.
+
+### 31.14 Tests (AP-28)
+
+`tests/unit/test_adapter_mqtt.py` (44, **gegen einen Fake-Broker auf Protokollebene**, der die Pakete unabhängig vom Adapter parst,
+sodass beide sich gegenseitig prüfen): Kodierung der Längenzahl nach Spezifikation und Pakete gegen **von Hand berechnete Bytes**,
+Passwort ohne Benutzer wird nicht gesendet, Adress-/Port-/Themen-Regeln, Standardwerte, Nachricht kommt vollständig an (Thema,
+Inhalt mit Umlauten, QoS, retain, Anmeldung), QoS 0 ohne Bestätigung, frische Client-Kennung, falsche Zugangsdaten und fehlende
+Berechtigung (dauerhaft), nicht erreichbar/unbekannter Host/Broker antwortet nicht/legt auf (werden wiederholt, **nichts
+veröffentlicht**), kein MQTT-Broker, **fehlende Bestätigung wird nicht wiederholt** (die Nachricht kam einmal an), Prüfung ohne
+Veröffentlichung, TLS (Umhüllung mit der gewählten Prüfung, kein TLS ohne Anforderung, fehlgeschlagener Handshake dauerhaft; mit
+einer Attrappe, da ohne Zertifikat kein echter Handshake möglich ist), Auslieferung mit dem Programm und **ein eingereihter Auftrag
+wird über den Dienst veröffentlicht**. Nicht geprüft: Mosquitto, Home Assistant oder ein echter Hub, ein echter TLS-Handshake.

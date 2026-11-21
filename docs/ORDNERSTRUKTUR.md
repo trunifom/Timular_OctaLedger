@@ -105,6 +105,7 @@ octaledger/
   src/octaledger/infrastructure/ble/transport.py
   src/octaledger/infrastructure/integrations/__init__.py
   src/octaledger/infrastructure/integrations/base.py
+  src/octaledger/infrastructure/integrations/mqtt.py
   src/octaledger/infrastructure/integrations/registry.py
   src/octaledger/infrastructure/integrations/webhook.py
   src/octaledger/infrastructure/storage/__init__.py
@@ -130,6 +131,7 @@ octaledger/
   tests/integration/test_agent_runtime.py
   tests/integration/test_client_server.py
   tests/unit/__init__.py
+  tests/unit/test_adapter_mqtt.py
   tests/unit/test_adapter_webhook.py
   tests/unit/test_api.py
   tests/unit/test_api_security.py
