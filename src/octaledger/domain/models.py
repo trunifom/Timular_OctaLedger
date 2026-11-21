@@ -97,6 +97,13 @@ class DeviceMode(StrEnum):
     TIME = "time"
     #: Faces are actions (switch a light, publish a message ...); no time is recorded.
     CONTROL = "control"
+    #: Faces are music titles; the holder (no face up) stops the music; no time is recorded.
+    MUSIC = "music"
+
+    @property
+    def is_controller(self) -> bool:
+        """Whether faces trigger actions instead of time entries (control and music)."""
+        return self is not DeviceMode.TIME
 
 
 class JobStatus(StrEnum):

@@ -36,6 +36,7 @@ from octaledger.domain.models import (
     Project,
     Session,
 )
+from octaledger.domain.music_source import MusicSource
 from octaledger.domain.schedule import Absence, WorkSchedule
 from octaledger.domain.steps import ActionStep
 from octaledger.domain.tags import ProjectBilling, Tag
@@ -265,6 +266,30 @@ class IcsApplyBody(_Strict):
     """The confirmed appointments to book (all or nothing)."""
 
     entries: list[IcsEntryBody] = Field(max_length=200)
+
+
+class ParseBody(_Strict):
+    """A pasted music link to recognise."""
+
+    text: str = Field(max_length=2100)
+
+
+class MusicSettingsBody(_Strict):
+    """Behaviour of a music cube."""
+
+    base_action: str = Field(default="stop", max_length=10)
+    stop_delay_ms: int = Field(default=0, ge=0, le=60_000)
+    default_volume: int = Field(default=50, ge=0, le=100)
+
+
+class MusicTitleBody(_Strict):
+    """A title for a face, from a pasted link, played on a connection."""
+
+    integration_id: str = Field(min_length=1, max_length=64)
+    link: str = Field(max_length=2100)
+    label: str = Field(max_length=200)
+    volume: int | None = Field(default=None, ge=0, le=100)
+    options: dict[str, str] = Field(default_factory=dict)
 
 
 class FindBody(_Strict):
@@ -536,6 +561,7 @@ def adapter_out(spec: AdapterSpec) -> dict[str, Any]:
         "pair_help": spec.pair_help,
         "can_discover": spec.can_discover,
         "can_find": spec.can_find,
+        "music_capable": spec.music_capable,
         "presets": [
             {
                 "id": p.id,
@@ -651,6 +677,16 @@ def ics_preview_out(preview: IcsPreview) -> dict[str, Any]:
             for p in preview.proposals
         ],
         "skipped": dict(preview.skipped),
+    }
+
+
+def source_out(source: MusicSource) -> dict[str, Any]:
+    """Serialise a recognised music source."""
+    return {
+        "kind": source.kind.value,
+        "uri": source.uri,
+        "description": source.description,
+        "ref": source.ref,
     }
 
 

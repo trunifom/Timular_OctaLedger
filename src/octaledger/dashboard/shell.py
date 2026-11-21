@@ -39,7 +39,7 @@ def tracker_summary(status: dict[str, Any]) -> tuple[str, str, bool]:
     if not devices:
         return "Kein Tracker eingerichtet", "warn", False
     active = next((d for d in devices if d["is_active"]), devices[0])
-    mark = " (Steuerung)" if active.get("mode") == "control" else ""
+    mark = {"control": " (Steuerung)", "music": " (Musik)"}.get(active.get("mode", ""), "")
     live = active["live"]
     if live is None:
         return f"{active['alias']}{mark}: nicht verbunden", "bad", True

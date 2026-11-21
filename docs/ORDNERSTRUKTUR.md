@@ -80,6 +80,8 @@ octaledger/
   src/octaledger/application/export_service.py
   src/octaledger/application/ics_import.py
   src/octaledger/application/integration_service.py
+  src/octaledger/application/music_service.py
+  src/octaledger/application/music_state.py
   src/octaledger/application/notifier.py
   src/octaledger/application/outbox.py
   src/octaledger/application/report_render.py
@@ -119,6 +121,7 @@ octaledger/
   src/octaledger/dashboard/views/display.py
   src/octaledger/dashboard/views/faces.py
   src/octaledger/dashboard/views/faces_actions.py
+  src/octaledger/dashboard/views/faces_music.py
   src/octaledger/dashboard/views/journal.py
   src/octaledger/dashboard/views/journal_ics.py
   src/octaledger/dashboard/views/live.py
@@ -137,6 +140,8 @@ octaledger/
   src/octaledger/domain/conditions.py
   src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
+  src/octaledger/domain/music.py
+  src/octaledger/domain/music_source.py
   src/octaledger/domain/orientation.py
   src/octaledger/domain/placeholders.py
   src/octaledger/domain/schedule.py
@@ -176,6 +181,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0006_work.sql
   src/octaledger/infrastructure/storage/migrations/0007_tags_budgets.sql
   src/octaledger/infrastructure/storage/migrations/0008_action_steps.sql
+  src/octaledger/infrastructure/storage/migrations/0009_music_mode.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -241,6 +247,7 @@ octaledger/
   tests/unit/test_logging.py
   tests/unit/test_media_player.py
   tests/unit/test_models.py
+  tests/unit/test_music_mode.py
   tests/unit/test_orientation.py
   tests/unit/test_presets_placeholders.py
   tests/unit/test_report_and_ics.py

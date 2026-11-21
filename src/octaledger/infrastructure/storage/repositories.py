@@ -44,6 +44,7 @@ from octaledger.domain.models import (
     ButtonPress,
     Correction,
     Device,
+    DeviceMode,
     EventKind,
     FaceAction,
     FaceMapping,
@@ -141,6 +142,11 @@ def _opt_time(text: str | None) -> datetime | None:
 # ----------------------------------------------------------------------------- devices
 
 
+def _stored_mode(mode: DeviceMode) -> str:
+    """The value of ``devices.mode``: the music role is stored as 'control' plus a flag."""
+    return DeviceMode.TIME.value if mode is DeviceMode.TIME else DeviceMode.CONTROL.value
+
+
 class DeviceRepository:
     """Persistence of registered trackers."""
 
@@ -158,7 +164,7 @@ class DeviceRepository:
                 model=row["model"],
                 firmware=row["firmware"],
                 created_at=from_db_time(row["created_at"]),
-                mode=row["mode"],
+                mode=DeviceMode.MUSIC if row["music"] else row["mode"],
             ),
             "device",
             row["id"],
@@ -173,7 +179,7 @@ class DeviceRepository:
         with _db_errors("insert device"):
             self._c.execute(
                 "INSERT INTO devices (id, alias, platform_address, model, firmware, created_at, "
-                "mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "mode, music) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     device.id,
                     device.alias,
@@ -181,7 +187,8 @@ class DeviceRepository:
                     device.model,
                     device.firmware,
                     to_db_time(device.created_at),
-                    device.mode.value,
+                    _stored_mode(device.mode),
+                    int(device.mode is DeviceMode.MUSIC),
                 ),
             )
         logger.info("Device registered: %s (%s)", device.alias, device.id[:8])
@@ -216,13 +223,14 @@ class DeviceRepository:
         with _db_errors("update device"):
             cursor = self._c.execute(
                 "UPDATE devices SET alias = ?, platform_address = ?, model = ?, firmware = ?, "
-                "mode = ? WHERE id = ?",
+                "mode = ?, music = ? WHERE id = ?",
                 (
                     device.alias,
                     device.platform_address,
                     device.model,
                     device.firmware,
-                    device.mode.value,
+                    _stored_mode(device.mode),
+                    int(device.mode is DeviceMode.MUSIC),
                     device.id,
                 ),
             )
@@ -904,6 +912,16 @@ class JobRepository:
                 "WHERE status = 'pending' AND device_id = ? "
                 "AND (step > 0 OR next_attempt_at > ?)",
                 (message, to_db_time(now), device_id, to_db_time(now)),
+            )
+        return cursor.rowcount
+
+    def expire_pending_of_device(self, device_id: str, now: datetime, message: str) -> int:
+        """Expire **every** pending job of a device (music: a new face replaces everything)."""
+        with _db_errors("expire pending jobs of a device"):
+            cursor = self._c.execute(
+                "UPDATE integration_jobs SET status = 'expired', last_error = ?, finished_at = ? "
+                "WHERE status = 'pending' AND device_id = ?",
+                (message, to_db_time(now), device_id),
             )
         return cursor.rowcount
 

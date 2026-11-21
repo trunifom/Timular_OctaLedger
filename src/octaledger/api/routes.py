@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import logging
+from dataclasses import asdict
 from datetime import date, datetime, timedelta
 from typing import Annotated, Any
 from zoneinfo import ZoneInfo
@@ -54,6 +55,9 @@ from octaledger.api.schemas import (
     IntegrationUpdate,
     ManualSession,
     ModeBody,
+    MusicSettingsBody,
+    MusicTitleBody,
+    ParseBody,
     ProbeBody,
     ReasonBody,
     RenderBody,
@@ -87,6 +91,7 @@ from octaledger.api.schemas import (
     scan_out,
     schedule_out,
     session_out,
+    source_out,
     step_out,
     tag_out,
     tracking_status_out,
@@ -109,6 +114,7 @@ from octaledger.core.settings import (
 )
 from octaledger.domain.attention import AttentionKind
 from octaledger.domain.models import DeviceMode
+from octaledger.domain.music import MusicSettings
 from octaledger.domain.time_rules import ensure_utc, local_day_bounds, utc_now
 from octaledger.infrastructure.system.holidays_provider import holidays_available
 from octaledger.infrastructure.system.toast import toast_available
@@ -232,13 +238,14 @@ def build_router(ctx: AppContext) -> APIRouter:
 
     @router.put("/devices/{device_id}/mode")
     def set_device_mode(device_id: str, body: ModeBody) -> dict[str, Any]:
-        """Switch a tracker between time recording (``time``) and control (``control``)."""
+        """Switch a tracker between ``time``, ``control`` and ``music``."""
         try:
             mode = DeviceMode(body.mode)
         except ValueError:
             raise ValidationError(
                 f"Invalid mode {body.mode!r}",
-                user_message="Der Modus muss „time“ (Zeit) oder „control“ (Steuerung) sein.",
+                user_message="Der Modus muss „time“ (Zeit), „control“ (Steuerung) oder "
+                "„music“ (Musik) sein.",
             ) from None
         ctx.devices.set_mode(device_id, mode)
         return device_out(ctx.devices.get(device_id), device_statuses().get(device_id))
@@ -443,6 +450,48 @@ def build_router(ctx: AppContext) -> APIRouter:
         moment = now()
         flt = ReportFilter(start, end, device_id, activity_id, project_id, tag_id)
         return [journal_out(e, moment) for e in ctx.reports.journal(flt)]
+
+    # ----------------------------------------------------------------------- music
+    def require_music() -> Any:
+        """Return the music service or answer 503 when it is not available."""
+        if ctx.music is None:
+            raise ApiUnavailableError("The music mode is not available in this process")
+        return ctx.music
+
+    @router.get("/music/state")
+    def music_state() -> dict[str, Any]:
+        """For every cube in music mode: what plays at the moment (``null`` = nothing)."""
+        return {"devices": require_music().state()}
+
+    @router.post("/music/parse")
+    def music_parse(body: ParseBody) -> dict[str, Any]:
+        """Recognise a pasted link (Spotify, YouTube, stream); changes nothing."""
+        return source_out(require_music().parse(body.text))
+
+    @router.get("/devices/{device_id}/music")
+    def get_music_settings(device_id: str) -> dict[str, Any]:
+        """Behaviour of a music cube: holder action, stop delay, default volume."""
+        return asdict(require_music().get_settings(device_id))
+
+    @router.put("/devices/{device_id}/music")
+    def put_music_settings(device_id: str, body: MusicSettingsBody) -> dict[str, Any]:
+        """Save the behaviour of a music cube."""
+        new = MusicSettings(body.base_action, body.stop_delay_ms, body.default_volume)
+        return asdict(require_music().set_settings(device_id, new))
+
+    @router.put("/devices/{device_id}/music/faces/{face}")
+    def put_music_title(device_id: str, face: int, body: MusicTitleBody) -> dict[str, Any]:
+        """Give a face a title from a pasted link (the target's adapter validates it)."""
+        steps = require_music().set_title(
+            device_id,
+            face,
+            body.integration_id,
+            body.link,
+            body.label,
+            volume=body.volume,
+            options=body.options,
+        )
+        return {"steps": steps, "device": device_out(ctx.devices.get(device_id))}
 
     # ------------------------------------------------------------- tags and billing
     @router.get("/tags")

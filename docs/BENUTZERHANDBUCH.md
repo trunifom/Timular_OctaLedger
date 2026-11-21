@@ -825,6 +825,23 @@ ein Licht schaltet. Mit zwei Würfeln kann einer Zeit erfassen und der andere st
 
 OctaLedger spricht **kein Matter und kein Google Home direkt**; beides erreichen Sie über Home Assistant.
 
+### Musik-Modus: jede Seite ein Titel
+
+Ein Würfel kann **Musik steuern** (*Seiten zuordnen* → „Wofür benutzen Sie diesen Würfel?“ → **🎵 Musik**). Jede Seite spielt **einen Titel**; **steht der Würfel in der Halterung (auf keiner Seite), hält die Musik ganz an**. Musik ist Zustand: Eine neue Seite **ersetzt** die vorige (bei einem anderen Ziel wird das alte zuerst gestoppt), eine Seite **ohne Titel** ist eine **Stille-Seite** und beendet die Musik wie die Halterung.
+
+1. **Ziel anlegen** (*Smarthome & Verbindungen*): **Lokaler Player** (dieser PC: Internetradio und Dateien) und/oder **Home Assistant** (Lautsprecher und Displays; `media_player`).
+2. **Titel setzen:** Seite wählen → Ziel wählen → **Link einfügen** (Spotify, YouTube, YouTube Music oder eine Stream-Adresse). Darunter steht, **was erkannt wurde**; Unbekanntes wird mit Erklärung abgelehnt. Bei Home Assistant zusätzlich das Mediengerät wählen (*Mediengeräte auflisten*). Lautstärke und **Name** festlegen, *Titel speichern*.
+3. **Verhalten in der Halterung** (aufklappbar): **beenden** (Voreinstellung) oder **pausieren**, eine **Wartezeit** und die **Standard-Lautstärke**.
+4. **Zusehen:** *Würfel live* zeigt „♪ Titel · Seite 3 · seit 12:04“ oder „Es spielt nichts“. „Läuft gerade“ gilt erst, wenn der Befehl **wirklich gesendet** wurde; ein fehlgeschlagener Befehl ändert nichts und steht im Verlauf.
+
+**Welches Ziel spielt was?** Der lokale Player: Stream-Adressen und Dateien (kein Spotify/YouTube). Home Assistant: Stream-Adressen, Spotify-Verweise (wenn Ihre Home-Assistant-Installation sie versteht) und YouTube-Links (über Cast, wenn Ihr Gerät es kann). **Nichts davon ist an echten Geräten geprüft.**
+
+**Wichtige Grenzen**
+- **Halterung:** Dass der Würfel in der Halterung eine Meldung sendet (0 oder 10), ist eine **Community-Angabe**, die an Ihrem Würfel zu bestätigen ist. Wenn nicht: eine Seite ohne Titel als „Stopp“ benutzen.
+- **Verbindungsabbruch:** Die Musik läuft zunächst weiter und wird **nach der Frist** (Voreinstellung 5 Minuten, *App* → Bei Verbindungsverlust) beendet; kommt der Würfel vorher zurück, passiert nichts.
+- Neu gestartete Musik hat wie jede Aktion einen **Verfall von 30 Sekunden**: Ein Befehl, der zu spät käme, wird verworfen (keine „späte“ Musik).
+- **Spotify direkt und der Player in der App (YouTube) folgen als eigene Pakete** (AP-49, AP-50).
+
 ### Schritt für Schritt
 1. **Verbindung anlegen und testen:** Bereich **Smarthome & Verbindungen** → *Neue Verbindung* (die **Anleitung** darunter lesen) → Art wählen, Namen und Angaben eintragen →
    *Verbindung anlegen* → *Verbindung testen* (prüft Erreichbarkeit und Zugangsdaten, **ohne etwas zu schalten**). Bei Hue zusätzlich

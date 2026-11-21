@@ -33,6 +33,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from octaledger.core.errors import IntegrationError, ValidationError
+from octaledger.domain.music_source import MusicSource, SourceKind
 from octaledger.infrastructure.integrations.base import (
     ActionSpec,
     Adapter,
@@ -240,18 +241,21 @@ class HomeAssistantAdapter(Adapter):
                 "Display ab, das Home Assistant kennt (Sonos, Cast, AirPlay ...).",
                 (_MEDIA_PLAYER_FIELD, _MEDIA_URL_FIELD, _MEDIA_TYPE_FIELD),
                 idempotent=False,
+                capability="music",
             ),
             ActionSpec(
                 "media_pause",
                 "Wiedergabe pausieren",
                 "Hält die Wiedergabe eines Mediengeräts an (Fortsetzen ist möglich).",
                 (_MEDIA_PLAYER_FIELD,),
+                capability="music",
             ),
             ActionSpec(
                 "media_stop",
                 "Wiedergabe beenden",
                 "Beendet die Wiedergabe eines Mediengeräts ganz.",
                 (_MEDIA_PLAYER_FIELD,),
+                capability="music",
             ),
             ActionSpec(
                 "media_volume",
@@ -269,6 +273,7 @@ class HomeAssistantAdapter(Adapter):
                         help="0 = stumm, 100 = voll. Es ändert nur dieses Gerät.",
                     ),
                 ),
+                capability="music",
             ),
             ActionSpec(
                 "service",
@@ -362,6 +367,38 @@ class HomeAssistantAdapter(Adapter):
             if cleaned.get("data"):
                 _data_object(cleaned["data"])
         return cleaned
+
+    # ----------------------------------------------------------------------- music
+
+    def music_play_params(
+        self, source: MusicSource, volume: int, options: Mapping[str, str]
+    ) -> list[dict[str, Any]]:
+        """Volume first, then the title, on the media player the user chose."""
+        entity = options.get("entity_id", "")
+        if not entity.startswith("media_player."):
+            raise ValidationError(
+                "No media player chosen",
+                user_message="Bitte wählen Sie das Mediengerät (Lautsprecher oder Display).",
+            )
+        if source.kind is SourceKind.SPOTIFY:
+            media = f"spotify:{source.ref}"
+        elif source.kind is SourceKind.YOUTUBE:
+            media = source.youtube_url  # played via Cast if Home Assistant supports it [U]
+        else:
+            media = source.ref
+        return [
+            {"action": "media_volume", "entity_id": entity, "volume": volume},
+            {"action": "media_play", "entity_id": entity, "media_url": media},
+        ]
+
+    def music_stop_params(
+        self, play_params: Mapping[str, Any], pause: bool = False
+    ) -> dict[str, Any] | None:
+        """Stop (or pause) the media player that the play action used."""
+        entity = play_params.get("entity_id")
+        if not entity:
+            return None
+        return {"action": "media_pause" if pause else "media_stop", "entity_id": entity}
 
     # ----------------------------------------------------------------- operations
 

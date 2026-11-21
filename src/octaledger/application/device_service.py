@@ -50,7 +50,7 @@ class DeviceInfo:
     @property
     def configured_faces(self) -> int:
         """Number of faces that are set up: with an activity (time mode) or an action (control)."""
-        if self.device.mode is DeviceMode.CONTROL:
+        if self.device.mode.is_controller:
             return len(self.actions)
         return sum(1 for m in self.mappings.values() if m.activity_id is not None)
 
@@ -178,7 +178,7 @@ class DeviceService:
             if device.mode is mode:
                 return device
             active = repos.state.get(STATE_ACTIVE_DEVICE)
-            if mode is DeviceMode.CONTROL and active == device_id:
+            if mode.is_controller and active == device_id:
                 running = repos.sessions.get_running()
                 if running is not None and running.source is SessionSource.DEVICE:
                     raise InvalidStateError(

@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0008`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0009`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -157,6 +157,10 @@ Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stoppe
 | `enabled` | 0/1 |
 | `created_at` | Anlegezeit |
 
+### Musik-Zustand in `app_state` (AP-48)
+
+`music:<device_id>` (JSON: `base_action`, `stop_delay_ms`, `default_volume`) – Verhalten des Musik-Würfels; `music_now:<device_id>` (JSON: `face`, `label`, `integration_id`, `since`) – was **gerade spielt**, nur gesetzt, wenn ein Wiedergabe-Auftrag **wirklich gesendet** wurde, gelöscht nach einem Stopp/Pause-Auftrag; `music_stop:<device_id>:<integration_id>` (JSON `{stop, pause}`) – wie das Ziel zu stoppen ist (beim Speichern eines Titels vom Adapter berechnet); `music_lost:<device_id>` – Zeitpunkt eines Verbindungsabbruchs (für das Anhalten nach der Frist). Die Titel selbst liegen wie alle Seitenaktionen in `face_actions`/`face_action_steps`. Der Zustand gehört zu `app_state` und ist damit Teil der Sicherung.
+
 ### `face_action_steps` (0008)
 
 `(device_id, face, position)` ist der Schlüssel; `position` 0 ist der erste Schritt. Spalten: `integration_id`, `label`, `params` (JSON), `delay_ms` (0–300000), `continue_on_error`, `enabled`, `condition` (JSON `{start, end, weekdays}` oder leer). Die Migration kopiert jede vorhandene Aktion als Schritt 0. `face_actions` bleibt als Spiegel von Schritt 0 bestehen: Ältere Sicherungen und Daten ohne Schrittzeile funktionieren weiter (eine Seite ohne Schritte nutzt ihre `face_actions`-Zeile als einzigen Schritt). `integration_jobs` hat dazu die Spalten `chain_id` (die auslösende Drehung), `step` und `continue_on_error`. Die Schritte sind Teil der Sicherung (Schema 3, `tables`).
@@ -220,6 +224,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
+| 0009 | `0009_music_mode.sql` | Spalte `devices.music`: Der Musik-Modus wird als Modus `control` plus Kennzeichen gespeichert (SQLite kann die Bedingung von `devices.mode` nur durch einen Tabellenneubau ändern, der alles Abhängige mitlöschen würde); die Anwendung bildet das Paar wieder auf `music` ab |
 | 0008 | `0008_action_steps.sql` | `face_action_steps` (bestehende Aktionen werden Schritt 0), Spalten `chain_id`, `step`, `continue_on_error` bei `integration_jobs` |
 | 0003 | `0003_integrations.sql` | Spalte `devices.mode` (bestehende Würfel bleiben `time`), `integrations`, `face_actions`, `integration_jobs` |
 

@@ -258,6 +258,19 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Journalzeile** = Sitzung plus `activity_name`, `project_name`, `device_alias`.
 
+### Musik-Modus (AP-48)
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `PUT /devices/{id}/mode` | akzeptiert jetzt auch `music` (dritte Betriebsart) | `{"mode": "music"}` | **Gerät** |
+| `GET /music/state` | für jeden Musik-Würfel: was spielt gerade (`null` = nichts) | – | `{devices: [{device_id, alias, playing: {face, label, integration_id, since}\|null, lost_since}]}` |
+| `POST /music/parse` | einen eingefügten Link erkennen (ändert nichts) | `{"text"}` | `{kind, uri, description, ref}`; 422 mit Erklärung bei Unbekanntem |
+| `GET /devices/{id}/music` | Verhalten des Würfels | – | `{base_action: stop\|pause, stop_delay_ms, default_volume}` |
+| `PUT /devices/{id}/music` | Verhalten speichern | `{base_action, stop_delay_ms (0–60000), default_volume (0–100)}` | wie oben |
+| `PUT /devices/{id}/music/faces/{1..8}` | einer Seite einen Titel aus einem Link geben (vom Adapter des Ziels geprüft) | `{"integration_id", "link", "label", "volume"?, "options"?: {"entity_id"}}` | `{steps, device}`; 422 bei unpassendem Ziel/Link, 409 wenn der Würfel nicht im Musik-Modus ist |
+
+Eine Seite **ohne** Titel ist eine „Stille-Seite“ (sie beendet die Musik). `GET /adapters` nennt je Art `music_capable`.
+
 ### Bericht und Kalender-Import (AP-42)
 
 | Methode und Pfad | Zweck | Anfrage | Antwort |

@@ -20,9 +20,10 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 from zoneinfo import ZoneInfo
 
 from octaledger.domain.conditions import holds
@@ -122,28 +123,62 @@ def _enqueue_step(
     repos: Repositories, step: ActionStep, trigger_id: str, now: datetime
 ) -> QueueResult:
     """Queue one step (its delay becomes the earliest send time and extends its lifetime)."""
-    integration = repos.integrations.require(step.integration_id)
+    return enqueue_job(
+        repos,
+        integration_id=step.integration_id,
+        label=step.label,
+        params=step.params,
+        device_id=step.device_id,
+        face=step.face,
+        trigger_id=trigger_id,
+        position=step.position,
+        delay_ms=step.delay_ms,
+        continue_on_error=step.continue_on_error,
+        now=now,
+    )
+
+
+def enqueue_job(
+    repos: Repositories,
+    *,
+    integration_id: str,
+    label: str,
+    params: Mapping[str, Any],
+    device_id: str | None,
+    face: int | None,
+    trigger_id: str,
+    position: int,
+    delay_ms: int,
+    continue_on_error: bool,
+    now: datetime,
+) -> QueueResult:
+    """Queue one job of a chain (shared by face actions and the music mode).
+
+    The delay becomes the earliest send time and extends the lifetime, so a delayed step is not
+    "late". The caller provides the transaction (the one that stores the raw event).
+    """
+    integration = repos.integrations.require(integration_id)
     if not integration.enabled:
         logger.info("Integration %s is switched off; step skipped", integration.name)
         return QueueResult.DISABLED
-    delay = timedelta(milliseconds=step.delay_ms)
+    delay = timedelta(milliseconds=delay_ms)
     dropped = repos.jobs.count_pending(integration.id) >= MAX_PENDING_JOBS
     job = IntegrationJob(
-        idempotency_key=step_key(trigger_id, step.position),
+        idempotency_key=step_key(trigger_id, position),
         integration_id=integration.id,
-        label=step.label,
-        params=step.params,
+        label=label,
+        params=params,
         expires_at=now + delay + JOB_LIFETIME,
-        device_id=step.device_id,
-        face=step.face,
+        device_id=device_id,
+        face=face,
         status=JobStatus.EXPIRED if dropped else JobStatus.PENDING,
         last_error=QUEUE_FULL_MESSAGE if dropped else None,
         created_at=now,
         next_attempt_at=now + delay,
         finished_at=now if dropped else None,
         chain_id=trigger_id,
-        step=step.position,
-        continue_on_error=step.continue_on_error,
+        step=position,
+        continue_on_error=continue_on_error,
     )
     if not repos.jobs.enqueue(job):
         return QueueResult.DUPLICATE

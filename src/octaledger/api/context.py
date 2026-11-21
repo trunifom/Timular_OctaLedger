@@ -18,6 +18,7 @@ from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
 from octaledger.application.ics_import import IcsService
 from octaledger.application.integration_service import IntegrationService
+from octaledger.application.music_service import MusicService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tag_service import TagService
 from octaledger.application.tracking_service import TrackingService
@@ -87,6 +88,7 @@ class AppContext:
     worktime: WorkTimeService = field(init=False)
     tag_service: TagService = field(init=False)
     ics: IcsService = field(init=False)
+    music: MusicService | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         """Build the attention and data-management services from the other services."""
@@ -94,6 +96,10 @@ class AppContext:
         self.worktime = WorkTimeService(self.storage)
         self.tag_service = TagService(self.storage)
         self.ics = IcsService(self.storage)
+        if self.integrations is not None:
+            self.music = MusicService(
+                self.storage, self.integrations, lambda: self.settings.settings
+            )
         self.workday = WorkdayService(self.storage, lambda: self.settings.settings, self.probe)
         if self.data is None:
             self.data = DataService(self.storage, self.exports, self.integrations, self.settings)

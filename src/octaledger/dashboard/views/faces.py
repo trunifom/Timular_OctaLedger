@@ -26,6 +26,7 @@ from octaledger.dashboard.cube import cube_svg
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import call, page_help
 from octaledger.dashboard.views.faces_actions import render_action_editor
+from octaledger.dashboard.views.faces_music import render_music_editor
 from octaledger.dashboard.views.live import READY, face_labels, pending_face
 from octaledger.dashboard_client.client import ApiClient
 
@@ -41,6 +42,9 @@ def is_new(choice: dict[str, Any] | None) -> bool:
     return choice is not None and choice["id"] is None
 
 
+MODE_LABELS = {"time": "⏱ Zeit erfassen", "control": "🎛 Dinge steuern", "music": "🎵 Musik"}
+
+
 def target_key(device_id: str) -> str:
     """Session key of the face currently being edited (also the key of the face picker)."""
     return f"faces_target_{device_id}"
@@ -48,7 +52,7 @@ def target_key(device_id: str) -> str:
 
 def assigned_faces(device: dict[str, Any]) -> set[int]:
     """Faces of ``device`` that are set up: with an activity (time) or an action (control)."""
-    if device.get("mode") == "control":
+    if device.get("mode") in ("control", "music"):
         return {int(face) for face in device.get("actions", {})}
     return {int(face) for face, entry in device["faces"].items() if entry["activity_id"]}
 
@@ -177,14 +181,15 @@ def _mode_switch(client: ApiClient, device: dict[str, Any]) -> None:
         st.session_state[key] = device["mode"]
     st.radio(
         "Wofür benutzen Sie diesen Würfel?",
-        ("time", "control"),
+        ("time", "control", "music"),
         key=key,
         horizontal=True,
-        format_func=lambda mode: "⏱ Zeit erfassen" if mode == "time" else "🎛 Dinge steuern",
+        format_func=MODE_LABELS.__getitem__,
         on_change=_on_mode_change,
         args=(client, device["id"], key, device["mode"]),
         help="Zeit erfassen: jede Seite ist eine Tätigkeit. Dinge steuern: jede Seite löst eine "
-        "Aktion aus (Licht, Szene, Nachricht). Ein Würfel kennt immer nur einen Modus.",
+        "Aktion aus (Licht, Szene, Nachricht). Musik: jede Seite spielt einen Titel, die "
+        "Halterung beendet die Musik. Ein Würfel kennt immer nur einen Modus.",
     )
     failure = st.session_state.pop(MODE_ERROR_KEY, None)
     if failure:
@@ -194,6 +199,11 @@ def _mode_switch(client: ApiClient, device: dict[str, Any]) -> None:
         st.caption(
             "Dieser Würfel **steuert**: Eine Drehung löst die Aktion der Seite aus und erfasst "
             "keine Zeit."
+        )
+    if device["mode"] == "music":
+        st.caption(
+            "Dieser Würfel **spielt Musik**: Jede Seite hat einen Titel, die **Halterung** (keine "
+            "Seite oben) beendet die Musik. Er erfasst keine Zeit."
         )
 
 
@@ -293,6 +303,9 @@ def _editor(
     face = int(st.session_state[key])
     if device["mode"] == "control":
         render_action_editor(client, device, face)
+        return
+    if device["mode"] == "music":
+        render_music_editor(client, device, face)
         return
     current = device["faces"].get(str(face)) or {}
     by_id = {a["id"]: a for a in activities}

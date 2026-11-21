@@ -417,3 +417,69 @@ def test_chain_endpoints(env: Env) -> None:
             422,
         ), body
     assert env.get(f"/devices/{device}/chains").json().get("2") is None
+
+
+# ------------------------------------------------------------------- music mode (API)
+
+
+def test_music_endpoints(env: Env, tmp_path: Path) -> None:
+    from octaledger.application.integration_service import IntegrationService
+    from octaledger.application.music_service import MusicService
+    from octaledger.core.secrets import SecretStore
+    from octaledger.infrastructure.integrations.player import PlayerAdapter
+
+    service = IntegrationService(
+        env.storage, SecretStore(tmp_path / "sm.json"), {"player": PlayerAdapter()}
+    )
+    env.context.integrations = service
+    env.context.music = MusicService(env.storage, service, lambda: env.context.settings.settings)
+    radio = service.create("player", "Radio", {}).integration.id
+    device = env.post("/devices", {"alias": "Musik"}).json()["id"]
+    assert (
+        env.call("PUT", f"/devices/{device}/mode", json={"mode": "music"}).json()["mode"] == "music"
+    )
+    assert env.call("PUT", f"/devices/{device}/mode", json={"mode": "disco"}).status_code == 422
+
+    parsed = env.post(
+        "/music/parse", {"text": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"}
+    )
+    assert parsed.json()["uri"] == "spotify:track:4uLU6hMCjMI75M1A2tKUQC"
+    assert env.post("/music/parse", {"text": "nope"}).status_code == 422
+
+    assert env.get(f"/devices/{device}/music").json() == {
+        "base_action": "stop",
+        "stop_delay_ms": 0,
+        "default_volume": 50,
+    }
+    saved = env.call(
+        "PUT",
+        f"/devices/{device}/music",
+        json={"base_action": "pause", "stop_delay_ms": 2000, "default_volume": 30},
+    )
+    assert saved.json()["base_action"] == "pause"
+    assert (
+        env.call("PUT", f"/devices/{device}/music", json={"base_action": "dance"}).status_code
+        == 422
+    )
+
+    title = {"integration_id": radio, "link": "https://93.184.216.34/lofi.mp3", "label": "Lofi"}
+    done = env.call("PUT", f"/devices/{device}/music/faces/1", json=title)
+    assert done.status_code == 200 and done.json()["steps"][0]["action"] == "play_url"
+    assert done.json()["device"]["actions"]["1"]["label"] == "Lofi"
+    bad = {**title, "link": "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"}
+    assert env.call("PUT", f"/devices/{device}/music/faces/2", json=bad).status_code == 422
+    assert (
+        env.call(
+            "PUT", f"/devices/{device}/music/faces/2", json={**title, "volume": 500}
+        ).status_code
+        == 422
+    )
+    state = env.get("/music/state").json()["devices"]
+    assert state == [{"device_id": device, "alias": "Musik", "playing": None, "lost_since": None}]
+    normal = env.post("/devices", {"alias": "Zeit"}).json()["id"]
+    assert env.call("PUT", f"/devices/{normal}/music/faces/1", json=title).status_code == 409
+
+
+def test_music_without_the_service_answers_503(env: Env) -> None:
+    env.context.music = None
+    assert env.get("/music/state").status_code == 503

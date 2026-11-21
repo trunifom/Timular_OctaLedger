@@ -60,6 +60,12 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Musik-Modus** – dritte Betriebsart eines Würfels: Jede Seite spielt einen Titel, die Halterung (keine Seite oben) beendet die Musik. Erzeugt nie Zeiteinträge.
+
+**Stille-Seite** – eine Seite eines Musik-Würfels ohne Titel; sie beendet die Musik wie die Halterung.
+
+**Halterung** – die Plastikhalterung (Ladestation): Steht der Würfel darin, liegt keine Seite oben (neutral).
+
 **Vorlage (Preset)** – fertig ausgefüllte Werte einer Aktion für ein bekanntes Ziel (z. B. Node-RED, WLED). Sie füllt nur das Formular; alles bleibt änderbar.
 
 **Platzhalter** – `{device}`, `{face}`, `{label}`, `{time}` im Inhalt einer Nachricht; werden beim Senden durch Würfelname, Seite, Seitenname und Zeit ersetzt.

@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Musik-Modus, AP-48)
+- Dritte Betriebsart **Musik** je Würfel (Migration 0009, gespeichert als `control` + Kennzeichen): jede Seite ein Titel aus einem eingefügten Link (Spotify, YouTube, Stream), die Halterung und Seiten ohne Titel beenden die Musik, ein Zielwechsel stoppt das alte Ziel zuerst, eine neue Seite ersetzt nicht gesendete Befehle.
+- Ziele: Lokaler Player und Home Assistant (`ActionSpec.capability`, `Adapter.music_play_params/music_stop_params`); „Läuft gerade“ (`music_now`) erst nach tatsächlich gesendetem Befehl; Anhalten nach der Frist bei Verbindungsverlust (Housekeeper).
+- API: `GET /music/state`, `POST /music/parse`, `GET/PUT /devices/{id}/music`, `PUT /devices/{id}/music/faces/{face}`; Oberfläche: Musik-Editor, Halterungs-Einstellungen, „♪“-Anzeige in *Würfel live*.
+
 ### Hinzugefügt (Vorlagen und Rezepte, AP-46)
 - `AdapterSpec.presets` und Auswahl „Vorlage“ im Aktionseditor; Vorlagen für Webhook (Node-RED, WLED, Shelly, openHAB, Home-Assistant-Webhook) und MQTT (Zigbee2MQTT, Tasmota, Node-RED), alle als „nicht an echtem Ziel geprüft“ gekennzeichnet.
 - Platzhalter `{device}`, `{face}`, `{label}`, `{time}` in Webhook-Inhalt und MQTT-Nachricht (Whitelist, ohne Ausdrücke, bei JSON maskiert).

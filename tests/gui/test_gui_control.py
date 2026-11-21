@@ -398,3 +398,117 @@ def test_a_preset_fills_the_form_and_can_be_changed(api_server: RunningApi) -> N
     assert "{face}" in at.text_input(key=f"{base}_body").value
     at.text_input(key=f"{base}_path").input("/mein-pfad").run()  # presets are only a start
     assert at.text_input(key=f"{base}_path").value == "/mein-pfad"
+
+
+def music_setup(api: RunningApi) -> tuple[str, str]:
+    from octaledger.application.integration_service import IntegrationService
+    from octaledger.application.music_service import MusicService
+    from octaledger.core.secrets import SecretStore
+    from octaledger.infrastructure.integrations.player import PlayerAdapter
+
+    service = IntegrationService(
+        api.storage, SecretStore(api.tmp_path / "s-music.json"), {"player": PlayerAdapter()}
+    )
+    api.context.integrations = service
+    api.context.music = MusicService(api.storage, service, lambda: api.context.settings.settings)
+    radio = str(api.client.create_integration("player", "Radio PC", {})["id"])
+    device = api.client.register_device("Musik")
+    api.client.set_device_mode(device["id"], "music")
+    return str(device["id"]), radio
+
+
+def test_the_mode_switch_offers_music(api_server: RunningApi) -> None:
+    device = api_server.client.register_device("Würfel")
+    at = open_page(api_server, FACES)
+    radio = at.radio(key=f"faces_mode_{device['id']}")
+    assert [str(o) for o in radio.options] == ["⏱ Zeit erfassen", "🎛 Dinge steuern", "🎵 Musik"]
+    radio.set_value("music").run()
+    assert api_server.client.devices()[0]["mode"] == "music"
+    assert any("spielt Musik" in c.value for c in at.caption)
+
+
+def test_a_title_is_set_from_a_pasted_link_and_explained(api_server: RunningApi) -> None:
+    did, radio = music_setup(api_server)
+    at = open_page(api_server, FACES)
+    base = f"faces_music_{did}_1"
+    assert any("Stille-Seite" in c.value for c in at.caption)  # a free face is a silence face
+    assert at.button(key=f"{base}_save").disabled  # nothing recognised yet
+    at.text_input(key=f"{base}_link").input("das ist kein link").run()
+    assert at.error  # the explanation of what is recognised
+    at.text_input(key=f"{base}_link").input("https://93.184.216.34/lofi.mp3").run()
+    assert any("Erkannt: Stream-Adresse" in s.value for s in at.success)
+    at.text_input(key=f"{base}_label").input("Lofi Radio").run()
+    assert not at.button(key=f"{base}_save").disabled
+    assert all(
+        w.help
+        for w in (
+            at.text_input(key=f"{base}_link"),
+            at.selectbox(key=f"{base}_target"),
+            at.slider(key=f"{base}_volume"),
+        )
+    )
+    at.button(key=f"{base}_save").click().run()
+    assert api_server.client.devices()[0]["actions"]["1"]["label"] == "Lofi Radio"
+
+
+def test_the_holder_settings_have_defaults_and_save(api_server: RunningApi) -> None:
+    did, _ = music_setup(api_server)
+    at = open_page(api_server, FACES)
+    assert at.selectbox(key=f"music_base_{did}").value == "stop"
+    assert at.number_input(key=f"music_delay_{did}").value == 0.0
+    assert at.slider(key=f"music_volume_{did}").value == 50
+    at.selectbox(key=f"music_base_{did}").select("pause").run()
+    at.number_input(key=f"music_delay_{did}").set_value(2.5).run()
+    at.button(key=f"music_settings_save_{did}").click().run()
+    assert api_server.client.music_settings(did) == {
+        "base_action": "pause",
+        "stop_delay_ms": 2500,
+        "default_volume": 50,
+    }
+
+
+def test_without_a_music_capable_connection_the_editor_points_to_the_connections(
+    api_server: RunningApi,
+) -> None:
+    from octaledger.application.integration_service import IntegrationService
+    from octaledger.application.music_service import MusicService
+    from octaledger.core.secrets import SecretStore
+
+    service = IntegrationService(
+        api_server.storage,
+        SecretStore(api_server.tmp_path / "s-none.json"),
+        {"fake": FakeAdapter()},
+    )
+    api_server.context.integrations = service
+    api_server.context.music = MusicService(
+        api_server.storage, service, lambda: api_server.context.settings.settings
+    )
+    device = api_server.client.register_device("Musik")
+    api_server.client.set_device_mode(device["id"], "music")
+    at = open_page(api_server, FACES)
+    assert any("Musik abspielen kann" in i.value for i in at.info)
+    assert any(b.key == "faces_music_to_connections" for b in at.button)
+
+
+def test_the_live_view_shows_what_plays(api_server: RunningApi) -> None:
+    import json
+
+    did, radio = music_setup(api_server)
+    with api_server.storage.transaction() as repos:
+        repos.state.set(
+            f"music_now:{did}",
+            json.dumps(
+                {
+                    "face": 3,
+                    "label": "Lofi Radio",
+                    "integration_id": radio,
+                    "since": "2026-01-05T11:04:00+00:00",
+                }
+            ),
+        )
+    at = open_page(api_server, "live")
+    assert any("Lofi Radio" in m.value and "Seite 3" in m.value for m in at.markdown)
+    with api_server.storage.transaction() as repos:
+        repos.state.delete(f"music_now:{did}")
+    again = open_page(api_server, "live")
+    assert any("Es spielt nichts" in m.value for m in again.markdown)

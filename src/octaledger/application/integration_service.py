@@ -23,6 +23,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, Final
 
+from octaledger.application.music_state import mark_sent
 from octaledger.application.outbox import (
     HISTORY_KEEP,
     MAX_ATTEMPTS,
@@ -100,6 +101,14 @@ class IntegrationService:
     def adapter_specs(self) -> list[AdapterSpec]:
         """Descriptions of every available adapter (the dashboard renders forms from them)."""
         return [adapter.spec for adapter in self._adapters.values()]
+
+    def adapter_for(self, kind: str) -> Adapter:
+        """The adapter of a kind (for services that translate their own requests into actions).
+
+        Raises:
+            ValidationError: If the kind is unknown.
+        """
+        return self._adapter(kind)
 
     def _adapter(self, kind: str) -> Adapter:
         adapter = self._adapters.get(kind)
@@ -510,6 +519,16 @@ class IntegrationService:
                 )
             if status == "done":
                 repos.jobs.mark_done(job.id, now, attempts)
+                if job.device_id is not None:
+                    mark_sent(
+                        repos,
+                        job.device_id,
+                        job.face,
+                        job.params,
+                        job.integration_id,
+                        job.label,
+                        now,
+                    )
             elif status == "expired":
                 repos.jobs.mark_expired(job.id, now, attempts, error or EXPIRED_MESSAGE)
             else:

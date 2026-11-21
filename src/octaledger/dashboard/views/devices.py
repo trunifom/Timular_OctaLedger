@@ -174,6 +174,8 @@ def _device_panel(
     badge = " ⭐ aktiv" if device["is_active"] else ""
     if device["mode"] == "control":
         badge += " · 🎛 Steuerung"
+    if device["mode"] == "music":
+        badge += " · 🎵 Musik"
     with st.expander(f"{device['alias']}{badge}", expanded=expanded):
         label = STATE_LABELS.get(live["state"], live["state"]) if live else "Nicht verbunden"
         level = STATE_LEVEL.get(live["state"], "warn") if live else "bad"
@@ -212,7 +214,7 @@ def _device_panel(
             "⭐ Zum aktiven Tracker machen",
             key=f"activate_{did}",
             width="stretch",
-            disabled=device["is_active"] or device["mode"] == "control",
+            disabled=device["is_active"] or device["mode"] != "time",
             help="Übergabe: Nur der aktive Tracker erzeugt Zeiten. Die laufende "
             "Tracker-Zeit des bisherigen Trackers endet dabei. Ein Würfel im Steuerungsmodus "
             "erfasst keine Zeit.",
@@ -233,11 +235,18 @@ def _calibration(
     projects: list[dict[str, Any]],
 ) -> None:
     did = device["id"]
-    if device["mode"] == "control":
-        st.info(
-            "Dieser Würfel ist im **Steuerungsmodus**: Seine Seiten lösen Aktionen aus "
-            "statt Zeit zu erfassen. Die Aktionen legen Sie im Bereich *Seiten zuordnen* fest."
-        )
+    if device["mode"] in ("control", "music"):
+        if device["mode"] == "music":
+            st.info(
+                "Dieser Würfel ist im **Musik-Modus**: Jede Seite spielt einen Titel, die "
+                "Halterung beendet die Musik. Die Titel legen Sie im Bereich *Seiten zuordnen* "
+                "fest."
+            )
+        else:
+            st.info(
+                "Dieser Würfel ist im **Steuerungsmodus**: Seine Seiten lösen Aktionen aus "
+                "statt Zeit zu erfassen. Die Aktionen legen Sie im Bereich *Seiten zuordnen* fest."
+            )
         st.button(
             "Zu „Seiten zuordnen“",
             key=f"to_faces_{did}",

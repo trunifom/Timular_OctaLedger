@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Final
 
 from octaledger.core.errors import IntegrationError, ValidationError
+from octaledger.domain.music_source import MusicSource, SourceKind
 from octaledger.infrastructure.audio.engine import (
     AudioEngine,
     MiniaudioEngine,
@@ -138,6 +139,7 @@ class PlayerAdapter(Adapter):
                     ),
                 ),
                 idempotent=False,
+                capability="music",
             ),
             ActionSpec(
                 "play_file",
@@ -162,8 +164,9 @@ class PlayerAdapter(Adapter):
                     ),
                 ),
                 idempotent=False,
+                capability="music",
             ),
-            ActionSpec("stop", "Stoppen", "Beendet die Wiedergabe ganz."),
+            ActionSpec("stop", "Stoppen", "Beendet die Wiedergabe ganz.", capability="music"),
             ActionSpec(
                 "volume",
                 "Lautstärke setzen",
@@ -231,6 +234,29 @@ class PlayerAdapter(Adapter):
             # and are refused at run time unless allowed; unsafe addresses never pass.
             cleaned["url"] = check_media_url(str(cleaned["url"]), allow_lan=True)
         return cleaned
+
+    # ----------------------------------------------------------------------- music
+
+    def music_play_params(
+        self, source: MusicSource, volume: int, options: Mapping[str, str]
+    ) -> list[dict[str, Any]]:
+        """A stream address or a chosen file; Spotify and YouTube links need another target."""
+        if options.get("file"):
+            return [{"action": "play_file", "file": options["file"], "volume": volume}]
+        if source.kind is not SourceKind.URL:
+            raise ValidationError(
+                "The local player plays only streams and files",
+                user_message="Der lokale Player spielt nur Stream-Adressen und Dateien. "
+                "Spotify-Links gehen über „Spotify“ oder Home Assistant, YouTube-Links über "
+                "Home Assistant (Cast) oder den Player in der App.",
+            )
+        return [{"action": "play_url", "url": source.ref, "volume": volume}]
+
+    def music_stop_params(
+        self, play_params: Mapping[str, Any], pause: bool = False
+    ) -> dict[str, Any] | None:
+        """The player has no pause, so pausing stops."""
+        return {"action": "stop"}
 
     # ----------------------------------------------------------------- operations
 

@@ -22,7 +22,14 @@ from octaledger.core.errors import OctaLedgerError
 from octaledger.core.settings import Theme
 from octaledger.dashboard.cube import FaceLabel, cube_svg
 from octaledger.dashboard.nav import go
-from octaledger.dashboard.ui import STATE_LABELS, call, format_hms, page_help, to_local
+from octaledger.dashboard.ui import (
+    STATE_LABELS,
+    call,
+    format_hms,
+    format_local,
+    page_help,
+    to_local,
+)
 from octaledger.dashboard_client.client import ApiClient
 
 HISTORY_LINES = 12
@@ -40,7 +47,7 @@ def escape_markdown(text: str) -> str:
 def face_labels(live: dict[str, Any]) -> dict[int, FaceLabel]:
     """Names and colours of the eight faces from a live-view response."""
     labels: dict[int, FaceLabel] = {}
-    control = live.get("mode") == "control"
+    control = live.get("mode") in ("control", "music")
     for key, entry in live["faces"].items():
         if control:
             action = entry.get("action")
@@ -88,6 +95,32 @@ def describe_event(
         "invalid": "Eine unverständliche Meldung wurde ignoriert.",
         "button": "Die Taste des Würfels wurde gedrückt.",
     }.get(kind, f"Ereignis: {kind}")
+
+
+def _now_playing(client: ApiClient, device_id: str, tz: str) -> None:
+    """The "♪ title, face, since" line of a music cube (or that nothing plays)."""
+    try:
+        states = client.music_state()
+    except OctaLedgerError:
+        return
+    entry = next((s for s in states if s["device_id"] == device_id), None)
+    if entry is None:
+        return
+    playing = entry["playing"]
+    if playing is None:
+        st.markdown("♪ **Es spielt nichts.** Drehen Sie den Würfel auf eine Seite mit Titel.")
+        return
+    since = format_local(playing["since"], tz)[-5:]
+    st.markdown(
+        f"♪ **{escape_markdown(playing['label'])}** · Seite {playing['face']} · seit {since}. "
+        "In der Halterung endet die Musik."
+    )
+    if entry.get("lost_since"):
+        st.warning(
+            "Die Verbindung zum Würfel ist abgebrochen. Die Musik wird nach der eingestellten "
+            "Frist beendet, wenn der Würfel nicht zurückkommt.",
+            icon=":material/bluetooth_disabled:",
+        )
 
 
 def pending_face(live: dict[str, Any]) -> int | None:
@@ -157,7 +190,9 @@ def _live(client: ApiClient, device_id: str, tz: str, theme: Theme) -> None:
     committed = live["committed_value"]
     up = committed if committed in range(1, 9) and connected else None
     pending = pending_face(live) if connected else None
-    control = live.get("mode") == "control"
+    control = live.get("mode") in ("control", "music")
+    if live.get("mode") == "music":
+        _now_playing(client, device_id, tz)
 
     picture, steps = st.columns([5, 6], vertical_alignment="center")
     with picture:

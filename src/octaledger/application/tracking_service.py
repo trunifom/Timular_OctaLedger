@@ -29,6 +29,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
+from octaledger.application.music_service import handle_event as handle_music_event
 from octaledger.application.outbox import QueueResult, enqueue_face_action
 from octaledger.application.tag_service import TagService
 from octaledger.core.errors import InvalidStateError, ValidationError
@@ -44,6 +45,7 @@ from octaledger.domain.models import (
     FACE_NUMBERS,
     Activity,
     ButtonAction,
+    Device,
     DeviceMode,
     EventKind,
     Project,
@@ -92,6 +94,10 @@ class Outcome(StrEnum):
     ACTION_QUEUED = "action_queued"
     #: Control mode: nothing was queued (face without action, connection off, queue full).
     ACTION_SKIPPED = "action_skipped"
+    #: Music mode: play (and possibly stop of another target) was queued.
+    MUSIC_COMMANDED = "music_commanded"
+    #: Music mode: the music is being stopped or paused (holder or a face without a title).
+    MUSIC_STOPPED = "music_stopped"
 
 
 @dataclass(frozen=True, slots=True)
@@ -251,7 +257,7 @@ class TrackingService:
         """
         with self._storage.transaction() as repos:
             candidate = repos.devices.require(new_device_id)
-            if candidate.mode is DeviceMode.CONTROL:
+            if candidate.mode.is_controller:
                 raise InvalidStateError(
                     f"Device {new_device_id} is in control mode",
                     user_message=(
@@ -292,7 +298,9 @@ class TrackingService:
         with self._storage.transaction() as repos:
             repos.events.add(event)
             device = repos.devices.require(event.device_id)
-            if device.mode is DeviceMode.CONTROL:
+            if device.mode is DeviceMode.MUSIC:
+                result = self._music_event(repos, device, event)
+            elif device.mode is DeviceMode.CONTROL:
                 result = self._control_event(repos, event)
             elif repos.state.get(STATE_ACTIVE_DEVICE) != event.device_id:
                 logger.debug("Event %s of inactive device stored only", event.kind.value)
@@ -301,6 +309,15 @@ class TrackingService:
                 result = self._apply_event(repos, event)
         logger.info("Event %s (%s) -> %s", event.kind.value, event.raw_value, result.outcome.value)
         return result
+
+    def _music_event(self, repos: Repositories, device: Device, event: RawEvent) -> EventResult:
+        """Music mode: the faces are titles, the holder stops the music; never any time."""
+        queued, plays = handle_music_event(
+            repos, device, event, self._now(), ZoneInfo(self._timezone())
+        )
+        if queued == 0:
+            return EventResult(Outcome.STORED)
+        return EventResult(Outcome.MUSIC_COMMANDED if plays else Outcome.MUSIC_STOPPED)
 
     def _control_event(self, repos: Repositories, event: RawEvent) -> EventResult:
         """Control mode: only a real face change (1..8) queues the action of that face."""

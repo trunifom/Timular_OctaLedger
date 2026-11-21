@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final, Literal
 
 from octaledger.core.errors import IntegrationError, ValidationError
+from octaledger.domain.music_source import MusicSource
 from octaledger.domain.placeholders import check as check_placeholders
 
 FieldKind = Literal["text", "password", "int", "bool", "choice"]
@@ -100,6 +101,9 @@ class ActionSpec:
     description: str
     fields: tuple[FieldSpec, ...] = ()
     idempotent: bool = True
+    #: ``"music"`` marks an action that plays or stops music, so the interface can recognise
+    #: connections that are usable as music targets.
+    capability: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +154,11 @@ class AdapterSpec:
     setup_guide: str = ""
     #: Ready-made values for common targets (Node-RED, WLED, Zigbee2MQTT ...).
     presets: tuple[Preset, ...] = ()
+
+    @property
+    def music_capable(self) -> bool:
+        """Whether the adapter can serve as a music target."""
+        return any(a.capability == "music" for a in self.actions)
 
     def action(self, action_id: str) -> ActionSpec:
         """Return the action with ``action_id``.
@@ -317,6 +326,33 @@ class Adapter(ABC):
             f"{self.spec.kind} needs no pairing",
             user_message="Diese Verbindung braucht keine Kopplung.",
         )
+
+    def music_play_params(
+        self, source: MusicSource, volume: int, options: Mapping[str, str]
+    ) -> list[dict[str, Any]]:
+        """Translate a music title into the actions that play it (only if ``music_capable``).
+
+        Args:
+            source: The recognised source.
+            volume: Volume in percent.
+            options: Target specific choices of the user (for example ``entity_id``).
+
+        Returns:
+            One or more action parameter sets, in the order they must run.
+
+        Raises:
+            ValidationError: If this target cannot play that kind of source.
+        """
+        raise ValidationError(
+            f"{self.spec.kind} cannot play music",
+            user_message="Diese Verbindung kann keine Musik abspielen.",
+        )
+
+    def music_stop_params(
+        self, play_params: Mapping[str, Any], pause: bool = False
+    ) -> dict[str, Any] | None:
+        """The action that stops (or pauses) what ``play_params`` started, or ``None``."""
+        return None
 
     def find_targets(self, *, online: bool = False, timeout: float) -> list[dict[str, str]]:
         """Look for the target on the network (only if ``spec.can_find``).

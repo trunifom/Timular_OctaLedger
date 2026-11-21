@@ -66,7 +66,6 @@ from octaledger.core.settings import (
     load_settings,
     resolve_paths,
 )
-from octaledger.domain.models import DeviceMode
 from octaledger.infrastructure.ble.client import BleakTransportFactory
 from octaledger.infrastructure.ble.scanner import DiscoverFn, ScanResult, scan
 from octaledger.infrastructure.ble.transport import TransportFactory
@@ -196,6 +195,7 @@ class AgentRuntime:
                 self.context.tracking.watchdog,
                 self.context.attention.expire_old,
                 self.context.workday.tick,
+                self._music_watchdog,
                 self._battery_watch.check,
                 self._budget_watch.check,
                 self._relay.check,
@@ -349,7 +349,7 @@ class AgentRuntime:
             candidates = [
                 info
                 for info in self.context.devices.list_devices()
-                if info.is_active or info.device.mode is DeviceMode.CONTROL
+                if info.is_active or info.device.mode.is_controller
             ]
         except OctaLedgerError as exc:
             logger.warning("Automatic connect skipped: %s", exc)
@@ -396,6 +396,11 @@ class AgentRuntime:
         tray = PystrayTray(model)
         if tray.start():
             self._tray = tray
+
+    def _music_watchdog(self) -> None:
+        """Housekeeper task: stop music of cubes that stayed disconnected beyond the grace."""
+        if self.context.music is not None:
+            self.context.music.watchdog()
 
     def _refresh_tray(self) -> None:
         """Housekeeper task: keep the icon colour and tooltip current."""

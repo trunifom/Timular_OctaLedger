@@ -266,7 +266,7 @@ class ApiClient:
         return result
 
     def set_device_mode(self, device_id: str, mode: str) -> dict[str, Any]:
-        """Switch a tracker between ``"time"`` and ``"control"``."""
+        """Switch a tracker between ``"time"``, ``"control"`` and ``"music"``."""
         result: dict[str, Any] = self._request(
             "PUT", f"/devices/{device_id}/mode", json={"mode": mode}
         )
@@ -622,6 +622,61 @@ class ApiClient:
         """Remove a cube; ``delete_data`` also removes everything recorded with it."""
         result: dict[str, Any] = self._post(
             f"/devices/{device_id}/remove", {"delete_data": delete_data}
+        )
+        return result
+
+    def music_state(self) -> list[dict[str, Any]]:
+        """For every music cube: what plays at the moment."""
+        result: dict[str, Any] = self._get("/music/state")
+        devices: list[dict[str, Any]] = result["devices"]
+        return devices
+
+    def parse_music(self, text: str) -> dict[str, Any]:
+        """Recognise a pasted music link (changes nothing)."""
+        result: dict[str, Any] = self._post("/music/parse", {"text": text})
+        return result
+
+    def music_settings(self, device_id: str) -> dict[str, Any]:
+        """Holder action, stop delay and default volume of a music cube."""
+        result: dict[str, Any] = self._get(f"/devices/{device_id}/music")
+        return result
+
+    def set_music_settings(
+        self, device_id: str, base_action: str, stop_delay_ms: int, default_volume: int
+    ) -> dict[str, Any]:
+        """Save the behaviour of a music cube."""
+        result: dict[str, Any] = self._request(
+            "PUT",
+            f"/devices/{device_id}/music",
+            json={
+                "base_action": base_action,
+                "stop_delay_ms": stop_delay_ms,
+                "default_volume": default_volume,
+            },
+        )
+        return result
+
+    def set_music_title(
+        self,
+        device_id: str,
+        face: int,
+        integration_id: str,
+        link: str,
+        label: str,
+        volume: int | None = None,
+        options: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Give a face a title from a pasted link."""
+        body: dict[str, Any] = {
+            "integration_id": integration_id,
+            "link": link,
+            "label": label,
+            "options": options or {},
+        }
+        if volume is not None:
+            body["volume"] = volume
+        result: dict[str, Any] = self._request(
+            "PUT", f"/devices/{device_id}/music/faces/{face}", json=body
         )
         return result
 
