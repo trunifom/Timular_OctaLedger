@@ -105,7 +105,7 @@ Schichten: `domain` → `application` → `infrastructure` / `api` / `agent`; `d
 `dashboard_client` mit der API. Der Agent ist der einzige reguläre DB-Schreiber. **Ein** AsyncIO-Loop
 (eigener Thread) besitzt alle BLE-Clients. Details: `docs/ARCHITEKTUR.md`.
 
-**Arbeitsstand (siehe `docs/FORTSCHRITT.md`):** Alle Arbeitspakete AP-00 bis AP-25 sind umgesetzt (AP-22 bis AP-25: Live-Daten, Seite „Würfel live“, Assistent „Seiten zuordnen“, Startseite mit geführter Einrichtung und Handbuch). **Offen
+**Arbeitsstand (siehe `docs/FORTSCHRITT.md`):** Alle Arbeitspakete AP-00 bis AP-31b sind umgesetzt (AP-22 bis AP-25: Live-Daten, Seite „Würfel live“, Assistent „Seiten zuordnen“, Startseite mit geführter Einrichtung und Handbuch; AP-26 bis AP-31: Steuerungsmodus mit Adapter-Baukasten, Warteschlange, Webhook, MQTT, Home Assistant, Hue und Oberfläche, siehe `docs/SOFTWAREDOKUMENTATION.md` §31). **Offen
 und nicht von Agenten lösbar:** Hardwaretest mit echten Trackern (Anleitung: `docs/INSTALLATION.md` §5,
 Matrix in `docs/TESTPLAN.md`), Lizenzwahl (**den Nutzer daran erinnern, bevor veröffentlicht wird**),
 Namens-/Markenprüfung, privater Sicherheits-Meldeweg, F-20 (Integrationen, „Kann“).

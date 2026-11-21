@@ -45,12 +45,19 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-24 | Assistent „Seiten zuordnen“: Würfelbild mit Live-Anzeige, Seite auswählen, vorhandene oder neue Tätigkeit zuordnen, Sprung zur nächsten freien Seite (`views.faces`) | 2026-11-21 | 14:40 | 16573f2 |
 | AP-24a | Tests laufen im temporären Profilordner (nicht im echten Benutzerprofil, kein Konflikt mit laufendem Agent) | 2026-11-21 | 14:20 | bcb5d20 |
 | AP-25 | Startseite (Willkommen, geführte Einrichtung mit einem Klick, Handbuch zum Nachlesen), Standardseite, Suchergebnis auch ohne Tracker auf der Geräte-Seite (`views.start`, `docs_reader`) | 2026-11-21 | 15:30 | 8e515a6 |
-| AP-26a | Steuerungsmodus: Datenmodell (Modus je Tracker, Verbindungen, Aktionen pro Seite, Warteschlange „Outbox“), Migration 0003, Sicherung v2 (v1 bleibt lesbar, keine Geheimnisse) | 2026-11-21 | 16:30 | _folgt_ |
-| AP-26b | Baukasten: Adapter-Vertrag mit Selbstbeschreibung, Zugangsdaten-Speicher, Integrationsdienst (Verbindungen, Aktionen pro Seite, Senden mit Wiederholung/Verfall), Steuerungspfad im Tracking, Moduswechsel | 2026-11-21 | 17:30 | _folgt_ |
+| AP-26a | Steuerungsmodus: Datenmodell (Modus je Tracker, Verbindungen, Aktionen pro Seite, Warteschlange „Outbox“), Migration 0003, Sicherung v2 (v1 bleibt lesbar, keine Geheimnisse) | 2026-11-21 | 16:30 | 80b347f |
+| AP-26b | Baukasten: Adapter-Vertrag mit Selbstbeschreibung, Zugangsdaten-Speicher, Integrationsdienst (Verbindungen, Aktionen pro Seite, Senden mit Wiederholung/Verfall), Steuerungspfad im Tracking, Moduswechsel | 2026-11-21 | 17:30 | 1444606 |
+| AP-26c | Steuerungsmodus im Betrieb: Dispatcher-Thread im Agenten, API (Verbindungen, Aktionen pro Seite, Moduswechsel, Verlauf), Client, Autostart der Steuerungs-Tracker | 2026-11-21 | 18:40 | 003a312 |
+| AP-27 | Webhook-Adapter: Web-Anfrage an beliebige Adresse (keine Weiterleitungen, keine Proxys, Antwort ungelesen, Wiederholung nur wenn sicher nicht angekommen), gegen echten lokalen Server getestet | 2026-11-21 | 19:30 | 76e676a |
+| AP-28 | MQTT-Adapter: Nachricht an einen Broker veröffentlichen (MQTT 3.1.1, nur Standardbibliothek, hartes Zeitlimit, Wiederholung nur wenn sicher nichts gesendet wurde, TLS, QoS 0/1), gegen Fake-Broker auf Protokollebene getestet | 2026-11-21 | 20:10 | f956bb6 |
+| AP-29 | Home-Assistant-Adapter: Einschalten/Ausschalten/Umschalten, Szene, Skript, beliebiger Dienst, Entdecken von Geräten (Weg zu Matter und Google Home); gemeinsame HTTP-Logik `httpio` | 2026-11-21 | 20:50 | 627e447 |
+| AP-30 | Philips-Hue-Adapter: Lampe/Raum/Szene über die Bridge im Heimnetz, Koppeln, Entdecken, Zertifikat-Anheftung (Vertrauen beim ersten Mal); echter TLS-Handshake nicht getestet | 2026-11-21 | 21:40 | babe4c5 |
+| AP-31a | Oberfläche „Verbindungen“: Formulare aus der Selbstbeschreibung der Adapter (`forms`), Testen/Koppeln/Ausprobieren/Entdecken mit Auswahllisten, Verlauf der Aktionen | 2026-11-21 | 22:30 | f83d227 |
+| AP-31b | Steuerungsmodus in der Oberfläche: Moduswechsel pro Würfel, Aktions-Editor in „Seiten zuordnen“, Live-Ansicht und Geräte-Seite für Steuerungs-Würfel, Startseite und neues Handbuchkapitel 20 | 2026-11-21 | 23:30 | 76a1443 |
 
 ## Offen
 
-Alle Arbeitspakete (AP-00 bis AP-25) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
+Alle Arbeitspakete (AP-00 bis AP-31b) sind umgesetzt. Offen ist nur, was **kein Entwicklungsagent erledigen
 kann** oder bewusst nicht im Umfang liegt:
 
 | ID | Thema | Wer | Hinweis |

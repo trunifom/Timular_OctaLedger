@@ -920,6 +920,12 @@ FastAPI-Anwendung, die der Agent auf Loopback startet. Das Dashboard spricht **a
 | `POST /devices/{id}/activate` | ausdrückliche Übergabe an diesen Tracker |
 | `POST /devices/{id}/connect`, `/disconnect`, `/address` | Verbindung starten/stoppen, gefundene Adresse speichern (Adresse wird **nie** zurückgegeben, nur `has_address`) |
 | `POST /scan` | BLE-Suche (nur auf Anforderung) |
+| `PUT /devices/{id}/mode` | Modus des Trackers: `time` (Zeiterfassung) oder `control` (Steuerung), AP-26c |
+| `PUT/DELETE /devices/{id}/actions/{1..8}` | Aktion einer Seite im Steuerungsmodus setzen (vom Adapter validiert) / entfernen |
+| `GET /adapters` | die Arten von Verbindung samt Formularbeschreibung (Felder, Aktionen, Kopplung, `choices_from`) |
+| `GET/POST /integrations`, `PATCH/DELETE /integrations/{id}` | Verbindungen: Einstellungen und **Namen** der gesetzten Zugangsdaten, **nie deren Werte**; Löschen verweigert, solange eine Seite sie nutzt (409) |
+| `POST /integrations/{id}/check`, `/probe`, `/pair`, `/discover` | Verbindung testen, eine Aktion **jetzt** ausprobieren, koppeln, Lampen/Szenen auflisten (POST, weil sie das Netzwerk berühren) |
+| `GET /jobs?limit=` | Verlauf der gesendeten Aktionen (neueste zuerst, höchstens 200) |
 | `GET/POST /activities`, `/projects`; `PATCH/DELETE …/{id}`; `POST …/{id}/archive` | Katalog |
 | `POST /tracking/start`, `/stop`, `/pause`, `/resume` | manuelle Steuerung |
 | `GET /sessions?start&end&…`, `GET /sessions/uncertain` | Journal / zu prüfende Sitzungen |
@@ -970,7 +976,9 @@ sie doppelt ausführen.
 
 Spiegeln die Endpunkte aus Abschnitt 19 und liefern JSON-artige Werte: `health`,
 `is_agent_running` (wirft nie), `status`, `devices`, `register_device`, `rename_device`,
-`remove_device`, `assign_face`, `clear_face`, `observed_face`, `live_view`, `activate_device`,
+`remove_device`, `assign_face`, `clear_face`, `observed_face`, `live_view`, `set_device_mode`, `assign_action`,
+`clear_action`, `adapters`, `integrations`, `create_integration`, `update_integration`, `delete_integration`,
+`check_integration`, `probe_integration`, `pair_integration`, `discover_integration`, `jobs`, `activate_device`,
 `connect_device`, `disconnect_device`, `set_device_address`, `scan`, `list_items`/`create_item`/
 `update_item`/`archive_item`/`delete_item` (für `"activities"`/`"projects"`), `start_tracking`,
 `stop_tracking`, `pause_tracking`, `resume_tracking`, `journal`, `uncertain_sessions`,
@@ -1185,8 +1193,8 @@ BLE-Teil **nur** darüber auf; `_call()` übergibt Coroutinen thread-sicher per
 
 - **Start** (`start()`): prüft zuerst den Port (`check_port_free`; belegt → `ConfigurationError`
   „läuft der Agent schon?“, damit nie zwei Schreiber um die Datenbank konkurrieren), startet BLE-Loop und
-  API und wartet, bis der Server bereit ist. Danach **Autostart nur des aktiven Trackers**, und nur wenn
-  er eine Adresse hat; Fehler dabei brechen den Start nicht ab. Mehrere registrierte Geräte bedeuten
+  API und wartet, bis der Server bereit ist. Danach **Autostart des aktiven Trackers und aller Tracker im Steuerungsmodus**, jeweils nur wenn
+  sie eine Adresse haben (ein Steuerungs-Würfel ist nie „der aktive“, muss aber nach dem Start sofort arbeiten); Fehler dabei brechen den Start nicht ab. Mehrere registrierte Geräte bedeuten
   nicht automatisch mehrere zuverlässige gleichzeitige Verbindungen (Pflichtenheft §1) – weitere
   Tracker verbindet der Benutzer ausdrücklich.
 - **Herunterfahren** (`shutdown()`, idempotent): API stoppen → Supervisor beendet alle Tracker
@@ -1231,7 +1239,7 @@ Exit-Codes: `0` Erfolg, `1` negativer Status (z. B. Agent läuft nicht), `2` Feh
 `tests/integration/test_agent_runtime.py` (11) fährt den **ganzen Agenten** (BLE-Thread + API-Thread) mit
 synthetischem Tracker: komplette Kette vom Tracker bis zum Dashboard-Client, Verbindungsverlust →
 unsicher → Reconnect ohne neue Sitzung (A-04), bewusstes Trennen ohne Wiederverbinden, Scan über den
-BLE-Loop, Autostart nur des aktiven Trackers mit Adresse, Port-Konflikt, geordnetes und idempotentes
+BLE-Loop, Autostart (aktiver und Steuerungs-Tracker) mit Adresse, Port-Konflikt, geordnetes und idempotentes
 Herunterfahren, `wait()`/`request_stop()`. `tests/unit/test_cli.py` (17): alle Befehle, Exit-Codes,
 Fehlerdarstellung, Backup/Restore-Rundlauf mit Bestätigung, Restore-Sperre bei laufendem Agent,
 Dashboard-Befehl (lokal, ohne Telemetrie).
@@ -1589,6 +1597,37 @@ unbekannter Adapter, Historie, Bereinigung). `tests/unit/test_control_mode.py` (
 nichts bei Baseline/Zwischenlage/Trennen, Seite ohne Aktion, ausgeschaltet, begrenzte Warteschlange, Kopie der Aktion,
 Zeiteinträge bleiben unberührt, aktiver/nicht aktiver Steuerungs-Tracker, Zeit-Tracker unverändert, Moduswechsel (Rolle geben,
 laufende Zeit blockiert, manuelle Zeit nicht, Wiederholung, unbekanntes Gerät, Übergabe abgewiesen).
+
+### 31.9 Dispatcher, API und Agent (AP-26c)
+
+**`ActionDispatcher`** (`agent/dispatcher.py`): ein **Daemon-Thread** im Agenten, der alle 0,25 s die fälligen Aufträge abholt
+(`IntegrationService.process_due`) und sendet. Gründe: Der BLE-Loop darf nie auf eine Netzwerkanfrage warten, und das Dashboard
+ist nicht beteiligt (Schließen des Browsers stoppt nichts). Aufträge werden **nacheinander in Erzeugungsreihenfolge** gesendet
+(„an“ dann „aus“ kommt als „an“, dann „aus“ an). Der Thread **überlebt jeden Fehler** (Protokoll, nächste Runde), und das Warten ist ein
+`threading.Event`, sodass das Herunterfahren nicht auf das Intervall wartet. Start in `AgentRuntime.start()`, Stopp in
+`shutdown()` (nach dem API-Server).
+
+**API:** siehe die Endpunkt-Tabelle in §19.3. Besonderheiten: `GET /adapters` liefert die Selbstbeschreibung der Adapter (die
+Oberfläche erzeugt daraus Formulare); Antworten nennen von Zugangsdaten nur `secrets_set` (Namen), `device_out` trägt `mode` und
+`actions`, `live_out` trägt `mode` und je Seite `action` (Bezeichnung). `IntegrationError` (auch `…ConnectionError`) wird als
+**502** gemeldet (das Ziel hat versagt, nicht OctaLedger), der Code `OL-INTEG-001/002` bleibt erhalten. Fehlt der
+Integrationsdienst im Prozess, antworten die Endpunkte mit 503 statt abzustürzen. Der **Dashboard-Client** bietet die passenden
+Methoden (siehe §20.3).
+
+**Agent:** `AgentRuntime` baut `SecretStore(<Datenordner>/secrets.json)`, `IntegrationService` (Standard:
+`default_adapters()`, Tests übergeben Attrappen über `adapters=`) und den Dispatcher. Der **Autostart** verbindet jetzt den aktiven
+Tracker **und jeden Steuerungs-Tracker** mit Adresse; scheitert einer, laufen die anderen und der Agent trotzdem.
+
+### 31.10 Tests (AP-26c)
+
+`tests/unit/test_dispatcher.py` (4): Aktion wird vom Thread gesendet (auch später eintreffende), ein Thread trotz zweifachem
+Start und **prompter Stopp** trotz langem Intervall, unerwarteter Fehler beendet den Thread nicht, fehlschlagender Adapter blockiert
+den nächsten Auftrag nicht. `tests/unit/test_api.py` (+12): Formularbeschreibung, **Zugangsdaten tauchen nie in API-Antworten oder
+Sicherungen auf**, Lebenszyklus, deutsche 422-Meldungen, Test/Ausprobieren/Kopplung/Entdeckung, 502 mit Code, Moduswechsel und
+Aktionen (inkl. Live-Ansicht), Fehlerfälle, benutzte Verbindung nicht löschbar (409), Verlaufsgrenzen, 503 ohne Dienst.
+`tests/integration/test_agent_runtime.py` (+3, **ganze Kette mit synthetischem Tracker und Attrappen-Adapter**): Drehung →
+Aktion gesendet, **Baseline schaltet nichts**, Seite ohne Aktion tut nichts, **keine Zeit erfasst**; ein fehlschlagender
+Adapter erscheint im Verlauf (ohne Details) statt unterzugehen; Steuerungs-Tracker verbindet beim Agentenstart selbst.
 
 ### 31.11 Webhook-Adapter (`infrastructure.integrations.webhook`, AP-27)
 
