@@ -81,17 +81,21 @@ def build_router(ctx: AppContext) -> APIRouter:
     router = APIRouter(dependencies=[Depends(require_auth)])
 
     def now() -> datetime:
+        """Current time in UTC (one place, so tests can see it used consistently)."""
         return utc_now()
 
     def device_statuses() -> dict[str, Any]:
+        """Live status of every started device by device id (empty without an agent)."""
         return {s.device_id: s for s in (ctx.agent.device_statuses() if ctx.agent else [])}
 
     def require_agent() -> Any:
+        """Return the agent control or answer 503 when the API runs without a BLE agent."""
         if ctx.agent is None:
             raise ApiUnavailableError("The BLE agent is not running in this process")
         return ctx.agent
 
     def require_integrations() -> Any:
+        """Return the integration service or answer 503 when control mode is unavailable."""
         if ctx.integrations is None:
             raise ApiUnavailableError("Control mode is not available in this process")
         return ctx.integrations
@@ -299,6 +303,7 @@ def build_router(ctx: AppContext) -> APIRouter:
 
     # ------------------------------------------------------------ activities/projects
     def catalog_routes(kind: str, plural_name: str) -> None:
+        """Register the five routes of one catalogue kind (activities or projects)."""
         plural = f"/{plural_name}"
         create = ctx.catalog.create_activity if kind == "activity" else ctx.catalog.create_project
         listing = ctx.catalog.list_activities if kind == "activity" else ctx.catalog.list_projects
@@ -310,22 +315,27 @@ def build_router(ctx: AppContext) -> APIRouter:
 
         @router.get(plural, name=f"list_{kind}s")
         def list_items(include_archived: bool = False) -> list[dict[str, Any]]:
+            """List the items; archived ones only when asked for."""
             return [activity_out(i) for i in listing(include_archived=include_archived)]
 
         @router.post(plural, status_code=201, name=f"create_{kind}")
         def create_item(body: CatalogCreate) -> dict[str, Any]:
+            """Create an item (colour is chosen automatically when omitted)."""
             return activity_out(create(body.name, body.color))
 
         @router.patch(plural + "/{item_id}", name=f"update_{kind}")
         def update_item(item_id: str, body: CatalogUpdate) -> dict[str, Any]:
+            """Rename and/or recolour an item."""
             return activity_out(update(item_id, name=body.name, color=body.color))
 
         @router.post(plural + "/{item_id}/archive", name=f"archive_{kind}")
         def archive_item(item_id: str, body: ArchiveBody) -> dict[str, Any]:
+            """Archive an item, or restore it with ``archived=false``."""
             return activity_out(archive(item_id, body.archived))
 
         @router.delete(plural + "/{item_id}", status_code=204, name=f"delete_{kind}")
         def delete_item(item_id: str) -> None:
+            """Delete an unused item (used ones must be archived instead)."""
             delete(item_id)
 
     catalog_routes("activity", "activities")
@@ -408,6 +418,7 @@ def build_router(ctx: AppContext) -> APIRouter:
 
     # ----------------------------------------------------------------------- reports
     def display_tz() -> str:
+        """The display timezone from the saved settings."""
         return ctx.settings.settings.display.timezone
 
     @router.get("/reports")

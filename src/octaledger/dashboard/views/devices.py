@@ -258,6 +258,7 @@ def _calibration(
     project_options: list[dict[str, Any] | None] = [None, *projects]
 
     def index_of(options: list[dict[str, Any] | None], wanted: str | None) -> int:
+        """Position of the option with id ``wanted`` (0, the empty choice, if there is none)."""
         return next((i for i, o in enumerate(options) if o and o["id"] == wanted), 0)
 
     with st.form(f"calib_{did}"):

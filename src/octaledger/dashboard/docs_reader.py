@@ -60,6 +60,7 @@ def clean_links(text: str) -> str:
     """Keep external links, reduce every other link (files, anchors) to its text."""
 
     def replace(match: re.Match[str]) -> str:
+        """Keep web links, reduce every other link to its visible text."""
         label, target = match.group(1), match.group(2)
         return match.group(0) if target.startswith(("https://", "http://")) else label
 

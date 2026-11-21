@@ -269,6 +269,7 @@ def live_out(
     """
 
     def named(item: Activity | Project | None) -> dict[str, Any] | None:
+        """Short ``{id, name, colour}`` description of an activity/project, or ``None``."""
         return None if item is None else {"id": item.id, "name": item.name, "color": item.color}
 
     faces: dict[str, Any] = {}

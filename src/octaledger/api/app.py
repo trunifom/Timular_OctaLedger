@@ -126,12 +126,14 @@ def create_app(context: AppContext) -> FastAPI:
 
     @app.exception_handler(OctaLedgerError)
     async def handle_octaledger_error(_request: Request, exc: OctaLedgerError) -> JSONResponse:
+        """Map an OctaLedger error to its HTTP status and the uniform error body."""
         level = logging.ERROR if status_for(exc) >= 500 else logging.INFO
         logger.log(level, "API error %s", exc)
         return error_response(exc)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation(_request: Request, exc: RequestValidationError) -> JSONResponse:
+        """Turn a request validation problem into a uniform 422 naming the offending fields."""
         fields = sorted(
             {".".join(str(p) for p in err["loc"][1:]) or "Anfrage" for err in exc.errors()}
         )
@@ -145,6 +147,7 @@ def create_app(context: AppContext) -> FastAPI:
 
     @app.exception_handler(Exception)
     async def handle_unexpected(_request: Request, exc: Exception) -> JSONResponse:
+        """Last resort: log the traceback, answer with a generic 500 that reveals no internals."""
         logger.exception("Unhandled error in API route")
         return error_response(OctaLedgerError(f"Unexpected {type(exc).__name__}"))
 

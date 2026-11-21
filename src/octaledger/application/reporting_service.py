@@ -247,10 +247,12 @@ def build_report(
     device_total = sum_durations(all_parts)
 
     def activity_name(key: str | None) -> tuple[str, str]:
+        """Display name and colour of an activity id ("Unbekannt" if it is gone)."""
         activity = activities.get(key) if key else None
         return (activity.name, activity.color) if activity else ("Unbekannt", NO_PROJECT_COLOR)
 
     def project_name(key: str | None) -> tuple[str, str]:
+        """Display name and colour of a project id ("ohne Projekt" if none)."""
         project = projects.get(key) if key else None
         return (project.name, project.color) if project else (NO_PROJECT_NAME, NO_PROJECT_COLOR)
 

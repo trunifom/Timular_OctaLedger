@@ -59,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", metavar="<befehl>")
 
     def with_data_dir(command: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Add the shared ``--data-dir`` option to a sub-command."""
         command.add_argument(
             "--data-dir", type=Path, help="Datenordner (Standard: Benutzerprofil/OctaLedger)"
         )

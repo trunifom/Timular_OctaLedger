@@ -256,6 +256,7 @@ class AgentRuntime:
         ready = threading.Event()
 
         def run() -> None:
+            """Thread body: own the event loop, create the supervisor and run until stopped."""
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             self._loop = loop

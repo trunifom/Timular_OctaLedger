@@ -300,6 +300,7 @@ class ExportService:
         """Convert domain content to plain JSON-serialisable records."""
 
         def opt_time(value: datetime | None) -> str | None:
+            """Encode an optional timestamp for the backup (``None`` stays ``None``)."""
             return None if value is None else to_db_time(value)
 
         return {
@@ -510,11 +511,13 @@ class ExportService:
             device_keys.add("mode")
 
         def exact(record: dict[str, Any], keys: set[str]) -> dict[str, Any]:
+            """Require that a record has exactly the expected fields (no more, no fewer)."""
             if set(record) != keys:
                 raise ValueError(f"fields must be exactly {sorted(keys)}")
             return record
 
         def opt_dt(value: Any) -> datetime | None:
+            """Decode an optional timestamp from the backup (``None`` stays ``None``)."""
             return None if value is None else from_db_time(value)
 
         state = data["app_state"]

@@ -154,6 +154,7 @@ class BleakTransport:
         client = self._require_client()
 
         def forward(_characteristic: object, data: bytearray) -> None:
+            """Adapt Bleak's ``(characteristic, data)`` callback to our bytes-only callback."""
             callback(bytes(data))
 
         try:
