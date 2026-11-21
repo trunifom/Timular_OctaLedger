@@ -112,6 +112,11 @@ class AdapterSpec:
     pair_help: str = ""
     #: Whether :meth:`Adapter.discover` can list lights, scenes ... to choose from.
     can_discover: bool = False
+    #: Whether :meth:`Adapter.find_targets` can look for the target on the network
+    #: (for example a Hue Bridge) so the user does not have to type its address.
+    can_find: bool = False
+    #: Explains what the search does and what it sends where (shown beside the buttons).
+    find_help: str = ""
     #: German step-by-step instructions (Markdown): where to get the address and the
     #: credentials, what to click. Shown next to the form so no outside manual is needed.
     setup_guide: str = ""
@@ -277,6 +282,18 @@ class Adapter(ABC):
             f"{self.spec.kind} needs no pairing",
             user_message="Diese Verbindung braucht keine Kopplung.",
         )
+
+    def find_targets(self, *, online: bool = False, timeout: float) -> list[dict[str, str]]:
+        """Look for the target on the network (only if ``spec.can_find``).
+
+        Args:
+            online: Also ask an internet service. Never done unless the user chose it.
+            timeout: Seconds the search may take.
+
+        Returns:
+            ``[{"id", "address", "name"}, ...]`` (possibly empty).
+        """
+        return []
 
     def discover(
         self, config: Mapping[str, Any], secrets: Mapping[str, str], *, timeout: float

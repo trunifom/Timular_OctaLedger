@@ -334,3 +334,38 @@ def test_tag_billing_and_budget_endpoints(env: Env) -> None:
     assert journal[0]["tags"] == ["Kunde A"] and journal[0]["billable"] is True
     assert env.call("DELETE", f"/tags/{tag_id}").status_code == 204
     assert env.call("DELETE", f"/tags/{tag_id}").status_code == 404
+
+
+# ------------------------------------------------------------------ bridge search (API)
+
+
+def test_find_endpoint_searches_only_for_adapters_that_can(env: Env, tmp_path: Path) -> None:
+    from octaledger.application.integration_service import IntegrationService
+    from octaledger.core.secrets import SecretStore
+    from octaledger.infrastructure.integrations.hue import HueAdapter
+
+    online_asked: list[bool] = []
+
+    def cloud(_t: float) -> list[dict[str, str]]:
+        online_asked.append(True)
+        return [{"id": "c", "address": "192.168.1.9", "name": "Cloud"}]
+
+    env.context.integrations = IntegrationService(
+        env.storage,
+        SecretStore(tmp_path / "s3.json"),
+        {
+            "hue": HueAdapter(
+                mdns_finder=lambda _t: [{"id": "m", "address": "192.168.1.5", "name": "Lokal"}],
+                cloud_finder=cloud,
+            )
+        },
+    )
+    local = env.post("/adapters/hue/find", {})
+    assert local.status_code == 200 and [i["address"] for i in local.json()["items"]] == [
+        "192.168.1.5"
+    ]
+    assert online_asked == []
+    both = env.post("/adapters/hue/find", {"online": True}).json()["items"]
+    assert [i["address"] for i in both] == ["192.168.1.5", "192.168.1.9"]
+    assert env.post("/adapters/nope/find", {}).status_code == 422
+    assert env.post("/adapters/hue/find", {"online": "vielleicht"}).status_code == 422

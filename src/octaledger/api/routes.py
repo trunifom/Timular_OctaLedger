@@ -47,6 +47,7 @@ from octaledger.api.schemas import (
     EntriesRange,
     ExportCsvBody,
     FaceAssign,
+    FindBody,
     IcsApplyBody,
     IcsPreviewBody,
     IntegrationCreate,
@@ -337,6 +338,11 @@ def build_router(ctx: AppContext) -> APIRouter:
     def pair_integration(integration_id: str) -> dict[str, Any]:
         """Run the one-time pairing (for example after pressing the bridge button)."""
         return {"message": require_integrations().pair(integration_id)}
+
+    @router.post("/adapters/{kind}/find")
+    def find_targets(kind: str, body: FindBody) -> dict[str, Any]:
+        """Look for the target on the network, e.g. a Hue Bridge (``online`` is opt-in)."""
+        return {"items": require_integrations().find_targets(kind, online=body.online)}
 
     @router.post("/integrations/{integration_id}/discover")
     def discover_integration(integration_id: str) -> dict[str, Any]:

@@ -33,11 +33,16 @@
 | `fpdf2` | PDF-Bericht (Extra `pdf`) | **LGPL-3.0-only** (aus den Paket-Metadaten der installierten Version 2.9.0; die frühere Planung nannte fälschlich BSD-2) | nur optional und dynamisch geladen; Standardschriften (Latin-1): Anführungszeichen, Gedankenstriche und „€“ werden ersetzt, andere Zeichen erscheinen als „?“ |
 | `icalendar` | Kalender-Import (Extra `ics`) | BSD-2-Clause | – |
 | `recurring-ical-events` | Terminserien im Fenster (Extra `ics`) | **LGPL-3.0-or-later** | nur optional und dynamisch geladen |
+| `zeroconf` | Bridge-Suche im Heimnetz per mDNS (Extra `discovery`) | LGPL-2.1-or-later (Paket-Metadaten der Version 0.154.0) | nur optional und dynamisch geladen; manche Router blockieren Multicast, dann die Adresse von Hand eintragen |
 | `winotify` | Windows-Hinweise (Extra `toast`) | MIT (belegt) | ohne eigene AppUserModelID erscheint ggf. ein Interpreter-Name als Absender [U] |
 
 ## Pausenregeln (nur Orientierung)
 
 Die Tabellen in `domain/break_rules.py` stammen aus **Sekundärquellen** (ch.ch, WEKA, SECO-Wegleitung zum Arbeitsgesetz Art. 15; EU-Richtlinie 2003/88/EG Art. 4 in EUR-Lex) mit Stand 2026-11. Der **Wortlaut der Primärquellen** (fedlex.admin.ch, SR 822.11 und SR 822.111) wurde **nicht** von einem Menschen gegengeprüft. Das Gesetz gilt nur für bestimmte Betriebe und Personen; bei flexiblen Arbeitszeitsystemen gelten Besonderheiten. OctaLedger gibt keine Rechtsberatung und zieht nie automatisch Pausen ab.
+
+## Hue-Erweiterungen (AP-43): Stand der Prüfung
+
+Die JSON-Formen für Helligkeit, Farbtemperatur (`color_temperature.mirek`), Übergang (`dynamics.duration`) und Szenen-Aufruf (`recall.action` `active`/`dynamic_palette`/`static`, `dimming`, `duration`) stammen aus Drittquellen; die offizielle Dokumentation liegt hinter einem Entwicklerlogin und wurde **nicht** gelesen. Getestet ist gegen eine lokale Attrappe der Bridge (gesendete Bodies, Umschalten liest zuerst den Zustand, Mindestabstand, HTTP 429). **An einer echten Bridge ist nichts davon geprüft.** Die Cloud-Suche (`discovery.meethue.com`) wurde ebenfalls nur mit einer Attrappe getestet.
 
 ## Was **nicht** geprüft wurde (Grenzen)
 

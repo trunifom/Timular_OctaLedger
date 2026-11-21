@@ -70,7 +70,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-39 | Autostart (Run-Key, CLI, Schalter), Tray-Symbol (Extra), Windows-Hinweise (Extra, Ruhezeit); mit Attrappen getestet, nicht auf echtem Desktop | 2026-11-22 | 00:10 | f2bd696 |
 | AP-40 | Soll je Wochentag (versioniert), Abwesenheiten, Feiertage (Extra), Saldo-Auswertung, Pausenhinweise (aus; Orientierung); Sicherung Schema 3 | 2026-11-22 | 02:00 | 705aec4 |
 | AP-41 | Tags, Standard-Tags, Notizvorlagen, Budget/Stundensatz/abrechenbar, Budgetwarnung 80/100 %, Auswertung und CSV-Spalten | 2026-11-22 | 04:00 | bb9dff5 |
-| AP-42 | Druckbarer Bericht (HTML, PDF als Extra) und Kalender-Import (.ics, Extra) als bestätigte Vorschläge; Lizenzkorrektur fpdf2/recurring-ical-events (LGPL) | 2026-11-22 | 06:00 | _folgt_ |
+| AP-42 | Druckbarer Bericht (HTML, PDF als Extra) und Kalender-Import (.ics, Extra) als bestätigte Vorschläge; Lizenzkorrektur fpdf2/recurring-ical-events (LGPL) | 2026-11-22 | 06:00 | 3c8c85b |
+| AP-43 | Hue erweitert (Übergang, Szenen-Modus, Mindestabstand, 429) und Bridge-Suche (mDNS, Cloud nur auf Klick); nur gegen Attrappe getestet | 2026-11-22 | 08:00 | _folgt_ |
 
 ## Offen
 

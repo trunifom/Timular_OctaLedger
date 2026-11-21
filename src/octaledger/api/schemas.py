@@ -245,6 +245,12 @@ class IcsApplyBody(_Strict):
     entries: list[IcsEntryBody] = Field(max_length=200)
 
 
+class FindBody(_Strict):
+    """Search for the target on the network (``online`` also asks an internet service)."""
+
+    online: bool = False
+
+
 class TagCreate(_Strict):
     """A new tag."""
 
@@ -507,6 +513,8 @@ def adapter_out(spec: AdapterSpec) -> dict[str, Any]:
         "can_pair": spec.can_pair,
         "pair_help": spec.pair_help,
         "can_discover": spec.can_discover,
+        "can_find": spec.can_find,
+        "find_help": spec.find_help,
         "setup_guide": spec.setup_guide,
     }
 

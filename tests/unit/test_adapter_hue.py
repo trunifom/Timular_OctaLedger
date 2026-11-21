@@ -424,7 +424,7 @@ def test_an_unknown_lamp_is_reported_clearly(bridge: FakeBridge) -> None:
     assert "kennt diese Lampe" in info.value.user_message
 
 
-@pytest.mark.parametrize("status", [429, 500, 503])
+@pytest.mark.parametrize("status", [500, 503])
 def test_other_failure_answers_are_permanent(bridge: FakeBridge, status: int) -> None:
     bridge.fail_with = status
     with pytest.raises(IntegrationError) as info:

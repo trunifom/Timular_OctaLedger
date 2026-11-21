@@ -29,10 +29,14 @@ bridge or a real TLS handshake.
 from __future__ import annotations
 
 import hashlib
+import importlib.util
+import ipaddress
 import json
 import re
 import socket
 import ssl
+import threading
+import time
 from collections.abc import Callable, Mapping
 from typing import Any, Final
 
@@ -60,6 +64,12 @@ MIREK_MAX: Final = 500
 
 SessionFor = Callable[[str | None], Session]
 CertificateFetcher = Callable[[str, int, float], str]
+#: ``(timeout) -> [{"id", "address", "name"}]`` (replaceable for tests).
+BridgeFinder = Callable[[float], list[dict[str, str]]]
+#: Philips' own lookup service; only ever asked when the user clicks for it.
+CLOUD_DISCOVERY_URL: Final = "https://discovery.meethue.com"
+MDNS_TYPE: Final = "_hue._tcp.local."
+MAX_FOUND: Final = 10
 
 
 # ------------------------------------------------------------------ certificate pinning
@@ -103,6 +113,99 @@ def pinned_session(fingerprint: str | None) -> Session:
     if fingerprint:
         session.mount("https://", PinnedAdapter(fingerprint))
     return session
+
+
+def zeroconf_available() -> bool:
+    """Whether the optional ``zeroconf`` package (extra ``discovery``, LGPL) is installed."""
+    return importlib.util.find_spec("zeroconf") is not None
+
+
+def find_via_mdns(timeout: float) -> list[dict[str, str]]:
+    """Look for Hue Bridges announcing ``_hue._tcp`` on the local network.
+
+    Returns an empty list if the optional package is missing or nothing answers (some routers
+    and firewalls block multicast; the address can always be typed by hand).
+    """
+    if not zeroconf_available():
+        return []
+    from zeroconf import (  # type: ignore[import-not-found,unused-ignore]
+        ServiceBrowser,
+        ServiceListener,
+        Zeroconf,
+    )
+
+    names: set[str] = set()
+
+    class Listener(ServiceListener):
+        """Collects the names of announced services (the details are read afterwards)."""
+
+        def add_service(self, zc: Any, type_: str, name: str) -> None:
+            """A service appeared."""
+            names.add(name)
+
+        def update_service(self, zc: Any, type_: str, name: str) -> None:
+            """A service changed (ignored)."""
+
+        def remove_service(self, zc: Any, type_: str, name: str) -> None:
+            """A service vanished (ignored)."""
+
+    zc = Zeroconf()
+    try:
+        ServiceBrowser(zc, MDNS_TYPE, Listener())
+        time.sleep(min(max(timeout, 1.0), 5.0))
+        found: list[dict[str, str]] = []
+        for name in sorted(names)[:MAX_FOUND]:
+            info = zc.get_service_info(MDNS_TYPE, name, timeout=1500)
+            if info is None:
+                continue
+            for address in info.parsed_addresses():
+                if _is_private_ipv4(address):
+                    label = name.removesuffix("." + MDNS_TYPE)
+                    found.append({"id": label, "address": address, "name": label})
+        return found
+    finally:
+        zc.close()
+
+
+def find_via_cloud(timeout: float) -> list[dict[str, str]]:
+    """Ask Philips' discovery service which bridges share this internet connection.
+
+    This **sends a request to the internet** and is only done when the user asks for it.
+    """
+    response = send(
+        new_session,
+        "GET",
+        CLOUD_DISCOVERY_URL,
+        headers={"User-Agent": "OctaLedger"},
+        data=None,
+        timeout=timeout,
+        verify=True,
+    )
+    status = response.status_code
+    try:
+        answer = json.loads(read_limited(response)) if status == 200 else None
+    except ValueError:
+        answer = None
+    finally:
+        response.close()
+    if not isinstance(answer, list):
+        return []
+    found: list[dict[str, str]] = []
+    for entry in answer[:MAX_FOUND]:
+        address = entry.get("internalipaddress") if isinstance(entry, dict) else None
+        if isinstance(address, str) and _is_private_ipv4(address):
+            ident = str(entry.get("id", address))[:40]
+            found.append({"id": ident, "address": address, "name": f"Hue Bridge {ident}"})
+    return found
+
+
+def _is_private_ipv4(text: str) -> bool:
+    """Only private home-network addresses are accepted as a bridge address."""
+    try:
+        address = ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    return address.version == 4 and address.is_private and not address.is_loopback
 
 
 def explain_connect_error(host: str, exc: OSError) -> str:
@@ -170,6 +273,50 @@ _LIGHT_FIELDS: Final = (
         maximum=6500,
         help="2000 = sehr warm, 6500 = kaltweiß. Leer lassen für die letzte Einstellung.",
     ),
+    FieldSpec(
+        "transition_ms",
+        "Übergang in Millisekunden (optional)",
+        kind="int",
+        advanced=True,
+        minimum=0,
+        maximum=10000,
+        help="Wie sanft das Licht überblendet (400 = Standard der Bridge, 0 = sofort, "
+        "10000 = zehn Sekunden). Leer lassen: die Bridge entscheidet.",
+    ),
+)
+
+_SCENE_FIELDS: Final = (
+    FieldSpec(
+        "mode",
+        "Wiedergabe",
+        kind="choice",
+        advanced=True,
+        default="active",
+        choices=(
+            ("active", "Szene wie gespeichert (Voreinstellung)"),
+            ("dynamic_palette", "Dynamisch (Farben wechseln langsam)"),
+            ("static", "Statisch"),
+        ),
+        help="„Dynamisch“ lässt die Farben der Szene langsam wechseln. Voreinstellung: wie "
+        "gespeichert.",
+    ),
+    FieldSpec(
+        "brightness",
+        "Helligkeit in % (optional)",
+        kind="int",
+        minimum=1,
+        maximum=100,
+        help="Überschreibt die Helligkeit der Szene. Leer lassen für die Helligkeit der Szene.",
+    ),
+    FieldSpec(
+        "transition_ms",
+        "Übergang in Millisekunden (optional)",
+        kind="int",
+        advanced=True,
+        minimum=0,
+        maximum=10000,
+        help="Wie sanft die Szene überblendet. Leer lassen: die Bridge entscheidet.",
+    ),
 )
 
 
@@ -227,6 +374,18 @@ class HueAdapter(Adapter):
                 "schützt vor einer untergeschobenen Bridge. Nicht von Hand ändern.",
             ),
             FieldSpec(
+                "min_interval_ms",
+                "Mindestabstand der Anfragen (ms)",
+                kind="int",
+                advanced=True,
+                default=100,
+                minimum=0,
+                maximum=5000,
+                help="Die Bridge verträgt nur wenige Anfragen pro Sekunde (Richtwert: etwa 10 für "
+                "Lampen, 1 für Räume). OctaLedger wartet zwischen zwei Anfragen mindestens so "
+                "lange. Voreinstellung: 100.",
+            ),
+            FieldSpec(
                 "app_key",
                 "Anwendungsschlüssel",
                 advanced=True,
@@ -282,6 +441,7 @@ class HueAdapter(Adapter):
                         placeholder="wählen über „Entdecken“",
                         help="Die Kennung der Szene. „Entdecken“ listet Ihre Szenen auf.",
                     ),
+                    *_SCENE_FIELDS,
                 ),
             ),
         ),
@@ -291,6 +451,13 @@ class HueAdapter(Adapter):
             "von 30 Sekunden auf „Koppeln“."
         ),
         can_discover=True,
+        can_find=True,
+        find_help=(
+            "„Im Heimnetz suchen“ hört nur im lokalen Netz (braucht das Zusatzpaket „discovery“). "
+            "„Im Internet nachschlagen“ sendet eine Anfrage an den Dienst von Philips "
+            "(discovery.meethue.com) und liefert die Bridges hinter Ihrem Internetanschluss; es "
+            "wird nur auf Ihren Klick gesendet."
+        ),
     )
 
     def __init__(
@@ -300,6 +467,10 @@ class HueAdapter(Adapter):
         pin: bool | None = None,
         session_for: SessionFor = pinned_session,
         fetch_certificate: CertificateFetcher = fetch_fingerprint,
+        mdns_finder: BridgeFinder = find_via_mdns,
+        cloud_finder: BridgeFinder = find_via_cloud,
+        sleep: Callable[[float], None] = time.sleep,
+        monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
         """Create the adapter.
 
@@ -308,11 +479,19 @@ class HueAdapter(Adapter):
             pin: Whether the certificate is pinned (default: exactly when ``scheme`` is ``https``).
             session_for: Builds the session for a fingerprint (replaceable for tests).
             fetch_certificate: Reads the bridge's certificate fingerprint (replaceable for tests).
+            mdns_finder / cloud_finder: The two ways to look for a bridge (replaceable for tests).
+            sleep / monotonic: Time functions of the request spacing (replaceable for tests).
         """
         self._scheme = scheme
         self._pin = (scheme == "https") if pin is None else pin
         self._session_for = session_for
         self._fetch = fetch_certificate
+        self._mdns = mdns_finder
+        self._cloud = cloud_finder
+        self._sleep = sleep
+        self._monotonic = monotonic
+        self._spacing = threading.Lock()
+        self._last_request: dict[str, float] = {}
 
     # ------------------------------------------------------------------ validation
 
@@ -425,7 +604,12 @@ class HueAdapter(Adapter):
         action = str(params["action"])
         if action == "scene":
             path = f"/clip/v2/resource/scene/{params['scene_id']}"
-            self._put(config, secrets, path, {"recall": {"action": "active"}}, timeout)
+            recall: dict[str, Any] = {"action": str(params.get("mode") or "active")}
+            if params.get("brightness"):
+                recall["dimming"] = {"brightness": float(params["brightness"])}
+            if params.get("transition_ms") is not None:
+                recall["duration"] = int(params["transition_ms"])
+            self._put(config, secrets, path, {"recall": recall}, timeout)
             return "Szene aktiviert."
         resource = "light" if action == "light" else "grouped_light"
         identifier = params["light_id"] if action == "light" else params["group_id"]
@@ -442,8 +626,25 @@ class HueAdapter(Adapter):
         if state == "on" and params.get("warmth_k"):
             mirek = round(1_000_000 / int(params["warmth_k"]))
             body["color_temperature"] = {"mirek": max(MIREK_MIN, min(MIREK_MAX, mirek))}
+        if params.get("transition_ms") is not None:
+            body["dynamics"] = {"duration": int(params["transition_ms"])}
         self._put(config, secrets, path, body, timeout)
         return "Eingeschaltet." if state == "on" else "Ausgeschaltet."
+
+    def find_targets(self, *, online: bool = False, timeout: float) -> list[dict[str, str]]:
+        """Look for bridges on the local network and, only if asked, via Philips' service.
+
+        A failing way of searching is skipped (it must not hide the other one).
+        """
+        found: dict[str, dict[str, str]] = {}
+        finders: list[BridgeFinder] = [self._mdns] + ([self._cloud] if online else [])
+        for finder in finders:
+            try:
+                for item in finder(timeout):
+                    found.setdefault(item["address"], item)
+            except (OSError, IntegrationError):
+                continue
+        return [found[address] for address in sorted(found)]
 
     def discover(
         self, config: Mapping[str, Any], secrets: Mapping[str, str], *, timeout: float
@@ -490,6 +691,7 @@ class HueAdapter(Adapter):
         self, config: Mapping[str, Any], secrets: Mapping[str, str], path: str, timeout: float
     ) -> Any:
         key, fingerprint = self._credentials(config, secrets)
+        self._wait_turn(config)
         response = self._request(str(config["host"]), fingerprint, "GET", path, key, None, timeout)
         status = response.status_code
         answer = _json(response) if status == 200 else None
@@ -506,6 +708,7 @@ class HueAdapter(Adapter):
         timeout: float,
     ) -> None:
         key, fingerprint = self._credentials(config, secrets)
+        self._wait_turn(config)
         response = self._request(str(config["host"]), fingerprint, "PUT", path, key, body, timeout)
         status = response.status_code
         answer = _json(response) if status in (200, 207) else None
@@ -519,6 +722,17 @@ class HueAdapter(Adapter):
                 user_message="Die Hue Bridge meldet einen Fehler: "
                 f"{str(description or 'unbekannt')[:120]}",
             )
+
+    def _wait_turn(self, config: Mapping[str, Any]) -> None:
+        """Keep the configured minimum distance between two requests to the same bridge."""
+        interval = int(config.get("min_interval_ms", 100)) / 1000
+        host = str(config["host"])
+        with self._spacing:
+            last = self._last_request.get(host)
+            now = self._monotonic()
+            if last is not None and interval > 0 and now - last < interval:
+                self._sleep(interval - (now - last))
+            self._last_request[host] = self._monotonic()
 
     def _credentials(
         self, config: Mapping[str, Any], secrets: Mapping[str, str]
@@ -575,6 +789,13 @@ class HueAdapter(Adapter):
                 f"HTTP {status}",
                 user_message="Die Hue Bridge lehnt den Anwendungsschlüssel ab. Bitte erneut "
                 "koppeln.",
+            )
+        if status == 429:
+            # The bridge is overloaded: the request certainly had no effect, so retrying is safe.
+            raise IntegrationConnectionError(
+                "HTTP 429",
+                user_message="Die Hue Bridge ist gerade überlastet; es wird gleich erneut "
+                "versucht.",
             )
         if status == 404:
             raise IntegrationError(

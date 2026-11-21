@@ -625,6 +625,12 @@ class ApiClient:
         )
         return result
 
+    def find_targets(self, kind: str, online: bool = False) -> list[dict[str, str]]:
+        """Look for the target on the network (``online`` also asks an internet service)."""
+        result: dict[str, Any] = self._post(f"/adapters/{kind}/find", {"online": online})
+        items: list[dict[str, str]] = result["items"]
+        return items
+
     def render_report(
         self, first: date, last: date, fmt: str = "html", tz: str | None = None
     ) -> dict[str, Any]:

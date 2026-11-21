@@ -299,6 +299,8 @@ def _new_connection(client: ApiClient, specs: list[dict[str, Any]]) -> None:
         placeholder="z. B. Wohnzimmer",
         help="Frei wählbar, nur zur Anzeige. Jeder Name darf nur einmal vorkommen.",
     )
+    if spec.get("can_find"):
+        _find_section(client, spec)
     values = render_fields(spec["config_fields"], key_prefix=f"new_conn_{spec['kind']}")
     if st.button(
         "Verbindung anlegen",
@@ -323,6 +325,71 @@ def _new_connection(client: ApiClient, specs: list[dict[str, Any]]) -> None:
         help="Öffnet den Assistenten, in dem Sie dem Würfel den Steuerungsmodus und jeder Seite "
         "eine Aktion geben.",
     )
+
+
+FOUND_KEY = "_found_targets"
+
+
+def _use_address(field_key: str, address: str) -> None:
+    """Callback: put a found address into the address field before the next run."""
+    st.session_state[field_key] = address
+
+
+def _find_section(client: ApiClient, spec: dict[str, Any]) -> None:
+    """Look for the target on the network so the address does not have to be typed."""
+    kind = spec["kind"]
+    address_field = next(
+        (f for f in spec["config_fields"] if f["required"] and f["kind"] == "text"), None
+    )
+    st.markdown("**Gerät suchen**")
+    st.caption(spec.get("find_help") or "")
+    local, online = st.columns(2)
+    searched = None
+    if local.button(
+        "Im Heimnetz suchen",
+        key="new_conn_find_local",
+        icon=":material/search:",
+        width="stretch",
+        help="Sucht nur im lokalen Netz (kein Internet). Findet nichts, wenn das Zusatzpaket "
+        "„discovery“ fehlt oder der Router die Suche blockiert; dann die Adresse von Hand "
+        "eintragen.",
+    ):
+        searched = call(client.find_targets, kind, False)
+    if online.button(
+        "Im Internet nachschlagen",
+        key="new_conn_find_online",
+        icon=":material/cloud:",
+        width="stretch",
+        help="Sendet eine Anfrage an den Dienst des Herstellers (Internet) und zeigt die Geräte "
+        "hinter Ihrem Anschluss. Wird nur auf diesen Klick gesendet.",
+    ):
+        searched = call(client.find_targets, kind, True)
+    if searched is not None:
+        ok, items = searched
+        st.session_state[FOUND_KEY] = items if ok else None
+        if ok and not items:
+            st.info(
+                "Nichts gefunden. Tragen Sie die Adresse von Hand ein (siehe Anleitung oben) "
+                "oder probieren Sie die andere Suche."
+            )
+    items = st.session_state.get(FOUND_KEY)
+    if items and address_field is not None:
+        labels = {i["address"]: f"{i['name']} ({i['address']})" for i in items}
+        choice = st.selectbox(
+            "Gefunden",
+            list(labels),
+            format_func=labels.__getitem__,
+            key="new_conn_found_pick",
+            help="Wählen Sie das Gerät, dessen Adresse übernommen werden soll.",
+        )
+        st.button(
+            "Adresse übernehmen",
+            key="new_conn_found_use",
+            icon=":material/check:",
+            on_click=_use_address,
+            args=(f"new_conn_{kind}_{address_field['name']}", choice),
+            help="Trägt die gewählte Adresse unten ins Feld ein.",
+        )
 
 
 def _clear_new_form() -> None:

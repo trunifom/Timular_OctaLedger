@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Hue erweitert und Bridge-Suche, AP-43)
+- Hue: Übergang (`transition_ms`), Szenen-Modus (`active`/`dynamic_palette`/`static`) und Szenen-Helligkeit, Mindestabstand der Anfragen (`min_interval_ms`), HTTP 429 wird später wiederholt.
+- Bridge-Suche (`Adapter.find_targets`, `can_find`, `POST /adapters/{kind}/find`): im Heimnetz per mDNS (Extra `discovery`) und nur auf Klick über Philips' Dienst; nur private Adressen werden akzeptiert.
+
 ### Hinzugefügt (Bericht und Kalender-Import, AP-42)
 - Druckbarer Bericht (HTML ohne Skripte; PDF mit dem Extra `pdf`) mit denselben Summen wie die Statistik; Kopfzeile aus `report.author/organization`.
 - Kalender-Import (.ics, Extra `ics`) als Vorschläge mit Bestätigung, atomar gebucht; Grenzen 2 MiB, 90 Tage, 1000 Termine.

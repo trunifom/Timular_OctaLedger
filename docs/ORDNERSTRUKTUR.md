@@ -223,6 +223,7 @@ octaledger/
   tests/unit/test_export_service.py
   tests/unit/test_fileio.py
   tests/unit/test_gui_documentation.py
+  tests/unit/test_hue_extended.py
   tests/unit/test_integration_service.py
   tests/unit/test_integrations_storage.py
   tests/unit/test_link_loss.py

@@ -278,6 +278,20 @@ class IntegrationService:
             self._secrets.update(integration_id, result.secrets)
         return result.message
 
+    def find_targets(self, kind: str, *, online: bool = False) -> list[dict[str, str]]:
+        """Search for a target of an adapter kind on the network (nothing is stored).
+
+        Raises:
+            ValidationError: If the kind is unknown or cannot search.
+        """
+        adapter = self._adapters.get(kind)
+        if adapter is None or not adapter.spec.can_find:
+            raise ValidationError(
+                f"Adapter {kind!r} cannot search",
+                user_message="Für diese Art von Verbindung gibt es keine Suche.",
+            )
+        return adapter.find_targets(online=online, timeout=self._timeout)
+
     def discover(self, integration_id: str) -> dict[str, list[dict[str, str]]]:
         """List what the target offers to choose from (lights, scenes ...)."""
         integration, adapter, secrets = self._target(integration_id)

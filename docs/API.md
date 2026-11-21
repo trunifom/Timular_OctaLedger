@@ -200,6 +200,7 @@ die *Namen* gesetzter Geheimnisse (`secrets_set`).
 | `POST /integrations/{id}/check` | Verbindung testen, ohne Nebenwirkung | – | `{"message"}` |
 | `POST /integrations/{id}/probe` | eine Aktion **jetzt** ausprobieren | `{"params"}` | `{"message"}` |
 | `POST /integrations/{id}/pair` | einmalige Kopplung (z. B. Hue-Bridge-Taste) | – | `{"message"}` |
+| `POST /adapters/{kind}/find` | das Zielgerät im Netz suchen (z. B. Hue Bridge); `online` fragt zusätzlich einen Internetdienst (nur auf ausdrücklichen Wunsch) | `{"online": false}` | `{"items": [{id, address, name}]}`; 422, wenn die Art keine Suche kann |
 | `POST /integrations/{id}/discover` | Lampen, Szenen, Geräte zur Auswahl auflisten | – | `{"items": […]}` |
 | `GET /jobs?limit=50` | Verlauf der gesendeten Aktionen, neueste zuerst (1–200) | – | Liste von **Auftrag** |
 

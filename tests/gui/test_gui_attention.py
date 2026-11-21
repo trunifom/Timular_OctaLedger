@@ -350,3 +350,36 @@ def test_calendar_import_section_and_header_settings(api_server: RunningApi) -> 
     settings = open_page(api_server, "settings")
     assert settings.text_input(key="set_report_author").value == ""
     assert "Voreinstellung" in settings.text_input(key="set_report_org").help
+
+
+def test_bridge_search_fills_the_address_field(api_server: RunningApi) -> None:
+    from octaledger.application.integration_service import IntegrationService
+    from octaledger.core.secrets import SecretStore
+    from octaledger.infrastructure.integrations.hue import HueAdapter
+
+    calls: list[bool] = []
+
+    def local(_timeout: float) -> list[dict[str, str]]:
+        calls.append(False)
+        return [{"id": "x", "address": "192.168.1.77", "name": "Wohnzimmer-Bridge"}]
+
+    def cloud(_timeout: float) -> list[dict[str, str]]:
+        calls.append(True)
+        return []
+
+    api_server.context.integrations = IntegrationService(
+        api_server.storage,
+        SecretStore(api_server.tmp_path / "s2.json"),
+        {"hue": HueAdapter(mdns_finder=local, cloud_finder=cloud)},
+    )
+    at = open_page(api_server, "connections")
+    assert at.button(key="new_conn_find_local").help and at.button(key="new_conn_find_online").help
+    assert any("Anfrage an den Dienst von Philips" in c.value for c in at.caption)
+    at.button(key="new_conn_find_local").click().run()
+    assert calls == [False]  # the internet was not asked
+    assert "Wohnzimmer-Bridge (192.168.1.77)" in at.selectbox(key="new_conn_found_pick").options
+    at.button(key="new_conn_found_use").click().run()
+    assert at.text_input(key="new_conn_hue_host").value == "192.168.1.77"
+    at.button(key="new_conn_find_online").click().run()
+    assert calls.count(True) == 1  # the internet was asked once, on its own click
+    assert "Wohnzimmer-Bridge (192.168.1.77)" in at.selectbox(key="new_conn_found_pick").options

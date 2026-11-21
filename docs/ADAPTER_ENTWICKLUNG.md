@@ -54,6 +54,7 @@ Basisklasse `Adapter` in `src/octaledger/infrastructure/integrations/base.py`:
 | `validate_config(values)` | nein | Einstellungen prüfen; die Basisklasse prüft Typen/Pflichtfelder, überschreiben Sie nur für **zusätzliche** Regeln (z. B. Adresse) |
 | `validate_action(params)` | nein | Parameter einer Aktion prüfen (die Basisklasse prüft Aktion und Felder) |
 | `pair(config, *, timeout) -> PairResult` | nur wenn `can_pair` | einmalige Kopplung; liefert Geheimnisse und Einstellungen zum Speichern |
+| `find_targets(*, online=False, timeout) -> list` | nur wenn `can_find` | das Ziel im Netz suchen: `[{"id", "address", "name"}]`; `online` erlaubt einen Internetdienst und darf **nie** ohne ausdrücklichen Klick des Anwenders benutzt werden |
 | `discover(config, secrets, *, timeout) -> dict` | nur wenn `can_discover` | Auswahllisten, z. B. `{"lights": [{"id": "1", "name": "Schreibtisch"}]}` |
 
 Rückgabe von `check`/`execute`: ein **kurzer deutscher Satz**, der im Verlauf und in der Oberfläche erscheint („Anfrage gesendet (HTTP 200).“). Er darf
@@ -73,6 +74,8 @@ AdapterSpec(
     can_pair=False,
     pair_help="",  # braucht es eine einmalige Kopplung?
     can_discover=False,  # kann sie Geräte/Szenen zur Auswahl auflisten?
+    can_find=False,  # kann sie das Ziel im Netz suchen (Knöpfe „Im Heimnetz suchen“ / „Im Internet nachschlagen“)?
+    find_help="",  # erklärt, was die Suche sendet
 )
 ```
 
