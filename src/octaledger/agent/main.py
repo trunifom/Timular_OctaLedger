@@ -375,7 +375,14 @@ def run_agent(
         backup_count=settings.logging.backup_count,
     )
     logger.info("OctaLedger agent starting (data folder %s)", paths.root)
-    runtime = AgentRuntime(paths, settings, transport_factory=factory or BleakTransportFactory())
+    scan_seconds = (
+        float(settings.agent.scan_timeout_seconds) if settings.agent.scan_before_connect else 0.0
+    )
+    runtime = AgentRuntime(
+        paths,
+        settings,
+        transport_factory=factory or BleakTransportFactory(scan_timeout=scan_seconds),
+    )
     try:
         runtime.start()
         logger.info("Agent running. Press Ctrl+C to stop.")

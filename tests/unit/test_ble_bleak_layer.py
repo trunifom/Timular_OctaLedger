@@ -278,3 +278,49 @@ def test_factory_creates_independent_transports() -> None:
 
     run(scenario())
     assert {s.timeout for s in StubClient.instances} == {7.0}
+
+
+# ------------------------------------------------------------ scan before connect (AP-35)
+
+
+def test_scan_before_connect_passes_the_found_device_to_the_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    device = SimpleNamespace(address="ADDR", name="ZEI")
+    seen: dict[str, Any] = {}
+
+    async def find(address: str, timeout: float) -> Any:
+        seen.update(address=address, timeout=timeout)
+        return device
+
+    monkeypatch.setattr(client_module.BleakScanner, "find_device_by_address", find)
+    run(BleakTransport("ADDR", scan_timeout=4.0).connect())
+    assert seen == {"address": "ADDR", "timeout": 4.0}
+    assert StubClient.instances[0].address is device
+
+
+def test_scan_before_connect_without_device_gives_a_clear_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def find(address: str, timeout: float) -> None:
+        return None
+
+    monkeypatch.setattr(client_module.BleakScanner, "find_device_by_address", find)
+    with pytest.raises(BleConnectionError) as info:
+        run(BleakTransport("ADDR", scan_timeout=1.0).connect())
+    assert info.value.details["stage"] == "scan" and "advertising" in str(info.value)
+    assert StubClient.instances == []  # never tried to connect blindly
+
+
+def test_scan_failure_is_translated(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def find(address: str, timeout: float) -> None:
+        raise BleakError("Bluetooth off")
+
+    monkeypatch.setattr(client_module.BleakScanner, "find_device_by_address", find)
+    with pytest.raises(BleConnectionError):
+        run(BleakTransport("ADDR", scan_timeout=1.0).connect())
+
+
+def test_factory_hands_the_scan_timeout_to_every_transport() -> None:
+    transport = BleakTransportFactory(scan_timeout=5.0).create("ADDR")
+    assert transport._scan_timeout == 5.0  # type: ignore[attr-defined]

@@ -8,6 +8,18 @@ Characteristic:     c7e70012-c847-11e6-8175-8c89a55d403c
 ```
 
 Referenzimplementierungen beschreiben ein Byte, 1–8 für Seiten, 0 neutral.
+Laut README von `adn77/timeular` bedeuten **0 und 10** beide „Würfel liegt in der Basis“.
+OctaLedger behandelt beide als neutral (Tabelle `BASE_VALUES` in `domain/orientation.py`,
+eine einzige Stelle zum Anpassen). Jeder andere Wert (z. B. 9 oder 255) bleibt ein
+`invalid`-Ereignis, dessen Meldung den **Rohwert** nennt (`raw=0x09`), damit man ihn am
+echten Würfel auswerten kann. **Nicht hardwarebestätigt:** ob der eigene Würfel 0 oder 10
+meldet, ist zu prüfen (Ergebnis hier eintragen).
+
+**Verbinden:** Standardmäßig sucht der Agent den Würfel vor dem Verbinden kurz (bis 8 s,
+`[agent] scan_before_connect`, `scan_timeout_seconds` in `settings.toml`), weil Windows ein
+gerade nicht werbendes Gerät sonst oft mit „Device … was not found“ ablehnt. Wirbt der Würfel
+nicht, erscheint die Meldung „einmal drehen oder Knopf drücken“, und der bekannte
+Wiederholungs-Rhythmus greift.
 Diese Angaben sind kein universeller Hardwarebeweis. Eigene USB-C-Tracker und
 Firmware prüfen. Der enthaltene Decoder validiert nur dieses erwartete Format.
 

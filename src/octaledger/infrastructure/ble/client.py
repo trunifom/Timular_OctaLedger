@@ -25,7 +25,7 @@ import asyncio
 import logging
 from typing import Any, Final
 
-from bleak import BleakClient
+from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 
 from octaledger.core.errors import BleConnectionError
@@ -47,15 +47,25 @@ _BLE_FAILURES: Final = (BleakError, OSError, TimeoutError, asyncio.TimeoutError)
 class BleakTransport:
     """A single Bleak connection to one tracker (read and subscribe only)."""
 
-    def __init__(self, address: str, *, timeout: float = CONNECT_TIMEOUT_SECONDS) -> None:
+    def __init__(
+        self,
+        address: str,
+        *,
+        timeout: float = CONNECT_TIMEOUT_SECONDS,
+        scan_timeout: float = 0.0,
+    ) -> None:
         """Create an unconnected transport.
 
         Args:
             address: Platform address/identifier of the device.
             timeout: Connect timeout in seconds.
+            scan_timeout: If greater than zero, scan for the device this many seconds
+                before connecting (Windows often fails to connect to a device that is not
+                advertising right now). ``0`` connects by address directly.
         """
         self._address = address
         self._timeout = timeout
+        self._scan_timeout = scan_timeout
         self._on_disconnect: DisconnectCallback | None = None
         self._client: Any = None
         self._deliberate_close = False
@@ -93,8 +103,11 @@ class BleakTransport:
             BleConnectionError: On timeout, out-of-range device, adapter problems ...
         """
         self._deliberate_close = False
+        target: Any = self._address
+        if self._scan_timeout > 0:
+            target = await self._find_device()
         self._client = BleakClient(
-            self._address, disconnected_callback=self._handle_disconnect, timeout=self._timeout
+            target, disconnected_callback=self._handle_disconnect, timeout=self._timeout
         )
         try:
             await self._client.connect()
@@ -103,6 +116,27 @@ class BleakTransport:
                 f"Connect failed: {exc}", details={"stage": "connect"}
             ) from exc
         logger.info("BLE connected")
+
+    async def _find_device(self) -> Any:
+        """Scan briefly for the device and return the Bleak device object.
+
+        Raises:
+            BleConnectionError: If the scan fails or the device is not advertising.
+        """
+        try:
+            device = await BleakScanner.find_device_by_address(
+                self._address, timeout=self._scan_timeout
+            )
+        except _BLE_FAILURES as exc:
+            raise BleConnectionError(
+                f"Scan before connect failed: {exc}", details={"stage": "scan"}
+            ) from exc
+        if device is None:
+            raise BleConnectionError(
+                "The device is not advertising right now (turn it once or press its button)",
+                details={"stage": "scan"},
+            )
+        return device
 
     async def disconnect(self) -> None:
         """Close the connection; safe to call repeatedly."""
@@ -177,10 +211,11 @@ class BleakTransport:
 class BleakTransportFactory:
     """Creates a fresh :class:`BleakTransport` per connection attempt."""
 
-    def __init__(self, timeout: float = CONNECT_TIMEOUT_SECONDS) -> None:
-        """Remember the connect timeout used for every transport."""
+    def __init__(self, timeout: float = CONNECT_TIMEOUT_SECONDS, scan_timeout: float = 0.0) -> None:
+        """Remember the connect and pre-connect scan timeouts used for every transport."""
         self._timeout = timeout
+        self._scan_timeout = scan_timeout
 
     def create(self, address: str) -> DeviceTransport:
         """Return a new, unconnected transport for ``address``."""
-        return BleakTransport(address, timeout=self._timeout)
+        return BleakTransport(address, timeout=self._timeout, scan_timeout=self._scan_timeout)

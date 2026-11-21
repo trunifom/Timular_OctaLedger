@@ -114,7 +114,11 @@ def test_orientation_payload_ok(value: int) -> None:
     assert decode_orientation_payload(bytes([value])) == value
 
 
-@pytest.mark.parametrize("payload", [b"", b"\x01\x02", b"\x09", b"\xff"])
+def test_orientation_payload_base_value_ten() -> None:
+    assert decode_orientation_payload(b"\x0a") == 0
+
+
+@pytest.mark.parametrize("payload", [b"", b"\x01\x02", b"\x09", b"\x0b", b"\xff"])
 def test_orientation_payload_invalid(payload: bytes) -> None:
     with pytest.raises(ProtocolError):
         decode_orientation_payload(payload)

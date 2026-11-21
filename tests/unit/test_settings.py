@@ -366,3 +366,15 @@ def test_store_reload_picks_up_manual_edit(tmp_path: Path) -> None:
     with pytest.raises(ConfigurationError):
         store.reload()
     assert store.settings.display.theme is Theme.DARK  # a broken file does not replace memory
+
+
+def test_scan_before_connect_defaults_and_validation() -> None:
+    assert AgentSettings().scan_before_connect is True
+    assert AgentSettings().scan_timeout_seconds == 8
+    for bad in (
+        {"scan_before_connect": "ja"},
+        {"scan_timeout_seconds": 1},
+        {"scan_timeout_seconds": 99},
+    ):
+        with pytest.raises(ConfigurationError):
+            AgentSettings(**bad)  # type: ignore[arg-type]

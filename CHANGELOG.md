@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Geändert (Würfel-Eingang, AP-35)
+- Der Basis-Wert **10** wird wie 0 als neutral erkannt (`BASE_VALUES`); ungültige Pakete nennen den Rohwert im Protokoll.
+- Vor dem Verbinden sucht der Agent den Würfel kurz (`[agent] scan_before_connect`, `scan_timeout_seconds`), mit klarer Meldung, wenn er nicht wirbt.
+
 ### Hinzugefügt (Live-Ansicht, Startseite, Einrichtungsassistent)
 - **Würfel live:** Echtzeit-Ansicht mit SVG-Würfel, Entprellzustand, letzten Bewegungen und deren Wirkung.
 - **Startseite:** Erklärung des Würfels, geführte Einrichtung mit einem Klick (Suchen, Registrieren, Zuordnen, Verbinden),

@@ -163,9 +163,13 @@ class AgentSettings:
 
     host: str = "127.0.0.1"
     port: int = 8765
+    #: Scan briefly for the cube before connecting (Windows connects more reliably).
+    scan_before_connect: bool = True
+    #: Seconds the pre-connect scan may take.
+    scan_timeout_seconds: int = 8
 
     def __post_init__(self) -> None:
-        """Validate host (loopback only) and port range."""
+        """Validate host (loopback only), port range and the pre-connect scan."""
         host = self.host.strip().lower() if isinstance(self.host, str) else self.host
         if host not in LOOPBACK_HOSTS:
             raise _fail(
@@ -176,6 +180,14 @@ class AgentSettings:
             )
         object.__setattr__(self, "host", host)  # normalised form
         _check_int("agent", "port", self.port, 1024, 65535)
+        if not isinstance(self.scan_before_connect, bool):
+            raise _fail(
+                "agent",
+                "scan_before_connect",
+                "wahr oder falsch erwartet",
+                self.scan_before_connect,
+            )
+        _check_int("agent", "scan_timeout_seconds", self.scan_timeout_seconds, 2, 30)
 
 
 @dataclass(frozen=True, slots=True)
