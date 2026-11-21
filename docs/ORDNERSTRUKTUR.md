@@ -46,6 +46,7 @@ octaledger/
   docs/ROADMAP.md
   docs/SOFTWAREDOKUMENTATION.md
   docs/TESTPLAN.md
+  docs/UMSETZUNGSPLAN.md
   pyproject.toml
   README.md
   scripts/run_tests.bat

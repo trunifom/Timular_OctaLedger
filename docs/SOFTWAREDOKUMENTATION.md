@@ -1893,7 +1893,7 @@ korrekt bleibt**.
 * **Startseite** (`dashboard/views/start.py`) hat vier Bereiche: *Willkommen* (Was ist der Würfel, Einsatzmöglichkeiten, nächster Schritt), *Einrichten* (geführt),
   **So funktioniert’s** (`_how_it_works`: Agent und Dashboard, die zwei Betriebsarten, Datenspeicherort, Sicherheit, ehrlicher Hinweis, was nicht geprüft ist, Knöpfe zu den
   vertiefenden Dokumenten) und *Handbuch*.
-* **Handbuch** (`dashboard/docs_reader.py`): `DOCUMENTS` nennt zehn Dokumente – Benutzerhandbuch, Installation und Betrieb, Glossar, Architektur, Schnittstelle (API),
+* **Handbuch** (`dashboard/docs_reader.py`): `DOCUMENTS` nennt elf Dokumente (das elfte, „Geplante Erweiterungen“ = `UMSETZUNGSPLAN.md`, kam mit der Planung der Erweiterungen hinzu) – Benutzerhandbuch, Installation und Betrieb, Glossar, Architektur, Schnittstelle (API),
   Datenmodell, Anbindungen entwickeln (Adapter), Software-Dokumentation, Grenzen und Quellen, Sicherheit. `SECURITY.md` liegt im Projektstamm; `ROOT_DOCUMENTS` ist eine feste
   Erlaubnisliste, damit nie ein vom Anwender gelieferter Dateiname gelesen wird. Jedes Dokument wird an den `## `-Überschriften in Kapitel geteilt; Suche über Titel und Text.
 * Die Knöpfe unter „Mehr lesen“ rufen `_open_document(label)` als `on_click`-Rückruf auf: Er setzt Bereich **und** Dokumentauswahl **vor** dem nächsten Lauf (Widget-Schlüssel

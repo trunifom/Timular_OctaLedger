@@ -42,6 +42,7 @@ DOCUMENTS: Final = (
     ("Anbindungen entwickeln (Adapter)", "ADAPTER_ENTWICKLUNG.md"),
     ("Software-Dokumentation", "SOFTWAREDOKUMENTATION.md"),
     ("Grenzen und Quellen", "QUELLEN_UND_GRENZEN.md"),
+    ("Geplante Erweiterungen", "UMSETZUNGSPLAN.md"),
     ("Sicherheit", "SECURITY.md"),
 )
 

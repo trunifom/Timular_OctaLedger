@@ -187,7 +187,7 @@ Wegweiser nach Zielgruppe: **[docs/README.md](docs/README.md)**. Das Benutzerhan
 |---|---|
 | **Anwender** | [Benutzerhandbuch](docs/BENUTZERHANDBUCH.md) (inkl. Kapitel 20 „Dinge steuern“), [Installation und Betrieb](docs/INSTALLATION.md), [Glossar](docs/GLOSSAR.md) |
 | **Entwickler** | [Architektur](docs/ARCHITEKTUR.md), [Softwaredokumentation](docs/SOFTWAREDOKUMENTATION.md), [API-Referenz](docs/API.md), [Datenmodell](docs/DATENMODELL.md), [Adapter-Entwicklung](docs/ADAPTER_ENTWICKLUNG.md), [BLE-Protokoll](docs/BLE_PROTOCOL.md), [Ordnerstruktur](docs/ORDNERSTRUKTUR.md) |
-| **Anforderungen & Planung** | [Pflichtenheft](docs/PFLICHTENHEFT.md), [Roadmap](docs/ROADMAP.md), [Tests](docs/TESTPLAN.md), [Fortschritt](docs/FORTSCHRITT.md), [Änderungen](CHANGELOG.md) |
+| **Anforderungen & Planung** | [Pflichtenheft](docs/PFLICHTENHEFT.md), [Umsetzungsplan der nächsten Erweiterungen](docs/UMSETZUNGSPLAN.md), [Roadmap](docs/ROADMAP.md), [Tests](docs/TESTPLAN.md), [Fortschritt](docs/FORTSCHRITT.md), [Änderungen](CHANGELOG.md) |
 | **Sicherheit, Grenzen, Quellen** | [Sicherheit](SECURITY.md), [Quellen und Grenzen](docs/QUELLEN_UND_GRENZEN.md) |
 | **Gestaltung** | [GUI-Konzept](docs/GUI_KONZEPT.md) |
 | **Mitarbeit & LLM-Agenten** | [CONTRIBUTING](CONTRIBUTING.md), [CLAUDE.md](CLAUDE.md), [AGENTS.md](AGENTS.md), [GitHub](docs/GITHUB.md) |

@@ -43,6 +43,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **API:** `/adapters`, `/integrations` (+ `check`, `probe`, `pair`, `discover`), `/jobs`, `/devices/{id}/mode`, `/devices/{id}/actions/{face}`.
 - **Oberfläche:** Seite *Verbindungen*, Moduswechsel pro Würfel, Aktions-Editor in *Seiten zuordnen*, Live-Ansicht und Geräteseite für Steuerungs-Würfel.
 
+### Geplant (Dokumentation, kein Code)
+- Recherche zu Funktionen für Zeiterfassung und Steuerung; **Pflichtenheft §12** (F-21 bis F-50, Abnahmen A-18 bis A-29) und **`docs/UMSETZUNGSPLAN.md`** (AP-35 bis AP-47 der Reihe nach, mit Warum, Wo, Wie, Tests, Risiken).
+- Fund aus dem ersten echten Lauf: Der Decoder verwarf Werte außerhalb 0–8 als `invalid`; laut Community-Quelle bedeuten 0 und 10 „Würfel in der Basis“ (AP-35).
+
 ### Hinzugefügt (Einstellungen, Würfel- und Datenverwaltung; AP-33, AP-34)
 - **Eine Seite pro Art von Einstellung** (Recherche: Struktur guter Settings-Seiten, Integrations-Einrichtung, destruktive Aktionen, Navigation): *Würfel verwalten*, *App*,
   *Darstellung*, *Smarthome & Verbindungen*; neue Menügruppen *Würfel* und *Einstellungen*.

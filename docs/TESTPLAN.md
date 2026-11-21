@@ -61,6 +61,10 @@ jedes Eingabefeld jeder Seite hat einen Hilfetext; jede Seite hat „So funktion
 | A-16 | Zugangsdaten stehen nie in Datenbank, Sicherung, API-Antwort oder Protokoll | `test_secrets_go_to_the_secret_store_and_never_into_the_settings`, `test_stored_and_loaded_secrets_are_masked_in_log_text`, API-Test „Zugangsdaten tauchen nie in Antworten oder Sicherungen auf“ | – |
 | A-17 | Jede Anbindung funktioniert mit einem **echten** Ziel (Home Assistant, Hue-Bridge, MQTT-Broker, Webhook-Ziel) | – | **offen** (Tester: „Verbindung testen“, „Jetzt ausprobieren“, dann Würfel drehen; Ergebnis hier eintragen) |
 
+### Geplante Abnahmen A-18 bis A-29 (Erweiterungen)
+
+Für die geplanten Pakete AP-35 bis AP-46 stehen die Abnahmekriterien **A-18 bis A-29** im [Pflichtenheft](PFLICHTENHEFT.md#125-neue-abnahmekriterien) §12.5 und je Paket im [Umsetzungsplan](UMSETZUNGSPLAN.md). Sie sind **noch nicht umgesetzt**; die mit **[HW]** gekennzeichneten brauchen den echten Würfel oder echte Geräte und werden hier mit dem Ergebnis eingetragen, sobald sie geprüft sind.
+
 ## 3. Manueller Hardwaretest
 
 Nur auf ausdrücklichen Start, nur Suchen/Lesen/Abonnieren (nie Schreiben, nie automatisches Verbinden
