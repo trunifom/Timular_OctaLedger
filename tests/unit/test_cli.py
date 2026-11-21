@@ -19,7 +19,7 @@ from octaledger.cli import (
 )
 from octaledger.core.errors import ConfigurationError
 from octaledger.infrastructure.ble.protocol import ORIENTATION_SERVICE_UUID
-from tests.conftest import API_TOKEN, RunningApi
+from tests.conftest import API_TOKEN, RunningApi, free_port
 
 # ---------------------------------------------------------------------------- basics
 
@@ -175,8 +175,10 @@ def test_status_reports_a_running_agent(
 
 
 def test_status_without_agent_exits_1_and_without_token_exits_2(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # A free port: on a machine where the real agent is running, the default port is taken.
+    monkeypatch.setenv("OCTALEDGER_PORT", str(free_port()))
     data_dir = tmp_path / "idle"
     assert main(["status", "--data-dir", str(data_dir)]) == EXIT_ERROR  # no token yet
     assert "Fehler [OL-CONFIG-001]" in capsys.readouterr().err

@@ -1,5 +1,6 @@
 """Shared fixtures: a real API server on a free loopback port for integration and GUI tests."""
 
+import os
 import socket
 import threading
 import time
@@ -20,7 +21,7 @@ from octaledger.application.export_service import ExportService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
 from octaledger.core.errors import BleConnectionError
-from octaledger.core.settings import Settings, SettingsStore
+from octaledger.core.settings import ENV_DATA_DIR, Settings, SettingsStore
 from octaledger.dashboard_client.client import ApiClient
 from octaledger.domain.state_machine import ConnectionState
 from octaledger.infrastructure.ble.scanner import ScanResult
@@ -28,6 +29,26 @@ from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
 API_TOKEN = "i" * 43
+
+
+@pytest.fixture(scope="session", autouse=True)
+def isolated_data_dir(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
+    """Keep every test away from the real user profile.
+
+    Code that resolves the default data folder (the dashboard's logging setup, for example) would
+    otherwise write into the OctaLedger folder in ``%LOCALAPPDATA%``: it pollutes the user's real
+    log and fails with a locked-file error when the real agent has that log open.
+    """
+    folder = tmp_path_factory.mktemp("octaledger-profile")
+    previous = os.environ.get(ENV_DATA_DIR)
+    os.environ[ENV_DATA_DIR] = str(folder)
+    try:
+        yield folder
+    finally:
+        if previous is None:
+            os.environ.pop(ENV_DATA_DIR, None)
+        else:
+            os.environ[ENV_DATA_DIR] = previous
 
 
 class FakeAgent:
