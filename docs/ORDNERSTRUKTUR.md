@@ -11,34 +11,39 @@ octaledger/
   .gitignore
   .streamlit/config.toml
   AGENTS.md
+  assets/.gitkeep
   CHANGELOG.md
   CLAUDE.md
-  CONTRIBUTING.md
-  README.md
-  SECURITY.md
-  assets/.gitkeep
   config/settings.example.toml
   constraints-tested.txt
+  CONTRIBUTING.md
   dashboard/app.py
+  docs/ADAPTER_ENTWICKLUNG.md
+  docs/API.md
   docs/ARCHITEKTUR.md
   docs/BENUTZERHANDBUCH.md
   docs/BLE_PROTOCOL.md
   docs/DATENMODELL.md
   docs/FORTSCHRITT.md
   docs/GITHUB.md
+  docs/GLOSSAR.md
   docs/GUI_KONZEPT.md
   docs/INSTALLATION.md
   docs/ORDNERSTRUKTUR.md
   docs/PFLICHTENHEFT.md
   docs/QUELLEN_UND_GRENZEN.md
+  docs/README.md
   docs/ROADMAP.md
   docs/SOFTWAREDOKUMENTATION.md
   docs/TESTPLAN.md
   pyproject.toml
+  README.md
   scripts/run_tests.bat
   scripts/start_agent.bat
   scripts/start_all.bat
   scripts/start_dashboard.bat
+  scripts/update_ordnerstruktur.py
+  SECURITY.md
   src/octaledger/__init__.py
   src/octaledger/__main__.py
   src/octaledger/agent/__init__.py
@@ -72,6 +77,12 @@ octaledger/
   src/octaledger/dashboard/forms.py
   src/octaledger/dashboard/main.py
   src/octaledger/dashboard/nav.py
+  src/octaledger/dashboard/shell.py
+  src/octaledger/dashboard/static/Inter-Variable.woff2
+  src/octaledger/dashboard/static/OFL.txt
+  src/octaledger/dashboard/streamlit_app.py
+  src/octaledger/dashboard/theme.py
+  src/octaledger/dashboard/ui.py
   src/octaledger/dashboard/views/__init__.py
   src/octaledger/dashboard/views/catalog.py
   src/octaledger/dashboard/views/connections.py
@@ -86,12 +97,6 @@ octaledger/
   src/octaledger/dashboard/views/settings.py
   src/octaledger/dashboard/views/start.py
   src/octaledger/dashboard/views/statistics.py
-  src/octaledger/dashboard/shell.py
-  src/octaledger/dashboard/static/Inter-Variable.woff2
-  src/octaledger/dashboard/static/OFL.txt
-  src/octaledger/dashboard/streamlit_app.py
-  src/octaledger/dashboard/theme.py
-  src/octaledger/dashboard/ui.py
   src/octaledger/dashboard_client/__init__.py
   src/octaledger/dashboard_client/client.py
   src/octaledger/domain/__init__.py
@@ -130,8 +135,11 @@ octaledger/
   tests/gui/test_gui_core.py
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_devices_catalog.py
+  tests/gui/test_gui_faces.py
   tests/gui/test_gui_journal_statistics.py
+  tests/gui/test_gui_live.py
   tests/gui/test_gui_redesign.py
+  tests/gui/test_gui_start.py
   tests/hardware/.gitkeep
   tests/hardware/test_hardware_smoke.py
   tests/integration/.gitkeep
@@ -149,10 +157,13 @@ octaledger/
   tests/unit/test_ble_protocol_and_fake.py
   tests/unit/test_cli.py
   tests/unit/test_control_mode.py
+  tests/unit/test_cube.py
   tests/unit/test_dashboard_client.py
-  tests/unit/test_dispatcher.py
   tests/unit/test_database.py
   tests/unit/test_device_catalog_services.py
+  tests/unit/test_dispatcher.py
+  tests/unit/test_docs_reader.py
+  tests/unit/test_documentation.py
   tests/unit/test_errors.py
   tests/unit/test_export_service.py
   tests/unit/test_fileio.py
@@ -180,7 +191,7 @@ octaledger/
 - `src/octaledger/application/` – Anwendungsfälle (Tracking, Geräte, Katalog, Berichte, Export)
 - `src/octaledger/infrastructure/ble/` – Bluetooth: Protokoll, Transport-Abstraktion, Fake, Bleak
 - `src/octaledger/infrastructure/storage/` – SQLite, Migrationen (`migrations/*.sql`), Repositories
-- `src/octaledger/infrastructure/integrations/` – Platz für optionale Ausgabeadapter (F-20, noch leer)
+- `src/octaledger/infrastructure/integrations/` – Adapter des Steuerungsmodus (Webhook, MQTT, Home Assistant, Hue), gemeinsame HTTP-Logik `httpio`
 - `src/octaledger/agent/` – Hintergrundprozess: Laufzeit und Supervisor
 - `src/octaledger/api/` – lokale HTTP-API: Sicherheit, Kontext, Routen, Schemas, App
 - `src/octaledger/dashboard_client/` – HTTP-Client des Dashboards

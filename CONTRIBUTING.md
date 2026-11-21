@@ -31,9 +31,29 @@ laufen nur mit `OCTALEDGER_HARDWARE_TESTS=1` und nie in der CI.
 - **Neue Migration:** `NNNN_name.sql` (lückenlos, kein BEGIN/COMMIT, angewendete Dateien **nie** ändern),
   Test, Doku §9; die Tests leiten die erwartete Version aus den Paketdateien ab.
 - **Neuer Endpunkt:** Service-Methode + Test, Request-Modell (`extra="forbid"`), Route (nur `GET` für
-  Lesendes), Client-Methode, Eintrag in SOFTWAREDOKUMENTATION §19/§20.
+  Lesendes), Client-Methode, Eintrag in [docs/API.md](docs/API.md) (**ein Test schlägt fehl, wenn er fehlt**) und in
+  SOFTWAREDOKUMENTATION §19/§20.
 - **Neue Dashboard-Seite:** Modul in `dashboard/views/` mit `render(client, tz)`, Eintrag in `PAGES`,
-  `page_help` + `help=` an **jedem** Feld, Texte HTML-escapen, `AppTest`-Tests.
+  `page_help` + `help=` an **jedem** Feld, Texte HTML-escapen, `AppTest`-Tests; Seite im Benutzerhandbuch beschreiben.
+- **Neue Art von Verbindung (Adapter):** eine Datei in `infrastructure/integrations/` + eine Zeile in `registry.py`; Oberfläche,
+  API und Datenbank bleiben unverändert. Anleitung mit Beispiel und Checkliste: [docs/ADAPTER_ENTWICKLUNG.md](docs/ADAPTER_ENTWICKLUNG.md).
+
+## Dokumentation gehört zur Änderung
+
+Eine Änderung ist erst fertig, wenn ihre Dokumentation stimmt – **im selben Commit**. Wegweiser: [docs/README.md](docs/README.md).
+
+| Änderung | Mindestens aktualisieren |
+|---|---|
+| Verhalten, das Anwender sehen | Benutzerhandbuch (und ggf. Startseite/Seitenhilfe), Glossar bei neuen Begriffen |
+| Endpunkt | `docs/API.md`, SOFTWAREDOKUMENTATION §19/§20 |
+| Tabelle/Spalte | Migration, `docs/DATENMODELL.md`, Sicherungsformat falls betroffen |
+| Baustein, Thread, Datenfluss | `docs/ARCHITEKTUR.md` |
+| Sicherheitsrelevantes | `SECURITY.md` |
+| neue Datei | `docs/ORDNERSTRUKTUR.md` (Liste erzeugen: `python scripts/update_ordnerstruktur.py`) |
+| Arbeitspaket | `docs/FORTSCHRITT.md` (mit Commit-Hash im **nächsten** Commit), `CHANGELOG.md`, Testzahlen in `docs/TESTPLAN.md` |
+
+Der Test `tests/unit/test_documentation.py` erzwingt das Mechanische: Docstring an **jedem** Modul, jeder Klasse und jeder Funktion; jeder Endpunkt in `docs/API.md`; jede
+Datei in `docs/ORDNERSTRUKTUR.md`; keine toten Verweise zwischen den Markdown-Dateien. Beim Schreiben von Docstrings: Zweck und **Warum** zuerst, Grenzen ehrlich benennen, Fehler (`Raises:`) nennen.
 
 ## Daten und Geheimnisse
 
