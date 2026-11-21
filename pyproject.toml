@@ -22,6 +22,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Optional extras (each feature is greyed out with an explanation when its package is missing).
+tray = ["pystray>=0.19.5", "pillow>=10"]  # LGPL-3.0 (pystray), loaded dynamically
+toast = ["winotify>=1.1"]  # MIT
 dev = [
   "pytest>=8,<10",
   "ruff>=0.9,<1",

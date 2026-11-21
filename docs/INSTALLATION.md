@@ -118,6 +118,13 @@ gehört nie ins Repository, in Screenshots oder Tickets (Logs maskieren es autom
    Kompatibilitätsmatrix von [TESTPLAN.md](TESTPLAN.md) eintragen. **Erst danach** gelten die
    Abnahmekriterien mit Hardwarebezug (A-01, A-05) als geprüft.
 
+## 5b. Start mit Windows, Tray-Symbol und Hinweise
+
+- **Autostart:** `.venv\Scripts\python.exe -m octaledger autostart on` (oder Schalter unter *App* → *Start mit Windows*). Es wird **ein** Wert im Benutzerschlüssel `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` angelegt (kein Administrator nötig): der Befehl `"…\pythonw.exe" -m octaledger agent` (ohne Konsolenfenster). `autostart status` liest den **echten** Zustand, `autostart off` entfernt den Wert. Manche Virenscanner misstrauen Autostart-Einträgen: Der Eintrag ist offen lesbar und enthält nichts Verstecktes. Wird die virtuelle Umgebung verschoben, meldet der Status „veraltet“; `on` erneuert ihn.
+- **Tray-Symbol** (grün läuft, grau ruht, rot Würfel getrennt, gelb Rückfrage offen): `pip install -e ".[tray]"` (pystray, **LGPL-3.0**, nur als optionale Abhängigkeit). Ohne das Paket läuft alles andere unverändert, der Schalter ist abgeblendet.
+- **Windows-Hinweise** (Toast) für neue Rückfragen: `pip install -e ".[toast]"` (winotify, MIT) und Schalter unter *App* → *Hinweise und Symbol*. Ruhezeit (Voreinstellung 22:00 bis 07:00) und Aus-Schalter (Voreinstellung aus) sind einstellbar. Hinweise enthalten nie Notizen oder Namen.
+- **Nicht auf echtem Desktop geprüft:** Autostart-Befehl, Symbol und Toast sind mit Attrappen getestet; ob sie auf Ihrem Windows erscheinen, bitte kurz prüfen (Anmelden, Symbol sichtbar, Testhinweis).
+
 ## 5a. Netzwerk für den Steuerungsmodus
 
 Der Steuerungsmodus sendet **von diesem Rechner aus** an Ihre Geräte; es gehen keine Verbindungen von außen herein.

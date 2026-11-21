@@ -69,6 +69,8 @@ def build_parser() -> argparse.ArgumentParser:
     agent.add_argument(
         "--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], help="Protokollstufe"
     )
+    autostart = commands.add_parser("autostart", help="Start mit Windows ein-/ausschalten")
+    autostart.add_argument("mode", choices=["on", "off", "status"], help="on, off oder status")
     with_data_dir(commands.add_parser("dashboard", help="Dashboard im Browser starten"))
     with_data_dir(commands.add_parser("status", help="Agentenstatus anzeigen"))
     scan = commands.add_parser("scan", help="Bluetooth-Geräte in der Nähe suchen (verbindet nie)")
@@ -98,6 +100,29 @@ def _cmd_agent(args: argparse.Namespace) -> int:
     from octaledger.agent.main import run_agent
 
     run_agent(args.data_dir, args.log_level)
+    return EXIT_OK
+
+
+def _cmd_autostart(args: argparse.Namespace) -> int:
+    """Switch the Windows autostart entry on or off, or show its real state."""
+    from octaledger.infrastructure.system.autostart import Autostart
+
+    switch = Autostart()
+    if args.mode == "on":
+        status = switch.enable()
+    elif args.mode == "off":
+        status = switch.disable()
+    else:
+        status = switch.status()
+    if not status.available:
+        print("Autostart gibt es nur unter Windows.")
+        return EXIT_NEGATIVE
+    if status.enabled:
+        note = "" if status.current else " (veraltet: „on“ erneuert den Befehl)"
+        print(f"Autostart: an{note}")
+        print(f"Befehl: {status.command}")
+    else:
+        print("Autostart: aus")
     return EXIT_OK
 
 
@@ -242,6 +267,7 @@ _COMMANDS = {
     "status": _cmd_status,
     "scan": _cmd_scan,
     "paths": _cmd_paths,
+    "autostart": _cmd_autostart,
     "backup": _cmd_backup,
     "restore": _cmd_restore,
 }

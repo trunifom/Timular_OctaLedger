@@ -202,6 +202,12 @@ class AttentionResolve(_Strict):
     until: datetime | None = None
 
 
+class AutostartBody(_Strict):
+    """Switch "start with Windows" on or off."""
+
+    enabled: bool
+
+
 class ButtonBody(_Strict):
     """The action of a button press (``none`` clears it)."""
 

@@ -22,6 +22,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, Query
 
 from octaledger import __version__
+from octaledger.agent.tray import tray_available
 from octaledger.api.context import AppContext
 from octaledger.api.schemas import (
     API_VERSION,
@@ -29,6 +30,7 @@ from octaledger.api.schemas import (
     AddressBody,
     ArchiveBody,
     AttentionResolve,
+    AutostartBody,
     ButtonBody,
     CatalogCreate,
     CatalogUpdate,
@@ -80,6 +82,7 @@ from octaledger.core.settings import (
 from octaledger.domain.attention import AttentionKind
 from octaledger.domain.models import DeviceMode
 from octaledger.domain.time_rules import ensure_utc, utc_now
+from octaledger.infrastructure.system.toast import toast_available
 
 logger = logging.getLogger(__name__)
 
@@ -392,6 +395,36 @@ def build_router(ctx: AppContext) -> APIRouter:
         moment = now()
         flt = ReportFilter(start, end, device_id, activity_id, project_id)
         return [journal_out(e, moment) for e in ctx.reports.journal(flt)]
+
+    # ---------------------------------------------------------------------- system
+    def autostart_out() -> dict[str, Any]:
+        """The autostart state as an API answer."""
+        status = ctx.autostart.status()
+        return {
+            "available": status.available,
+            "enabled": status.enabled,
+            "current": status.current,
+            "command": status.command,
+        }
+
+    @router.get("/system/autostart")
+    def get_autostart() -> dict[str, Any]:
+        """Whether OctaLedger starts with Windows (read from the registry)."""
+        return autostart_out()
+
+    @router.put("/system/autostart")
+    def set_autostart(body: AutostartBody) -> dict[str, Any]:
+        """Switch "start with Windows" on or off (Windows only; 409 elsewhere)."""
+        if body.enabled:
+            ctx.autostart.enable()
+        else:
+            ctx.autostart.disable()
+        return autostart_out()
+
+    @router.get("/system/capabilities")
+    def capabilities() -> dict[str, Any]:
+        """Which optional extras are installed (tray icon, toast messages)."""
+        return {"tray": tray_available(), "toast": toast_available()}
 
     # --------------------------------------------------------------------- buttons
     @router.get("/devices/{device_id}/buttons")

@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Tray, Hinweise, Autostart, AP-39)
+- Autostart über den Benutzer-Run-Schlüssel (`octaledger autostart on|off|status`, `GET/PUT /system/autostart`, Schalter unter *App*), Zustand wird gelesen.
+- Tray-Symbol (optionales Extra `tray`, Zustand als Farbe, Tooltip, Menü) und Windows-Hinweise (optionales Extra `toast`, Ruhezeit) für neue Rückfragen; Einstellungen `tray`, `notifications.toast/quiet_*`.
+
 ### Hinzugefügt (Arbeitstag, AP-38)
 - Einstellungen `work` (alles aus): Arbeitsende mit Auto-Stopp und Rückfrage, Arbeitstage, Leerlauf-Erkennung (`GetLastInputInfo`, nur die Dauer), Erinnerungen „Zeit starten?“ und „Noch dabei?“.
 - Rückfragen `idle` und `auto_stop` mit Antworten in der Oberfläche und über `POST /attention/{id}/resolve`.

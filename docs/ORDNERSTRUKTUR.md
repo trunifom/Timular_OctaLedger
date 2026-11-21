@@ -62,6 +62,7 @@ octaledger/
   src/octaledger/agent/housekeeper.py
   src/octaledger/agent/main.py
   src/octaledger/agent/supervisor.py
+  src/octaledger/agent/tray.py
   src/octaledger/api/__init__.py
   src/octaledger/api/app.py
   src/octaledger/api/context.py
@@ -76,6 +77,7 @@ octaledger/
   src/octaledger/application/device_service.py
   src/octaledger/application/export_service.py
   src/octaledger/application/integration_service.py
+  src/octaledger/application/notifier.py
   src/octaledger/application/outbox.py
   src/octaledger/application/reporting_service.py
   src/octaledger/application/tracking_service.py
@@ -151,7 +153,9 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0005_buttons.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
+  src/octaledger/infrastructure/system/autostart.py
   src/octaledger/infrastructure/system/idle.py
+  src/octaledger/infrastructure/system/toast.py
   tests/__init__.py
   tests/conftest.py
   tests/fake_adapter.py
@@ -217,6 +221,7 @@ octaledger/
   tests/unit/test_time_intervals.py
   tests/unit/test_time_rules.py
   tests/unit/test_tracking_service.py
+  tests/unit/test_tray_notify_autostart.py
   tests/unit/test_workday.py
 ```
 

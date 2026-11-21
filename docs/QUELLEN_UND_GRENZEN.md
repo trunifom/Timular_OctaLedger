@@ -23,6 +23,14 @@
   Vorschau mit Simulator und Beispieldaten aufgenommen. Das zeigt das Rendering in **einem** Browser bei 1280 Pixeln Breite, ersetzt aber keinen Test auf kleinen
   Bildschirmen oder in anderen Browsern.
 
+## Optionale Zusatzpakete und Lizenzen
+
+| Paket | Zweck | Lizenz | Hinweis |
+|---|---|---|---|
+| `pystray` | Tray-Symbol (Extra `tray`) | LGPL-3.0 (belegt) | nur optional und dynamisch geladen; seit 2023 wenig gepflegt (Wartungsrisiko); bei einer gebündelten Auslieferung LGPL-Hinweise beilegen |
+| `pillow` | Symbolbild für das Tray | HPND (PIL-Lizenz) | kommt ohnehin mit Streamlit |
+| `winotify` | Windows-Hinweise (Extra `toast`) | MIT (belegt) | ohne eigene AppUserModelID erscheint ggf. ein Interpreter-Name als Absender [U] |
+
 ## Was **nicht** geprüft wurde (Grenzen)
 
 - **Keine echte BLE-Hardware:** Weder Scan noch Verbindung, Benachrichtigungen, Reconnect, Reichweite,

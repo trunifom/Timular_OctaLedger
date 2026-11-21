@@ -256,6 +256,14 @@ Korrektur schreibt Vorher/Nachher, Begründung und Zeitpunkt in die Prüfspur (s
 
 **Journalzeile** = Sitzung plus `activity_name`, `project_name`, `device_alias`.
 
+### System (AP-39)
+
+| Methode und Pfad | Zweck | Anfrage | Antwort |
+|---|---|---|---|
+| `GET /system/autostart` | Start mit Windows: echter Zustand aus der Registry | – | `{available, enabled, current, command}` |
+| `PUT /system/autostart` | ein-/ausschalten (nur Windows; sonst 409) | `{"enabled": true\|false}` | wie oben |
+| `GET /system/capabilities` | welche optionalen Zusatzpakete installiert sind | – | `{tray, toast}` |
+
 ### Rückfragen (Attention Items, AP-36)
 
 | Methode und Pfad | Zweck | Anfrage | Antwort |

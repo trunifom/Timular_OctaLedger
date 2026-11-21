@@ -484,6 +484,10 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - Unter **Diagnose** sehen Sie je Gerät Verbindungsstatus, Anzahl Fehlversuche, letzten Fehler,
   Batteriestand (wenn das Gerät ihn meldet) und die Zahl ignorierter doppelter Meldungen.
 
+### Start mit Windows, Tray-Symbol, Hinweise
+
+Unter *App*: **Mit Windows starten** (damit der Agent nach der Anmeldung von selbst läuft; ein sichtbarer Eintrag in Ihrem Benutzerprofil, ausschalten entfernt ihn), **Symbol im Infobereich** (grün = läuft, grau = ruht, rot = Würfel getrennt, gelb = Rückfrage wartet; Menü: Zeit stoppen, Pause/Fortsetzen, Dashboard öffnen, Beenden) und **Meldungen als Windows-Hinweis** mit Ruhezeit. Symbol und Hinweise brauchen je ein Zusatzpaket (siehe Installation §5b); ohne sind die Schalter abgeblendet. Das Banner im Dashboard gibt es immer.
+
 ### Arbeitstag: Auto-Stopp, Leerlauf, Erinnerungen
 
 Unter *App* → **Arbeitstag** (alles **nach der Installation aus**):

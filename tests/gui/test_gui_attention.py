@@ -195,3 +195,39 @@ def test_idle_and_auto_stop_questions_have_their_answers(api_server: RunningApi)
     labels = [b.label for b in at.button if b.key and b.key.startswith("att_")]
     assert "Zeit behalten" in labels and "Als Pause buchen" in labels and "So lassen" in labels
     assert all(b.help for b in at.button if b.key and b.key.startswith("att_"))
+
+
+def test_notification_tray_and_autostart_controls(api_server: RunningApi) -> None:
+    from octaledger.infrastructure.system.autostart import Autostart
+
+    class Memory:
+        value: str | None = None
+
+        def read(self, name: str) -> str | None:
+            return self.value
+
+        def write(self, name: str, value: str) -> None:
+            self.value = value
+
+        def delete(self, name: str) -> None:
+            self.value = None
+
+    api_server.context.autostart = Autostart(Memory(), available=True)
+    at = open_page(api_server, "settings")
+    toast, tray = at.toggle(key="set_toast"), at.toggle(key="set_tray")
+    assert toast.value is False and "Voreinstellung: aus" in toast.help
+    assert tray.help and at.text_input(key="set_quiet_start").value == "22:00"
+    switch = at.toggle(key="set_autostart")
+    assert switch.value is False and switch.help
+    switch.set_value(True).run()
+    assert api_server.client.autostart()["enabled"] is True
+    assert at.toggle(key="set_autostart").value is True
+
+
+def test_autostart_section_explains_when_unavailable(api_server: RunningApi) -> None:
+    from octaledger.infrastructure.system.autostart import Autostart
+
+    api_server.context.autostart = Autostart(available=False)
+    at = open_page(api_server, "settings")
+    assert any("nur unter Windows" in i.value for i in at.info)
+    assert not [t for t in at.toggle if t.key == "set_autostart"]

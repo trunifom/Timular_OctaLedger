@@ -23,6 +23,7 @@ from octaledger.application.workday_service import WorkdayService
 from octaledger.core.settings import SettingsStore
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.repositories import Storage
+from octaledger.infrastructure.system.autostart import Autostart
 from octaledger.infrastructure.system.idle import FixedInputProbe, InputProbe
 
 
@@ -77,6 +78,7 @@ class AppContext:
     integrations: IntegrationService | None = None
     data: DataService | None = None
     probe: InputProbe = field(default_factory=FixedInputProbe)
+    autostart: Autostart = field(default_factory=Autostart)
     attention: AttentionService = field(init=False)
     workday: WorkdayService = field(init=False)
 

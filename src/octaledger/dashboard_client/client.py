@@ -623,6 +623,23 @@ class ApiClient:
         )
         return result
 
+    def autostart(self) -> dict[str, Any]:
+        """Whether OctaLedger starts with Windows (read from the registry)."""
+        result: dict[str, Any] = self._get("/system/autostart")
+        return result
+
+    def set_autostart(self, enabled: bool) -> dict[str, Any]:
+        """Switch "start with Windows" on or off."""
+        result: dict[str, Any] = self._request(
+            "PUT", "/system/autostart", json={"enabled": enabled}
+        )
+        return result
+
+    def capabilities(self) -> dict[str, Any]:
+        """Which optional extras (tray icon, toast messages) are installed."""
+        result: dict[str, Any] = self._get("/system/capabilities")
+        return result
+
     def device_buttons(self, device_id: str) -> dict[str, str | None]:
         """The actions of the short and long button press (``None`` = nothing)."""
         result: dict[str, Any] = self._get(f"/devices/{device_id}/buttons")

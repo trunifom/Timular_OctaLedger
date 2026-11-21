@@ -37,6 +37,7 @@ import uvicorn
 from octaledger.agent.dispatcher import ActionDispatcher
 from octaledger.agent.housekeeper import Housekeeper
 from octaledger.agent.supervisor import AgentSupervisor, DeviceStatus, SupervisorTuning
+from octaledger.agent.tray import PystrayTray, TrayModel, tray_available
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.api.security import TOKEN_FILE_NAME, load_or_create_token
@@ -45,6 +46,7 @@ from octaledger.application.catalog_service import CatalogService
 from octaledger.application.device_service import DeviceService
 from octaledger.application.export_service import ExportService
 from octaledger.application.integration_service import IntegrationService
+from octaledger.application.notifier import NotificationRelay
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
 from octaledger.core.errors import (
@@ -72,6 +74,7 @@ from octaledger.infrastructure.integrations.registry import default_adapters
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from octaledger.infrastructure.system.idle import WindowsInputProbe
+from octaledger.infrastructure.system.toast import WinToastNotifier
 
 logger = logging.getLogger(__name__)
 
@@ -175,12 +178,21 @@ class AgentRuntime:
             lambda: self.context.settings.settings.notifications,
             lambda device_id: self._device_name(device_id),
         )
+        self._relay = NotificationRelay(
+            storage,
+            [WinToastNotifier()],
+            lambda: self.context.settings.settings.notifications,
+            lambda: self.context.settings.settings.display.timezone,
+        )
+        self._tray: PystrayTray | None = None
         self._housekeeper = Housekeeper(
             [
                 self.context.tracking.watchdog,
                 self.context.attention.expire_old,
                 self.context.workday.tick,
                 self._battery_watch.check,
+                self._relay.check,
+                self._refresh_tray,
             ]
         )
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -202,6 +214,7 @@ class AgentRuntime:
         check_port_free(self._settings.agent.host, self._settings.agent.port)
         self._start_ble_loop()
         self._dispatcher.start()
+        self._start_tray()
         self._housekeeper.start()
         config = uvicorn.Config(
             create_app(self.context),
@@ -256,6 +269,8 @@ class AgentRuntime:
             self._api_thread.join(timeout=10)
         self._dispatcher.stop()
         self._housekeeper.stop()
+        if self._tray is not None:
+            self._tray.stop()
         loop, supervisor = self._loop, self._supervisor
         if loop is not None and supervisor is not None and loop.is_running():
             try:
@@ -360,6 +375,25 @@ class AgentRuntime:
         if supervisor is None:
             raise ApiUnavailableError("The BLE loop is not running")
         self._call(supervisor.stop_device(device_id))
+
+    def _start_tray(self) -> None:
+        """Show the tray icon when it is enabled and the optional package is installed."""
+        if not self._settings.tray.enabled or not tray_available():
+            return
+        model = TrayModel(
+            self.context.tracking,
+            self.context.attention,
+            self.device_statuses,
+            self.request_stop,
+        )
+        tray = PystrayTray(model)
+        if tray.start():
+            self._tray = tray
+
+    def _refresh_tray(self) -> None:
+        """Housekeeper task: keep the icon colour and tooltip current."""
+        if self._tray is not None:
+            self._tray.refresh()
 
     def _device_name(self, device_id: str) -> str:
         """Alias of a device for messages (empty if it no longer exists)."""

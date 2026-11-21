@@ -284,10 +284,36 @@ class NotificationSettings:
 
     #: Warn once when the cube's battery falls below this percentage; 0 switches it off.
     battery_warning_percent: int = 20
+    #: Show new questions as Windows toasts (needs the optional ``toast`` package).
+    toast: bool = False
+    #: No toasts between these times (``HH:MM``, may span midnight); empty = no quiet hours.
+    quiet_start: str = "22:00"
+    quiet_end: str = "07:00"
 
     def __post_init__(self) -> None:
-        """Validate the range."""
+        """Validate the values."""
         _check_int("notifications", "battery_warning_percent", self.battery_warning_percent, 0, 90)
+        if not isinstance(self.toast, bool):
+            raise _fail("notifications", "toast", "wahr oder falsch erwartet", self.toast)
+        object.__setattr__(
+            self, "quiet_start", _check_clock("notifications", "quiet_start", self.quiet_start)
+        )
+        object.__setattr__(
+            self, "quiet_end", _check_clock("notifications", "quiet_end", self.quiet_end)
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class TraySettings:
+    """The tray icon next to the clock."""
+
+    #: Show the icon when the optional ``tray`` package is installed.
+    enabled: bool = True
+
+    def __post_init__(self) -> None:
+        """Validate the value."""
+        if not isinstance(self.enabled, bool):
+            raise _fail("tray", "enabled", "wahr oder falsch erwartet", self.enabled)
 
 
 def _check_clock(section: str, key: str, value: object) -> str:
@@ -363,6 +389,7 @@ class Settings:
     logging: LoggingSettings = field(default_factory=LoggingSettings)
     notifications: NotificationSettings = field(default_factory=NotificationSettings)
     work: WorkSettings = field(default_factory=WorkSettings)
+    tray: TraySettings = field(default_factory=TraySettings)
 
 
 #: Section name -> settings class, the single source for parsing and serialising.
@@ -373,6 +400,7 @@ _SECTIONS: Final[dict[str, type]] = {
     "logging": LoggingSettings,
     "notifications": NotificationSettings,
     "work": WorkSettings,
+    "tray": TraySettings,
 }
 
 

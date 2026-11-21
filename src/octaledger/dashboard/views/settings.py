@@ -21,6 +21,7 @@ from octaledger.core.settings import (
     NotificationSettings,
     Settings,
     TrackingSettings,
+    TraySettings,
     WorkSettings,
 )
 from octaledger.dashboard.ui import call, page_help
@@ -44,6 +45,7 @@ DEFAULT_TRACKING = TrackingSettings()
 DEFAULT_LOGGING = LoggingSettings()
 DEFAULT_NOTIFICATIONS = NotificationSettings()
 DEFAULT_WORK = WorkSettings()
+DEFAULT_TRAY = TraySettings()
 WEEKDAYS = {
     "1": "Montag",
     "2": "Dienstag",
@@ -80,6 +82,8 @@ def render(client: ApiClient, tz: str) -> None:
     display, tracking, logging_ = settings["display"], settings["tracking"], settings["logging"]
     notifications = settings["notifications"]
     work = settings["work"]
+    ok_x, caps = call(client.capabilities)
+    extras = caps if ok_x and caps else {}
     zones = sorted(available_timezones())
     if display["timezone"] not in zones:
         zones.insert(0, display["timezone"])
@@ -223,6 +227,48 @@ def render(client: ApiClient, tz: str) -> None:
                 help="Läuft ein einzelner Eintrag so lange, erinnert OctaLedger einmal. "
                 "Voreinstellung: 0 (aus).",
             )
+        st.subheader("Hinweise und Symbol")
+        with st.expander("Meldungen und Tray-Symbol", key="set_notify"):
+            toast = st.toggle(
+                "Meldungen als Windows-Hinweis",
+                value=bool(notifications["toast"]),
+                disabled=not extras.get("toast", False),
+                key="set_toast",
+                help="Neue Rückfragen erscheinen zusätzlich als Windows-Hinweis (nie mit Notizen). "
+                "Braucht das Zusatzpaket „toast“: pip install octaledger[toast]. "
+                "Voreinstellung: aus.",
+            )
+            quiet_start = st.text_input(
+                "Ruhezeit von (HH:MM, leer = keine)",
+                value=notifications["quiet_start"],
+                key="set_quiet_start",
+                max_chars=5,
+                help="In der Ruhezeit gibt es keine Windows-Hinweise (das Banner im Dashboard "
+                f"bleibt). Voreinstellung: {DEFAULT_NOTIFICATIONS.quiet_start}.",
+            )
+            quiet_end = st.text_input(
+                "Ruhezeit bis (HH:MM)",
+                value=notifications["quiet_end"],
+                key="set_quiet_end",
+                max_chars=5,
+                help="Ende der Ruhezeit; sie darf über Mitternacht gehen. "
+                f"Voreinstellung: {DEFAULT_NOTIFICATIONS.quiet_end}.",
+            )
+            tray = st.toggle(
+                "Symbol im Infobereich (Tray)",
+                value=bool(settings["tray"]["enabled"]),
+                disabled=not extras.get("tray", False),
+                key="set_tray",
+                help="Zeigt neben der Uhr, ob die Zeiterfassung läuft (grün), ruht (grau), der "
+                "Würfel getrennt ist (rot) oder eine Rückfrage wartet (gelb). Braucht das "
+                "Zusatzpaket „tray“: pip install octaledger[tray]. Wirkt nach einem Neustart "
+                "des Agenten. Voreinstellung: an (sobald das Paket installiert ist).",
+            )
+            if not all(extras.values()):
+                st.caption(
+                    "Abgeblendete Schalter brauchen ein Zusatzpaket (siehe Hilfetext). Ohne das "
+                    "Paket funktioniert alles andere unverändert."
+                )
         submitted = st.form_submit_button(
             "💾 Einstellungen speichern",
             type="primary",
@@ -240,7 +286,13 @@ def render(client: ApiClient, tz: str) -> None:
                 "neutral_policy": neutral,
             },
             "logging": {"level": level},
-            "notifications": {"battery_warning_percent": int(battery)},
+            "notifications": {
+                "battery_warning_percent": int(battery),
+                "toast": bool(toast),
+                "quiet_start": quiet_start,
+                "quiet_end": quiet_end,
+            },
+            "tray": {"enabled": bool(tray)},
             "work": {
                 "workday_end": workday_end,
                 "workdays": ",".join(days) or work["workdays"],
@@ -267,7 +319,8 @@ def render(client: ApiClient, tz: str) -> None:
                     "Agenten** (`octaledger agent`)."
                 )
 
-    _reset(client, display, tracking, logging_, notifications, work)
+    _autostart(client)
+    _reset(client, display, tracking, logging_, notifications, work, settings["tray"])
     with st.expander("Technische Angaben (nur lesen)", key="set_technical"):
         agent = settings["agent"]
         st.markdown(
@@ -281,6 +334,37 @@ def render(client: ApiClient, tz: str) -> None:
         )
 
 
+def _autostart(client: ApiClient) -> None:
+    """The "start with Windows" switch (acts at once; the state is read from Windows)."""
+    ok, state = call(client.autostart)
+    if not ok or state is None:
+        return
+    st.subheader("Start mit Windows")
+    if not state["available"]:
+        st.info("„Mit Windows starten“ gibt es nur unter Windows.")
+        return
+    st.caption(
+        "OctaLedger startet nach der Windows-Anmeldung von selbst im Hintergrund, damit Ihre "
+        "Zeiterfassung nie wegen eines vergessenen Starts fehlt. Es wird ein einziger, sichtbarer "
+        "Eintrag in Ihrem Benutzerprofil angelegt (kein Administrator nötig); ausschalten entfernt "
+        "ihn wieder."
+    )
+    wanted = st.toggle(
+        "Mit Windows starten",
+        value=bool(state["enabled"]),
+        key="set_autostart",
+        help="Schaltet den Autostart ein oder aus. Der Zustand wird direkt aus Windows gelesen. "
+        "Voreinstellung: aus.",
+    )
+    if wanted != state["enabled"] and call(client.set_autostart, wanted)[0]:
+        st.rerun()
+    if state["enabled"] and not state["current"]:
+        st.warning(
+            "Der gespeicherte Startbefehl weicht von dieser Installation ab (Ordner verschoben?). "
+            "Aus- und wieder Einschalten erneuert ihn."
+        )
+
+
 def _reset(
     client: ApiClient,
     display: dict[str, str],
@@ -288,6 +372,7 @@ def _reset(
     logging_: dict[str, object],
     notifications: dict[str, object],
     work: dict[str, object],
+    tray: dict[str, object],
 ) -> None:
     """The way back: every setting of this page to its default (looks are not touched)."""
     already_default = (
@@ -299,8 +384,8 @@ def _reset(
         and tracking["neutral_policy"] == DEFAULT_TRACKING.neutral_policy.value
         and logging_["level"] == DEFAULT_LOGGING.level
         and work == dataclasses.asdict(DEFAULT_WORK)
-        and notifications["battery_warning_percent"]
-        == DEFAULT_NOTIFICATIONS.battery_warning_percent
+        and notifications == dataclasses.asdict(DEFAULT_NOTIFICATIONS)
+        and tray["enabled"] == DEFAULT_TRAY.enabled
     )
     if st.button(
         "Auf Voreinstellungen zurücksetzen",
@@ -315,6 +400,7 @@ def _reset(
             call(client.reset_settings, "logging")[0],
             call(client.reset_settings, "notifications")[0],
             call(client.reset_settings, "work")[0],
+            call(client.reset_settings, "tray")[0],
             call(client.update_settings, {"display": {"timezone": DEFAULT_TIMEZONE}})[0],
         ]
         if all(done):

@@ -100,8 +100,10 @@ def test_a_bouncing_press_counts_once_but_short_and_long_are_separate(env: Env) 
         await finish(worker, task)
 
     run(scenario())
-    details = [e.detail for e in env.events() if e.kind is EventKind.BUTTON]
-    assert details == ["short", "long"]
+    pressed = sorted(
+        (e for e in env.events() if e.kind is EventKind.BUTTON), key=lambda e: e.sequence
+    )
+    assert [e.detail for e in pressed] == ["short", "long"]  # equal timestamps: use the sequence
 
 
 def test_an_unknown_button_packet_is_a_diagnostic_event(env: Env) -> None:  # noqa: F811
