@@ -8,7 +8,8 @@ hold everywhere:
 
 * **Atomic writes** - data is first written to a temporary file in the *same directory*,
   flushed and ``fsync``-ed, then moved over the target with :func:`os.replace`, which is
-  atomic on Windows and POSIX. A crash or full disk can therefore never leave a
+  atomic on Windows and POSIX (retried briefly if Windows reports the target as locked).
+  A crash or full disk can therefore never leave a
   half-written target; the previous version stays intact.
 * **Bounded reads** - untrusted input is size-limited before it is read, so a huge or
   malicious file cannot exhaust memory.
@@ -22,6 +23,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
+import time
 from pathlib import Path
 
 from octaledger.core.errors import ImportDataError, OctaLedgerError, StorageError
@@ -30,6 +32,27 @@ logger = logging.getLogger(__name__)
 
 #: Default upper bound for untrusted input files (50 MiB).
 DEFAULT_MAX_READ_BYTES = 50 * 1024 * 1024
+
+#: Waits (seconds) between attempts to move the temp file over a target that is briefly locked.
+_REPLACE_RETRY_DELAYS = (0.02, 0.05, 0.1, 0.2, 0.4)
+
+
+def _replace_with_retry(source: str, target: Path) -> None:
+    """``os.replace`` that waits briefly while Windows reports the target as in use.
+
+    Windows raises ``PermissionError`` (WinError 5/32) when another handle on the target is open
+    for a moment: a reader, a second writer, a virus scanner or an indexer. Such a lock is short,
+    so a few short retries almost always succeed; a real permission problem still fails (and is
+    reported) after about 0.8 s.
+    """
+    for delay in _REPLACE_RETRY_DELAYS:
+        try:
+            os.replace(source, target)
+            return
+        except PermissionError:
+            logger.debug("%s is locked, retrying in %.2f s", target, delay)
+            time.sleep(delay)
+    os.replace(source, target)  # last attempt: a persistent failure propagates
 
 
 def atomic_write_bytes(
@@ -63,7 +86,7 @@ def atomic_write_bytes(
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())  # force data to disk before the swap
-        os.replace(temp_name, path)
+        _replace_with_retry(temp_name, path)
         temp_name = None  # ownership transferred to the target path
         logger.debug("Atomically wrote %d bytes to %s", len(data), path)
     except OSError as exc:

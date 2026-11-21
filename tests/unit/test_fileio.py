@@ -79,6 +79,43 @@ def test_failed_replace_keeps_old_file_and_cleans_temp(
     assert _leftover_temp_files(tmp_path) == []  # no orphan
 
 
+def test_briefly_locked_target_is_retried(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Windows reports a target that is open elsewhere for a moment as PermissionError."""
+    target = tmp_path / "settings.toml"
+    real_replace = os.replace
+    attempts: list[int] = []
+
+    def flaky_replace(src: str, dst: Path) -> None:
+        attempts.append(1)
+        if len(attempts) <= 2:
+            raise PermissionError(5, "Zugriff verweigert")
+        real_replace(src, dst)
+
+    monkeypatch.setattr(fileio.os, "replace", flaky_replace)
+    monkeypatch.setattr(fileio.time, "sleep", lambda _seconds: None)
+    atomic_write_text(target, "saved")
+    assert len(attempts) == 3
+    assert target.read_text(encoding="utf-8") == "saved"
+    assert _leftover_temp_files(tmp_path) == []
+
+
+def test_permanently_locked_target_still_fails_cleanly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "settings.toml"
+    target.write_text("original", encoding="utf-8")
+
+    def denied(src: str, dst: Path) -> None:
+        raise PermissionError(5, "Zugriff verweigert")
+
+    monkeypatch.setattr(fileio.os, "replace", denied)
+    monkeypatch.setattr(fileio.time, "sleep", lambda _seconds: None)
+    with pytest.raises(StorageError):
+        atomic_write_text(target, "new")
+    assert target.read_text(encoding="utf-8") == "original"
+    assert _leftover_temp_files(tmp_path) == []
+
+
 def test_write_to_directory_path_fails_with_error_class(tmp_path: Path) -> None:
     directory = tmp_path / "dir"
     directory.mkdir()
