@@ -106,6 +106,7 @@ octaledger/
   src/octaledger/infrastructure/integrations/__init__.py
   src/octaledger/infrastructure/integrations/base.py
   src/octaledger/infrastructure/integrations/registry.py
+  src/octaledger/infrastructure/integrations/webhook.py
   src/octaledger/infrastructure/storage/__init__.py
   src/octaledger/infrastructure/storage/database.py
   src/octaledger/infrastructure/storage/migrations/0001_initial.sql
@@ -129,6 +130,7 @@ octaledger/
   tests/integration/test_agent_runtime.py
   tests/integration/test_client_server.py
   tests/unit/__init__.py
+  tests/unit/test_adapter_webhook.py
   tests/unit/test_api.py
   tests/unit/test_api_security.py
   tests/unit/test_ble_bleak_layer.py

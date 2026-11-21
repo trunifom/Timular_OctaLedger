@@ -37,6 +37,7 @@ die Anforderungen im [Pflichtenheft](PFLICHTENHEFT.md), die Arbeitsregeln in
 28. [Live-Ansicht und Würfelgrafik (`dashboard.views.live`, `dashboard.cube`, AP-23)](#28-live-ansicht-und-würfelgrafik-dashboardviewslive-dashboardcube-ap-23)
 29. [Zuordnungs-Assistent „Seiten zuordnen“ (`dashboard.views.faces`, AP-24)](#29-zuordnungs-assistent-seiten-zuordnen-dashboardviewsfaces-ap-24)
 30. [Startseite, geführte Einrichtung und Handbuch (`dashboard.views.start`, `dashboard.docs_reader`, AP-25)](#30-startseite-geführte-einrichtung-und-handbuch-dashboardviewsstart-dashboarddocs_reader-ap-25)
+31. [Steuerungsmodus und Integrationen (AP-26 bis AP-31)](#31-steuerungsmodus-und-integrationen-ap-26-bis-ap-31)
 
 ## 1. Überblick
 
@@ -1588,3 +1589,40 @@ unbekannter Adapter, Historie, Bereinigung). `tests/unit/test_control_mode.py` (
 nichts bei Baseline/Zwischenlage/Trennen, Seite ohne Aktion, ausgeschaltet, begrenzte Warteschlange, Kopie der Aktion,
 Zeiteinträge bleiben unberührt, aktiver/nicht aktiver Steuerungs-Tracker, Zeit-Tracker unverändert, Moduswechsel (Rolle geben,
 laufende Zeit blockiert, manuelle Zeit nicht, Wiederholung, unbekanntes Gerät, Übergabe abgewiesen).
+
+### 31.11 Webhook-Adapter (`infrastructure.integrations.webhook`, AP-27)
+
+Der allgemeine Adapter für „weitere Standards“: eine *Verbindung* ist eine Basisadresse (`http(s)://host:port[/prefix]`) mit
+optionalem Zugang, eine *Aktion* ist **eine Anfrage an einen Pfad** (Methode GET/POST/PUT/PATCH/DELETE, Inhaltstyp JSON oder
+Text, optionaler Inhalt). Er deckt Node-RED, ESPHome, IFTTT-ähnliche Dienste und eigene Skripte ab.
+
+**Sicherheitsregeln:**
+
+- Nur `http`/`https`, **ohne** Benutzername/Passwort, Abfrage-Teil oder Anker in der Basisadresse; ungültiger Port wird abgelehnt.
+  Der Pfad wird **an die Basisadresse angehängt** (muss mit `/` beginnen, `//` ist verboten), eine Aktion kann also nie einen
+  anderen Rechner ansprechen. Ein Abfrage-Teil gehört zum Pfad (`/an?x=1`).
+- **Weiterleitungen werden nie befolgt** (sie könnten auf ein anderes Schema oder einen anderen Rechner zeigen); eine
+  Weiterleitung wird als Fehler gemeldet. **Umgebungs-Proxys werden ignoriert** (`trust_env = False`): eine Anfrage in das eigene
+  Netz soll nicht heimlich über einen Proxy laufen.
+- Die **Antwort wird nicht gelesen** (`stream=True`, nur Statuszeile), ein feindliches oder riesiges Antwort-Paket kostet nichts.
+- Der **Zugangswert ist ein Geheimnis** (getrennt gespeichert, nie im Protokoll, nie in einer Antwort); der Kopfname ist auf
+  Buchstaben, Ziffern und `-` beschränkt, Zeilenumbrüche sind in allen Feldern verboten (keine Kopfzeilen-Einschleusung).
+- JSON-Inhalt muss gültiges JSON sein, `GET` mit Inhalt wird abgelehnt, Textwerte sind auf 500 Zeichen begrenzt.
+- Zertifikatsprüfung bei `https` ist **standardmäßig an** und lässt sich bei selbst erzeugten Zertifikaten ausschalten.
+
+**Wiederholung:** Nur wenn die Anfrage **sicher nicht beim Ziel ankam** (nicht verbindbar, Name nicht auflösbar, Zeitlimit **beim
+Verbinden**; erkannt über die Ursache des Fehlers, auf Windows meldet ein geschlossener Port ein Verbindungs-Zeitlimit) →
+`IntegrationConnectionError` (wird wiederholt). Jede **Antwort** (auch 4xx/5xx), ein Abbruch **während** der Verbindung und ein
+Zeitlimit **nach dem Senden** sind `IntegrationError` und werden **nicht** wiederholt (die Aktion könnte schon ausgeführt sein).
+401/403 verweisen auf Zugangskopf und -wert. `check` fragt die Basisadresse einmal per GET und akzeptiert jede Antwort unter 500
+als „erreichbar“ (ein 404 beweist, dass das Ziel da ist), 401/403/5xx werden gemeldet.
+
+### 31.12 Tests (AP-27)
+
+`tests/unit/test_adapter_webhook.py` (36, **gegen einen echten lokalen HTTP-Server**): Adressen (angenommen/abgelehnt mit deutscher
+Meldung), Kopfname, Geheimnis nicht in den Einstellungen, Aktionsregeln, Anfrage kommt wie konfiguriert an (Methode, Pfad,
+Inhalt, Inhaltstyp, Zugangskopf, `User-Agent`), kein Zugangskopf ohne Geheimnis, Basis-Pfad, **Fehlerantworten sind dauerhaft**,
+401 verweist auf den Zugang, **Weiterleitung wird nicht befolgt (nur ein Rechner kontaktiert)**, abgelehnte Verbindung und unbekannter
+Host werden wiederholt, **Zeitlimit nach dem Senden nicht**, **Umgebungs-Proxys werden ignoriert**, Prüfung (404 = erreichbar,
+401/503 gemeldet, unerreichbar), Auslieferung mit dem Programm und **ein eingereihter Auftrag erreicht über den Dienst das Ziel**.
+Nicht geprüft: echte Geräte und Dienste (siehe `QUELLEN_UND_GRENZEN.md`).

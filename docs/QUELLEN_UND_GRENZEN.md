@@ -40,3 +40,12 @@
 - Streamlit meldet in der verwendeten Version Änderungen an einzelnen APIs; die bekannten (z. B.
   `use_container_width`) wurden angepasst, zukünftige Versionen können weitere erfordern
   (`constraints-tested.txt` hält den getesteten Stand fest).
+- **Anbindungen für den Steuerungsmodus (Webhook, MQTT, Home Assistant, Hue):** Sie sind nur gegen **lokale
+  Testziele** geprüft (ein echter lokaler HTTP-Server, Attrappen), **nicht** gegen echte Geräte, Hubs oder
+  Broker. Wie sich Ihr Ziel tatsächlich verhält (Zeitlimits, Zertifikate, Fehlermeldungen, Firmware-Besonderheiten),
+  zeigt erst der Versuch mit **„Verbindung testen“** und **„Jetzt ausprobieren“**.
+- **Matter und Google Home:** OctaLedger spricht **kein Matter und kein Google Home direkt**. Beide erreichen Sie
+  **über Home Assistant** (falls Sie Ihre Geräte dort eingebunden haben). Eine eigene Matter-Unterstützung ist nicht
+  vorhanden und nicht zugesagt (Pflichtenheft §2).
+- **Zugangsdaten der Verbindungen** liegen im Benutzerprofil in `secrets.json`, **unverschlüsselt** (wie das
+  API-Token), und werden nie gesichert. Wer Ihr Benutzerprofil lesen kann, kann sie lesen.
