@@ -158,7 +158,13 @@ def _cmd_scan(args: argparse.Namespace) -> int:
         )
         return EXIT_NEGATIVE
     for result in results:
-        mark = "passend" if result.is_candidate else "       "
+        mark = (
+            "passend"
+            if result.is_candidate
+            else "vermutet"
+            if result.looks_like_tracker
+            else " " * 8
+        )
         print(f"[{mark}] {result.label}")
     print("Es wurde nichts verbunden. Zuordnung im Dashboard (Bereich Geräte).")
     return EXIT_OK

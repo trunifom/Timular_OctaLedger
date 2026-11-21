@@ -284,6 +284,7 @@ def test_device_connection_control_scan_and_address(env: Env, agent: FakeAgent) 
             "name": "ZEI",
             "rssi": -60,
             "is_candidate": True,
+            "looks_like_tracker": True,
             "label": "ZEI (-60 dBm)",
         }
     ]
@@ -565,3 +566,25 @@ def test_diagnostics_endpoints(env: Env) -> None:
     assert logs["lines"] == ["line two", "line three"]
     assert env.get("/diagnostics/logs", params={"limit": 0}).status_code == 422
     assert env.get("/diagnostics/integrity").json() == {"ok": True, "problems": []}
+
+
+def test_live_view_shows_position_calibration_and_effect(env: Env, agent: FakeAgent) -> None:
+    activity = make_activity(env, "Meeting")
+    device = env.post("/devices", {"alias": "A"}).json()
+    env.post(f"/devices/{device['id']}/address", {"platform_address": "AA:BB"})
+    env.call("PUT", f"/devices/{device['id']}/faces/3", json={"activity_id": activity})
+
+    idle = env.get(f"/devices/{device['id']}/live").json()  # never started: nothing is invented
+    assert idle["state"] is None and idle["raw_value"] is None and idle["recent"] == []
+    assert idle["faces"]["3"]["activity"]["name"] == "Meeting"
+    assert idle["faces"]["4"] == {"activity": None, "project": None}
+    assert sorted(idle["faces"]) == [str(n) for n in range(1, 9)]
+
+    env.post(f"/devices/{device['id']}/connect")
+    env.post("/tracking/start", {"activity_id": activity})
+    live = env.get(f"/devices/{device['id']}/live").json()
+    assert live["state"] == "ready" and live["raw_value"] == 3 and live["pending_value"] is None
+    assert live["committed_value"] == 3 and live["debounce_ms"] == 300
+    assert [e["kind"] for e in live["recent"]] == ["face_change", "raw"]  # newest first
+    assert live["tracking"]["running"]["activity_id"] == activity
+    assert env.get("/devices/ghost/live").status_code == 404

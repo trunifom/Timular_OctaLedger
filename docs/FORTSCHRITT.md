@@ -40,6 +40,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-21 | GUI-Überarbeitung auf Basis der UX-Recherche: gruppiertes Menü, Statusleiste, neue Übersicht, Design-System mit lokaler Schrift (`docs/GUI_KONZEPT.md`) | 2026-11-20 | 23:26 | 709bb86 |
 | AP-21a | Fehlerbehebung GUI: Seitenmodule in `views/` (Streamlit-Automenü entfernt), Streamlit-Design an Hell/Dunkel angepasst (lesbare Felder, Tabellen, Tabs, Buttons) | 2026-11-21 | 12:40 | _folgt_ |
 | AP-21b | Speichern von Dateien wiederholt kurz, wenn Windows das Ziel sperrt (`WinError 5`) | 2026-11-21 | 12:40 | _folgt_ |
+| AP-22 | Live-Daten: Rohwert, wartender Wert und Verlauf im Agenten (`DeviceStatus`, `LiveEvent`), Endpunkt `GET /devices/{id}/live`, Client `live_view`; Würfel-Erkennung am Namen im Scanner | 2026-11-21 | 13:10 | _folgt_ |
 
 ## Offen
 

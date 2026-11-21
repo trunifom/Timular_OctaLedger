@@ -265,6 +265,11 @@ class ApiClient:
         result: dict[str, Any] = self._get(f"/devices/{device_id}/observed-face")
         return result
 
+    def live_view(self, device_id: str) -> dict[str, Any]:
+        """Live position, debounce state, recent movements and effect of one cube."""
+        result: dict[str, Any] = self._get(f"/devices/{device_id}/live")
+        return result
+
     def activate_device(self, device_id: str) -> dict[str, Any]:
         """Hand over to this tracker."""
         result: dict[str, Any] = self._post(f"/devices/{device_id}/activate")

@@ -632,10 +632,13 @@ kein `pytest-asyncio` benötigt.
 ### 14.1 Scanner
 
 `await scan(timeout=5.0)` sucht **nur auf ausdrückliche Anforderung** (1–30 s) und liefert
-`ScanResult(address, name, rssi, service_uuids, is_candidate, label)`. Er verbindet **nie**
+`ScanResult(address, name, rssi, service_uuids, is_candidate, label)` mit der Eigenschaft
+`looks_like_tracker` (Name enthält „Timeular“ oder beginnt mit „ZEI“, oder Dienst beworben). Er verbindet **nie**
 selbstständig (Testplan: „niemals automatisch unbekannte Geräte verbinden“).
 
 - Geräte, die den Orientierungsdienst bewerben, sind **Kandidaten** und stehen zuerst, danach
+  Geräte, deren **Name** auf einen Tracker hindeutet (manche Tracker melden den Dienst erst nach
+  dem Verbinden; ein echter Würfel erschien im Test als „Timeular Tra…“ ohne Dienst), danach
   nach Signalstärke. **Es wird nichts herausgefiltert**: Namens-/Dienstfilter dürfen andere
   Hardwaregenerationen nicht unbemerkt ausschließen.
 - Fehler (Bluetooth aus, kein Adapter, Rechte) → `BleConnectionError` mit deutscher Meldung.
@@ -713,6 +716,13 @@ Millisekunden-Werte).
 `shutdown()` (alle Worker bitten zu stoppen, `shutdown_grace` abwarten, Reste abbrechen),
 `statuses()`, `status_of(id)`. `DeviceStatus` zeigt Zustand, Verbindungskennung, Fehlversuche,
 letzten Fehler/Wert/Zeitpunkt, Batterie, verworfene und doppelte Werte.
+
+**Live-Daten (AP-22):** `DeviceStatus` enthält zusätzlich `raw_value` (letzter Wert direkt vom Funk,
+vor der Entprellung), `raw_at`, `pending_value` (Kandidat, der noch auf `debounce_ms` Ruhe wartet),
+`debounce_ms` und `recent` (bis zu 30 `LiveEvent(at, kind, value)`; `kind` ist `raw` oder ein
+`EventKind`). Der Verlauf liegt nur im Arbeitsspeicher, nichts davon wird gespeichert; ein
+unveränderter Wert erzeugt keinen Eintrag; beim Trennen und bei jedem neuen Verbindungszyklus wird
+der Rohwert gelöscht (keine veraltete Position anzeigen).
 
 Hinweis (Pflichtenheft §1): Zwei registrierte Geräte bedeuten **nicht automatisch**, dass zwei
 gleichzeitige Verbindungen am verwendeten Adapter zuverlässig sind – das muss praktisch getestet
@@ -898,6 +908,7 @@ FastAPI-Anwendung, die der Agent auf Loopback startet. Das Dashboard spricht **a
 | `GET/POST /devices`, `PATCH/DELETE /devices/{id}` | Geräte auflisten (mit Kalibrierung und Live-Status), registrieren, umbenennen, löschen |
 | `PUT/DELETE /devices/{id}/faces/{1..8}` | Seite kalibrieren / Zuordnung entfernen |
 | `GET /devices/{id}/observed-face` | zuletzt gesehene Seite (geführte Kalibrierung) |
+| `GET /devices/{id}/live` | Live-Ansicht (AP-22): `raw_value`, `pending_value`, `committed_value`, `debounce_ms`, `state`, Batterie, `faces` (Tätigkeit/Projekt je Seite 1–8), `recent` (neueste zuerst) und `tracking` (was gerade läuft). Eine nie gestartete Verbindung liefert leere Werte, nichts wird erfunden |
 | `POST /devices/{id}/activate` | ausdrückliche Übergabe an diesen Tracker |
 | `POST /devices/{id}/connect`, `/disconnect`, `/address` | Verbindung starten/stoppen, gefundene Adresse speichern (Adresse wird **nie** zurückgegeben, nur `has_address`) |
 | `POST /scan` | BLE-Suche (nur auf Anforderung) |
@@ -951,7 +962,7 @@ sie doppelt ausführen.
 
 Spiegeln die Endpunkte aus Abschnitt 19 und liefern JSON-artige Werte: `health`,
 `is_agent_running` (wirft nie), `status`, `devices`, `register_device`, `rename_device`,
-`remove_device`, `assign_face`, `clear_face`, `observed_face`, `activate_device`,
+`remove_device`, `assign_face`, `clear_face`, `observed_face`, `live_view`, `activate_device`,
 `connect_device`, `disconnect_device`, `set_device_address`, `scan`, `list_items`/`create_item`/
 `update_item`/`archive_item`/`delete_item` (für `"activities"`/`"projects"`), `start_tracking`,
 `stop_tracking`, `pause_tracking`, `resume_tracking`, `journal`, `uncertain_sessions`,

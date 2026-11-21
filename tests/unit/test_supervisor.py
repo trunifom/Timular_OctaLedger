@@ -507,3 +507,57 @@ def test_notifications_and_stop_from_a_foreign_thread_wake_the_worker(env: Env) 
         await asyncio.wait_for(task, timeout=2.0)  # and a stop from another thread works too
 
     run(scenario())
+
+
+def test_live_status_shows_raw_pending_and_accepted_values_and_a_history(env: Env) -> None:
+    """The live view needs the radio value, the candidate waiting for stability and the result."""
+    slow = SupervisorTuning(
+        debounce_ms=400,
+        connect_timeout=1.0,
+        backoff_base=0.02,
+        backoff_cap=0.05,
+        baseline_timeout=0.4,
+        shutdown_grace=1.0,
+    )
+
+    async def scenario() -> None:
+        fac = factory(1)
+        worker, task = await start_ready(env, fac, tuning=slow)
+        status = worker.status()
+        assert (status.raw_value, status.last_value, status.pending_value) == (1, 1, None)
+        assert status.debounce_ms == 400 and status.raw_at is not None
+
+        fac.last.push(b"")  # a candidate: seen on the radio, not accepted yet
+        await wait_until(lambda: worker.status().pending_value == 2)  # fed, not committed
+        pending = worker.status()
+        assert (pending.raw_value, pending.last_value, pending.pending_value) == (2, 1, 2)
+
+        await wait_until(lambda: worker.status().last_value == 2)  # stable long enough: accepted
+        accepted = worker.status()
+        assert accepted.pending_value is None
+        kinds = [(e.kind, e.value) for e in accepted.recent]
+        assert kinds[0] == ("raw", 1) and ("raw", 2) in kinds and ("face_change", 2) in kinds
+        assert kinds.index(("raw", 2)) < kinds.index(("face_change", 2))  # cause before effect
+
+        fac.last.push(b"")  # an identical value is not a movement: no new history entry
+        await asyncio.sleep(0.05)
+        assert [(e.kind, e.value) for e in worker.status().recent] == kinds
+        await finish(worker, task)
+        assert worker.status().raw_value is None  # position unknown once the link is gone
+
+    run(scenario())
+
+
+def test_live_history_is_bounded(env: Env) -> None:
+    from octaledger.agent.supervisor import LIVE_HISTORY_SIZE
+
+    async def scenario() -> None:
+        fac = factory(1)
+        worker, task = await start_ready(env, fac)
+        for index in range(LIVE_HISTORY_SIZE + 10):
+            fac.last.push(bytes([2 + index % 2]))
+            await asyncio.sleep(0)  # every value is a change (alternating 2, 3)
+        await wait_until(lambda: len(worker.status().recent) == LIVE_HISTORY_SIZE)
+        await finish(worker, task)
+
+    run(scenario())

@@ -88,6 +88,24 @@ def test_labels_and_sort_stability() -> None:
     assert sort_results([unnamed, named]) == [named, unnamed]
 
 
+def test_tracker_is_recognised_by_name_even_without_the_service_and_sorted_first() -> None:
+    """A tracker may announce its services only after connecting: the name is a hint."""
+    named = ScanResult("A", "Timeular Tra", -52, (), False)
+    zei = ScanResult("B", "ZEI", -90, (), False)
+    other = ScanResult("C", "JLab GO Pods", -40, (), False)
+    unnamed = ScanResult("D", None, -30, (), False)
+    service = ScanResult("E", None, -99, ("c7e70010-c847-11e6-8175-8c89a55d403c",), True)
+    assert named.looks_like_tracker and zei.looks_like_tracker and service.looks_like_tracker
+    assert not other.looks_like_tracker and not unnamed.looks_like_tracker
+    assert sort_results([other, unnamed, zei, named, service]) == [
+        service,
+        named,
+        zei,
+        unnamed,
+        other,
+    ]
+
+
 # ------------------------------------------------------------------------------- client
 
 

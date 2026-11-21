@@ -46,6 +46,7 @@ from octaledger.api.schemas import (
     device_out,
     iso,
     journal_out,
+    live_out,
     report_out,
     scan_out,
     session_out,
@@ -151,6 +152,15 @@ def build_router(ctx: AppContext) -> APIRouter:
         if seen is None:
             return {"face": None}
         return {"face": seen.face, "received_at": iso(seen.received_at), "kind": seen.kind.value}
+
+    @router.get("/devices/{device_id}/live")
+    def live_view(device_id: str) -> dict[str, Any]:
+        """Live position of the cube, the debounce state, recent movements and their effect."""
+        info = ctx.devices.get(device_id)
+        activities = {a.id: a for a in ctx.catalog.list_activities(include_archived=True)}
+        projects = {p.id: p for p in ctx.catalog.list_projects(include_archived=True)}
+        tracking = tracking_status_out(ctx.tracking.status(), now())
+        return live_out(info, device_statuses().get(device_id), activities, projects, tracking)
 
     @router.post("/devices/{device_id}/activate")
     def activate_device(device_id: str) -> dict[str, Any]:

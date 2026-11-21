@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import uvicorn
 
-from octaledger.agent.supervisor import DeviceStatus
+from octaledger.agent.supervisor import DeviceStatus, LiveEvent
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.application.catalog_service import CatalogService
@@ -48,7 +48,22 @@ class FakeAgent:
     def device_statuses(self) -> list[DeviceStatus]:
         now = datetime.now(timezone.utc)
         return [
-            DeviceStatus(d, ConnectionState.READY, "c1", 0, None, 3, now, 87, 0, 2)
+            DeviceStatus(
+                d,
+                ConnectionState.READY,
+                "c1",
+                0,
+                None,
+                3,
+                now,
+                87,
+                0,
+                2,
+                raw_value=3,
+                raw_at=now,
+                debounce_ms=300,
+                recent=(LiveEvent(now, "raw", 3), LiveEvent(now, "face_change", 3)),
+            )
             for d in self.started
             if d not in self.stopped
         ]

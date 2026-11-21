@@ -20,7 +20,7 @@ from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.device_service import DeviceInfo
 from octaledger.application.reporting_service import JournalEntry, Report, Share
 from octaledger.application.tracking_service import TrackingStatus
-from octaledger.domain.models import Activity, Project, Session
+from octaledger.domain.models import FACE_NUMBERS, Activity, Project, Session
 from octaledger.infrastructure.ble.scanner import ScanResult
 
 API_VERSION: Final = 1
@@ -207,6 +207,60 @@ def device_status_out(status: DeviceStatus | None) -> dict[str, Any] | None:
     }
 
 
+def live_out(
+    info: DeviceInfo,
+    status: DeviceStatus | None,
+    activities: dict[str, Activity],
+    projects: dict[str, Project],
+    tracking: dict[str, Any],
+) -> dict[str, Any]:
+    """Serialise the live view of one cube: position, debounce state, history and effect.
+
+    Args:
+        info: The device with its calibration.
+        status: Live worker status (``None`` while the device was never started).
+        activities: All activities by id (names/colours of the assigned faces).
+        projects: All projects by id.
+        tracking: The serialised tracking status (what runs now because of the cube).
+    """
+
+    def named(item: Activity | Project | None) -> dict[str, Any] | None:
+        return None if item is None else {"id": item.id, "name": item.name, "color": item.color}
+
+    faces: dict[str, Any] = {}
+    for face in FACE_NUMBERS:
+        mapping = info.mappings.get(face)
+        faces[str(face)] = {
+            "activity": (
+                named(activities.get(mapping.activity_id))
+                if mapping and mapping.activity_id
+                else None
+            ),
+            "project": (
+                named(projects.get(mapping.project_id)) if mapping and mapping.project_id else None
+            ),
+        }
+    live = device_status_out(status)
+    return {
+        "device_id": info.device.id,
+        "alias": info.device.alias,
+        "is_active": info.is_active,
+        "state": live["state"] if live else None,
+        "raw_value": status.raw_value if status else None,
+        "raw_at": iso(status.raw_at) if status else None,
+        "committed_value": status.last_value if status else None,
+        "pending_value": status.pending_value if status else None,
+        "debounce_ms": status.debounce_ms if status else 0,
+        "battery_percent": status.battery_percent if status else None,
+        "faces": faces,
+        "recent": [
+            {"at": iso(event.at), "kind": event.kind, "value": event.value}
+            for event in reversed(status.recent if status else ())
+        ],
+        "tracking": tracking,
+    }
+
+
 def device_out(info: DeviceInfo, status: DeviceStatus | None = None) -> dict[str, Any]:
     """Serialise a device with calibration and optional live status."""
     device = info.device
@@ -300,5 +354,6 @@ def scan_out(result: ScanResult) -> dict[str, Any]:
         "name": result.name,
         "rssi": result.rssi,
         "is_candidate": result.is_candidate,
+        "looks_like_tracker": result.looks_like_tracker,
         "label": result.label,
     }

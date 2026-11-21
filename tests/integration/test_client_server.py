@@ -82,6 +82,8 @@ def test_errors_arrive_as_the_right_exception_types(api_server: RunningApi) -> N
     client, port = api_server.client, api_server.port
     with pytest.raises(NotFoundError):
         client.observed_face("ghost")
+    with pytest.raises(NotFoundError):
+        client.live_view("ghost")
     with pytest.raises(ConflictError):
         client.create_item("activities", "X")
         client.create_item("activities", "x")
@@ -96,3 +98,13 @@ def test_stopped_server_is_reported_as_agent_unavailable(api_server: RunningApi)
         dead.status()
     assert not dead.is_agent_running()
     assert port != 0
+
+
+def test_live_view_over_real_http(api_server: RunningApi) -> None:
+    client = api_server.client
+    activity = client.create_item("activities", "Meeting")
+    device = client.register_device("Würfel")
+    client.assign_face(device["id"], 2, activity["id"], None)
+    live = client.live_view(device["id"])
+    assert live["alias"] == "Würfel" and live["raw_value"] is None and live["recent"] == []
+    assert live["faces"]["2"]["activity"]["name"] == "Meeting"

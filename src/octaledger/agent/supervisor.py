@@ -99,9 +99,38 @@ class SupervisorTuning:
             raise ValidationError("Invalid supervisor backoff tuning")
 
 
+#: How many recent movements a worker remembers for the live view (memory only, never stored).
+LIVE_HISTORY_SIZE = 30
+
+#: ``LiveEvent.kind`` of a value that arrived from the radio but is not yet accepted.
+RAW_KIND = "raw"
+
+
+@dataclass(frozen=True, slots=True)
+class LiveEvent:
+    """One entry of the in-memory live history (what the cube just did).
+
+    Attributes:
+        at: Wall-clock time (UTC) the value or event was observed.
+        kind: ``"raw"`` for a value straight from the radio (before debouncing) or an
+            :class:`~octaledger.domain.models.EventKind` value for an accepted event.
+        value: Orientation ``0..8`` if the entry has one.
+    """
+
+    at: datetime
+    kind: str
+    value: int | None
+
+
 @dataclass(frozen=True, slots=True)
 class DeviceStatus:
-    """Snapshot of one worker for the diagnostics page."""
+    """Snapshot of one worker for the diagnostics page and the live view.
+
+    ``last_value`` is the *accepted* orientation (after debouncing); ``raw_value`` is the
+    most recent value straight from the radio and ``pending_value`` the candidate that waits
+    for ``debounce_ms`` of stability. The live view shows all three so users see why a quick
+    wobble does not start anything.
+    """
 
     device_id: str
     state: ConnectionState
@@ -113,6 +142,11 @@ class DeviceStatus:
     battery_percent: int | None
     dropped_values: int
     duplicates_ignored: int
+    raw_value: int | None = None
+    raw_at: datetime | None = None
+    pending_value: int | None = None
+    debounce_ms: int = 0
+    recent: tuple[LiveEvent, ...] = ()
 
 
 def _monotonic_ms() -> int:
@@ -158,6 +192,10 @@ class DeviceWorker:
         self._last_value: int | None = None
         self._last_event_at: datetime | None = None
         self._battery: int | None = None
+        self._raw_value: int | None = None
+        self._raw_at: datetime | None = None
+        # Appended from the radio callback and the loop: deque.append is thread-safe.
+        self._recent: deque[LiveEvent] = deque(maxlen=LIVE_HISTORY_SIZE)
 
     # ------------------------------------------------------------------ public API
 
@@ -204,6 +242,11 @@ class DeviceWorker:
             battery_percent=self._battery,
             dropped_values=self._dropped,
             duplicates_ignored=self._debouncer.duplicates_ignored,
+            raw_value=self._raw_value,
+            raw_at=self._raw_at,
+            pending_value=self._debouncer.pending_value,
+            debounce_ms=self._debouncer.debounce_ms,
+            recent=tuple(self._recent),
         )
 
     # --------------------------------------------------------------- BLE callbacks
@@ -225,7 +268,16 @@ class DeviceWorker:
                     "Value buffer full, dropping oldest values (%d dropped so far)", self._dropped
                 )
         self._values.append((value, self._mono_ms()))
+        self._remember_raw(value)
         self._set(self._wake)
+
+    def _remember_raw(self, value: int) -> None:
+        """Keep the newest radio value for the live view; only a *change* enters the history."""
+        now = self._wall()
+        changed = value != self._raw_value
+        self._raw_value, self._raw_at = value, now
+        if changed:
+            self._recent.append(LiveEvent(now, RAW_KIND, value))
 
     def _on_link_lost(self) -> None:
         """Bleak callback: flag the loss and wake the worker."""
@@ -264,6 +316,7 @@ class DeviceWorker:
         )
         self._sequence += 1
         self._last_event_at = when
+        self._recent.append(LiveEvent(when, kind.value, value))
         try:
             await asyncio.to_thread(self._tracking.record_event, event)
         except OctaLedgerError as exc:
@@ -313,6 +366,7 @@ class DeviceWorker:
         transport = self._factory.create(self._address)
         self._lost = False
         self._values.clear()
+        self._raw_value = self._raw_at = None  # a new link: do not show a stale position
         self._sequence = 0
         connected_once = False
         capabilities: DeviceCapabilities | None = None
@@ -441,6 +495,7 @@ class DeviceWorker:
         # Only a link that was actually established has data worth reporting as lost.
         if was_up:
             await self._emit(EventKind.DISCONNECT, None)
+        self._raw_value = self._raw_at = None  # the position is unknown once the link is gone
         if self._stop.is_set():
             if self._machine.can_transition(S.STOPPED):
                 self._machine.transition(S.STOPPED)

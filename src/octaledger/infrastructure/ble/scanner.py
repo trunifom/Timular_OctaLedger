@@ -50,6 +50,10 @@ class ScanResult:
         rssi: Signal strength in dBm (closer to 0 is stronger), if known.
         service_uuids: Advertised service UUIDs (lower case).
         is_candidate: ``True`` if it advertises the orientation service.
+
+    A device can also be recognised by its *name* (:attr:`looks_like_tracker`): some trackers
+    only announce their services after a connection is made, so the orientation service is not
+    in the advertisement even though the device is the cube.
     """
 
     address: str
@@ -57,6 +61,12 @@ class ScanResult:
     rssi: int | None
     service_uuids: tuple[str, ...]
     is_candidate: bool
+
+    @property
+    def looks_like_tracker(self) -> bool:
+        """``True`` if the advertised name suggests a Timeular/ZEI tracker (a hint only)."""
+        name = (self.name or "").casefold()
+        return self.is_candidate or "timeular" in name or name.startswith("zei")
 
     @property
     def label(self) -> str:
@@ -82,10 +92,18 @@ def _result(address: str, device: Any, advertisement: Any) -> ScanResult:
 
 
 def sort_results(results: list[ScanResult]) -> list[ScanResult]:
-    """Candidates first, then by signal strength (strongest first), then by name."""
+    """Probable trackers first, then by signal strength (strongest first), then by name.
+
+    Nothing is removed: a name or service filter must never hide another hardware generation.
+    """
     return sorted(
         results,
-        key=lambda r: (not r.is_candidate, -(r.rssi if r.rssi is not None else -999), r.name or ""),
+        key=lambda r: (
+            not r.is_candidate,
+            not r.looks_like_tracker,
+            -(r.rssi if r.rssi is not None else -999),
+            r.name or "",
+        ),
     )
 
 
