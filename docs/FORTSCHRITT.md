@@ -56,7 +56,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-31b | Steuerungsmodus in der Oberfläche: Moduswechsel pro Würfel, Aktions-Editor in „Seiten zuordnen“, Live-Ansicht und Geräte-Seite für Steuerungs-Würfel, Startseite und neues Handbuchkapitel 20 | 2026-11-21 | 23:30 | 76a1443 |
 | AP-32a | Quelltext-Dokumentation: Docstrings für die letzten verschachtelten Hilfsfunktionen (jede Funktion und Klasse ist dokumentiert) | 2026-11-21 | 15:30 | 07b7755 |
 | AP-32b | Dokumentation: API-Referenz (jeder Endpunkt), Architektur und Datenmodell neu, Sicherheit, Glossar, Adapter-Anleitung, Dokumentationsübersicht, Wächtertests (`test_documentation`), Skript für die Ordnerstruktur | 2026-11-21 | 15:40 | 242fcff |
-| AP-32c | Dokumentation Teil 2: README mit Screenshots, Startseite „So funktioniert’s“, zehn Dokumente im Handbuch der App, Wächtertests für die Oberfläche, Handbuch/Installation/BLE/Konzept/Pflichtenheft/Roadmap/Testplan/Changelog aktualisiert, Metrik-Abschneiden behoben | 2026-11-21 | 16:10 | _folgt_ |
+| AP-32c | Dokumentation Teil 2: README mit Screenshots, Startseite „So funktioniert’s“, zehn Dokumente im Handbuch der App, Wächtertests für die Oberfläche, Handbuch/Installation/BLE/Konzept/Pflichtenheft/Roadmap/Testplan/Changelog aktualisiert, Metrik-Abschneiden behoben | 2026-11-21 | 16:10 | 146a4a2 |
 
 ## Offen
 
