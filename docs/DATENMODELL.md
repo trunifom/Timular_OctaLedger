@@ -191,7 +191,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
-| 0003 | `0003_control_mode.sql` | Spalte `devices.mode` (bestehende Würfel bleiben `time`), `integrations`, `face_actions`, `integration_jobs` |
+| 0003 | `0003_integrations.sql` | Spalte `devices.mode` (bestehende Würfel bleiben `time`), `integrations`, `face_actions`, `integration_jobs` |
 
 ## 7. Das Sicherungsformat (JSON, Schema 2)
 
