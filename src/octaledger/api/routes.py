@@ -115,6 +115,7 @@ def build_router(ctx: AppContext) -> APIRouter:
                     "id": info.device.id,
                     "alias": info.device.alias,
                     "is_active": info.is_active,
+                    "mode": info.device.mode.value,
                     "live": device_out(info, live.get(info.device.id))["status"],
                 }
                 for info in ctx.devices.list_devices()

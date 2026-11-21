@@ -31,6 +31,7 @@ Dieses Handbuch richtet sich an **Anwender** von OctaLedger. Installation und St
 17. [Wie OctaLedger Dateien schützt](#17-wie-octaledger-dateien-schützt)
 18. [Wenn eine Fehlermeldung erscheint](#18-wenn-eine-fehlermeldung-erscheint)
 19. [Häufige Fragen](#19-häufige-fragen)
+20. [Dinge steuern: der Steuerungsmodus](#20-dinge-steuern-der-steuerungsmodus)
 
 ## 1. Was ist OctaLedger?
 
@@ -217,6 +218,9 @@ Kennenlernen und zum Prüfen, ob alles richtig eingestellt ist. Die Anzeige erne
   Hinweis erklärt, wenn der Tracker nicht der aktive ist oder eine Seite noch keine Tätigkeit hat.
 
 ### Bereich „Seiten zuordnen“
+Oben wählen Sie, **wofür** Sie den Würfel benutzen: *Zeit erfassen* (jede Seite ist eine Tätigkeit, wie hier beschrieben)
+oder *Dinge steuern* (jede Seite löst eine Aktion aus, siehe Kapitel 20). Ein Würfel kennt immer nur einen der beiden Modi.
+
 Der **Assistent**, mit dem Sie jeder der acht Würfelseiten eine Tätigkeit geben – mit Bild, Live-Anzeige
 und ohne Umwege:
 
@@ -657,3 +661,65 @@ Bluetooth-Verbindungen an Ihrem Adapter zuverlässig laufen, müssen Sie ausprob
 Kalibrierung) oder der Würfel liegt auf keiner stabilen Seite (neutral).
 
 **Die Zeiten stimmen nicht mit der Uhr überein.** Prüfen Sie in den *Einstellungen* die **Zeitzone**.
+
+## 20. Dinge steuern: der Steuerungsmodus
+
+OctaLedger kann mehr als Zeit erfassen: Ein Würfel lässt sich in den **Steuerungsmodus** umschalten. Dann startet eine Drehung
+keine Tätigkeit, sondern löst eine **Aktion** aus, zum Beispiel *Schreibtischlampe umschalten*, *Abendszene aktivieren* oder
+eine MQTT-Nachricht senden. Ein Würfel kennt immer nur **einen** Modus, damit eine Drehung nie versehentlich Zeit startet **und**
+ein Licht schaltet. Mit zwei Würfeln kann einer Zeit erfassen und der andere steuern.
+
+### Was Sie anbinden können
+
+| Anbindung | Wofür | Gut zu wissen |
+|---|---|---|
+| **Home Assistant** | Lampen, Schalter, Szenen, Skripte, beliebige Dienste | Der Weg zu **Matter-Geräten und Google Home**: Was dort eingebunden ist, kann der Würfel schalten. Sie brauchen ein „langlebiges Zugriffstoken“ (Home Assistant, unten im Benutzerprofil). |
+| **Philips Hue** | Lampen, Räume, Szenen direkt über die Bridge | Ohne Cloud. Einmaliges Koppeln: Knopf an der Bridge drücken, dann in OctaLedger auf *Koppeln* klicken. |
+| **MQTT** | Nachrichten an einen Broker (Mosquitto, Zigbee2MQTT, Tasmota, ESPHome, Node-RED) | Thema und Inhalt, z. B. `zigbee2mqtt/schreibtischlampe/set` mit `{"state": "ON"}`. |
+| **Webhook** | beliebige Web-Adresse (Node-RED, ESPHome, eigene Skripte, IFTTT-ähnliche Dienste) | Die Notlösung für alles andere mit einfacher Web-Schnittstelle. |
+
+OctaLedger spricht **kein Matter und kein Google Home direkt**; beides erreichen Sie über Home Assistant.
+
+### Schritt für Schritt
+1. **Verbindung anlegen und testen:** Bereich **Verbindungen** → *Neue Verbindung* → Art wählen, Namen und Angaben eintragen →
+   *Verbindung anlegen* → *Verbindung testen* (prüft Erreichbarkeit und Zugangsdaten, **ohne etwas zu schalten**). Bei Hue zusätzlich
+   *Koppeln*. Mit *Ausprobieren* schicken Sie eine Aktion sofort los, um zu sehen, ob das Licht reagiert; *Geräte der Verbindung
+   auflisten* lässt Sie Lampen und Szenen **nach Namen** wählen statt Kennungen abzutippen.
+2. **Würfel auf „Dinge steuern“ stellen:** Bereich **Seiten zuordnen** → oben *Dinge steuern*. Läuft gerade eine Zeit auf diesem Würfel,
+   verlangt OctaLedger, sie **zuerst zu stoppen** (es wird nie still Zeit abgeschnitten). Wurde dieser Würfel bisher für die Zeit
+   genutzt, übernimmt ein anderer Zeit-Würfel die Rolle des aktiven Trackers, falls es einen gibt.
+3. **Jeder Seite eine Aktion geben:** Würfel auf eine Seite legen, *Seite N einrichten*, **Verbindung** und **Was soll geschehen?**
+   wählen, die Angaben ausfüllen, der Seite einen **Namen** geben (z. B. „Schreibtischlampe“), *Jetzt ausprobieren* und *Seite N
+   speichern*. Der Assistent springt zur nächsten freien Seite. Der Name erscheint im Bild.
+4. **Zusehen:** Im Bereich **Würfel live** sehen Sie bei einem steuernden Würfel „③ Die Aktion“, was die Drehung auslöst, und darunter
+   „Letzte Aktionen“ mit dem Ergebnis jeder gesendeten Aktion.
+5. **Benutzen:** Würfel drehen, die Aktion wird gesendet. Im Bereich **Verbindungen** steht unten der **Verlauf** aller Aktionen.
+
+### Was OctaLedger dabei garantiert (und was nicht)
+- **Die erste Meldung nach dem Verbinden löst nie etwas aus**, ebenso wenig eine Zwischenlage oder ein Verbindungsabbruch. Nur ein
+  echter Seitenwechsel sendet die Aktion der Seite. Eine Seite ohne Aktion tut nichts.
+- **Aktionen verfallen nach 30 Sekunden.** Ein Licht, das erst später schaltet, wäre schlimmer als eines, das nicht schaltet.
+- **Wiederholt wird nur, was sicher nicht angekommen ist** (Ziel nicht erreichbar), höchstens dreimal. Wenn unklar ist, ob eine
+  Aktion schon ausgeführt wurde (zum Beispiel keine Antwort nach dem Senden), wird sie **nicht** wiederholt, sonst würde „Umschalten“
+  das Licht zweimal umschalten. Der Verlauf zeigt dann die Meldung. Bevorzugen Sie deshalb eindeutiges **Ein** und **Aus** vor
+  **Umschalten**; Aktionen, die bei jedem Senden erneut wirken, sind mit einer Warnung gekennzeichnet.
+- **Nichts läuft über eine Cloud** von OctaLedger; gesendet wird nur an Ziele, die Sie selbst eintragen. OctaLedger führt **keine
+  Befehle auf Ihrem Rechner** aus.
+- **Zugangsdaten** (Passwörter, Tokens) liegen getrennt im Benutzerprofil (`secrets.json`), **unverschlüsselt**, und werden nie
+  angezeigt, nie protokolliert und nie in Sicherungen gespeichert. Nach einer Wiederherstellung auf einem anderen Rechner tragen
+  Sie diese neu ein; Verbindungen und Aktionen pro Seite sind in der Sicherung enthalten.
+- **Ehrlicher Stand:** Die Anbindungen sind bisher nur gegen **Testziele** geprüft, nicht gegen echte Geräte, Hubs und Broker.
+  Prüfen Sie jede Verbindung mit *Verbindung testen* und *Jetzt ausprobieren*, bevor Sie sich darauf verlassen. Bei Hue wurde die
+  Zertifikatsprüfung (Fingerabdruck beim Koppeln) nicht mit einer echten Bridge getestet.
+
+### Wenn etwas nicht klappt
+| Meldung | Was tun |
+|---|---|
+| „Das Ziel ist nicht erreichbar“ / „Der Broker ist nicht erreichbar“ | Adresse, Port und Netzwerk prüfen; ist das Gerät eingeschaltet und im selben Netz? |
+| „Home Assistant lehnt das Zugriffstoken ab“ | In Home Assistant ein neues langlebiges Zugriffstoken erstellen und in der Verbindung eintragen. |
+| „Der Knopf auf der Hue Bridge wurde noch nicht gedrückt“ | Knopf an der Bridge drücken und **innerhalb von 30 Sekunden** erneut auf *Koppeln* klicken. |
+| „Benutzername oder Passwort sind falsch“ (MQTT) | Zugangsdaten des Brokers prüfen. |
+| „Die Aktion wurde möglicherweise ausgeführt und wird nicht wiederholt“ | Prüfen Sie am Gerät, ob es geschaltet hat; das Ziel hat nicht rechtzeitig geantwortet. |
+| „Zu spät: Die Aktion wurde nicht mehr rechtzeitig gesendet“ | Das Ziel war zu lange nicht erreichbar; drehen Sie den Würfel erneut. |
+| „Auf diesem Würfel läuft gerade eine Zeit“ | Zeit stoppen (Stopp), dann auf *Dinge steuern* umstellen. |
+| Seite tut nichts | Hat die Seite eine Aktion? Ist die Verbindung eingeschaltet? Der Verlauf unter *Verbindungen* zeigt, was passiert ist. |

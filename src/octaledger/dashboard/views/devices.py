@@ -6,6 +6,7 @@ from typing import Any
 
 import streamlit as st
 
+from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import (
     STATE_LABELS,
     STATE_LEVEL,
@@ -164,6 +165,8 @@ def _device_panel(
     did = device["id"]
     live = device["status"]
     badge = " ⭐ aktiv" if device["is_active"] else ""
+    if device["mode"] == "control":
+        badge += " · 🎛 Steuerung"
     with st.expander(f"{device['alias']}{badge}", expanded=expanded):
         label = STATE_LABELS.get(live["state"], live["state"]) if live else "Nicht verbunden"
         level = STATE_LEVEL.get(live["state"], "warn") if live else "bad"
@@ -202,9 +205,10 @@ def _device_panel(
             "⭐ Zum aktiven Tracker machen",
             key=f"activate_{did}",
             width="stretch",
-            disabled=device["is_active"],
+            disabled=device["is_active"] or device["mode"] == "control",
             help="Übergabe: Nur der aktive Tracker erzeugt Zeiten. Die laufende "
-            "Tracker-Zeit des bisherigen Trackers endet dabei.",
+            "Tracker-Zeit des bisherigen Trackers endet dabei. Ein Würfel im Steuerungsmodus "
+            "erfasst keine Zeit.",
         ):
             if call(client.activate_device, did)[0]:
                 st.rerun()
@@ -220,6 +224,19 @@ def _calibration(
     projects: list[dict[str, Any]],
 ) -> None:
     did = device["id"]
+    if device["mode"] == "control":
+        st.info(
+            "Dieser Würfel ist im **Steuerungsmodus**: Seine Seiten lösen Aktionen aus "
+            "statt Zeit zu erfassen. Die Aktionen legen Sie im Bereich *Seiten zuordnen* fest."
+        )
+        st.button(
+            "Zu „Seiten zuordnen“",
+            key=f"to_faces_{did}",
+            on_click=go,
+            args=("faces",),
+            help="Öffnet den Assistenten für die Aktionen der Seiten.",
+        )
+        return
     st.markdown("**Seiten zuordnen (Kalibrierung)**")
     st.progress(
         device["configured_faces"] / 8,

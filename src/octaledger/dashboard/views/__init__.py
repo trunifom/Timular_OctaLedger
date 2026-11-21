@@ -78,7 +78,7 @@ _DEFINITIONS = (
         "Seiten zuordnen",
         "touch_app",
         "Einrichten",
-        "Sehen Sie, welche Seite oben liegt, und geben Sie ihr eine Tätigkeit",
+        "Sehen Sie, welche Seite oben liegt, und geben Sie ihr eine Tätigkeit oder Aktion",
         faces.render,
     ),
     PageDef(

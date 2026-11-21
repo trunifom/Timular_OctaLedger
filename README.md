@@ -33,6 +33,10 @@ Details und Nachweise: [docs/FORTSCHRITT.md](docs/FORTSCHRITT.md), [docs/TESTPLA
   etwas? Tracker verbunden? etwas zu tun?), *Erste Schritte*-Checkliste, Schnellstart-Kacheln, Hilfetext an
   jedem Feld, Hell-/Dunkel-Umschalter, zwei Schriftgrößen, lokale Schrift Inter (WCAG-AA-Kontrast). Konzept
   und Recherche: [docs/GUI_KONZEPT.md](docs/GUI_KONZEPT.md).
+- **Dinge steuern statt Zeit erfassen (Steuerungsmodus):** Jeder Würfel lässt sich umschalten; dann löst jede Seite eine
+  **Aktion** aus (Licht, Szene, Nachricht). Anbindungen: **Home Assistant**, **Philips Hue**, **MQTT** und **Webhook**;
+  Matter und Google Home laufen über Home Assistant. Aktionen verfallen nach 30 s, Zugangsdaten liegen getrennt und nie
+  in Sicherungen. Siehe Benutzerhandbuch, Kapitel 20.
 - **Daten sicher im Griff:** atomares Speichern, versionierte Migrationen mit automatischer Sicherung,
   CSV-Export (Excel-tauglich, Formel-Injection-Schutz), JSON-Backup mit Prüfsumme, **validierter**
   Restore mit Vorschau und Rollback.

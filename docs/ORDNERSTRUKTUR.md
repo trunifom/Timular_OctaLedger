@@ -79,6 +79,7 @@ octaledger/
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
   src/octaledger/dashboard/views/faces.py
+  src/octaledger/dashboard/views/faces_actions.py
   src/octaledger/dashboard/views/journal.py
   src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
@@ -125,6 +126,7 @@ octaledger/
   tests/fixtures/.gitkeep
   tests/gui/__init__.py
   tests/gui/test_gui_connections.py
+  tests/gui/test_gui_control.py
   tests/gui/test_gui_core.py
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_devices_catalog.py

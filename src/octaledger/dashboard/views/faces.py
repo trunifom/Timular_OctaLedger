@@ -25,12 +25,14 @@ from octaledger.core.settings import Theme
 from octaledger.dashboard.cube import cube_svg
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import call, page_help
+from octaledger.dashboard.views.faces_actions import render_action_editor
 from octaledger.dashboard.views.live import READY, face_labels, pending_face
 from octaledger.dashboard_client.client import ApiClient
 
 FACES = tuple(range(1, 9))
 FLASH_KEY = "faces_flash"
 PENDING_KEY = "faces_pending_target"
+MODE_ERROR_KEY = "faces_mode_error"
 NEW_ACTIVITY: dict[str, Any] = {"id": None, "name": "➕ Neue Tätigkeit anlegen …"}
 
 
@@ -45,7 +47,9 @@ def target_key(device_id: str) -> str:
 
 
 def assigned_faces(device: dict[str, Any]) -> set[int]:
-    """Faces of ``device`` that have an activity."""
+    """Faces of ``device`` that are set up: with an activity (time) or an action (control)."""
+    if device.get("mode") == "control":
+        return {int(face) for face in device.get("actions", {})}
     return {int(face) for face, entry in device["faces"].items() if entry["activity_id"]}
 
 
@@ -72,6 +76,11 @@ def render(client: ApiClient, tz: str) -> None:
         "wählen.\n"
         "4. **Tätigkeit wählen oder neu benennen** (z. B. „Kundengespräch“) und speichern. Der "
         "Assistent springt zur nächsten freien Seite.\n\n"
+        "**Steuerung statt Zeit:** Stellen Sie den Würfel oben auf *Steuerung*, dann bekommt jede "
+        "Seite statt einer Tätigkeit eine **Aktion** (zum Beispiel Licht schalten über "
+        "Home Assistant oder Hue). Dafür brauchen Sie eine Verbindung (Seite *Verbindungen*). "
+        "Ein Würfel kennt "
+        "immer nur einen der beiden Modi.\n\n"
         "Die Nummern im Bild sind die **technischen Seitennummern** des Würfels. Sie müssen nicht "
         "mit einer Aufschrift auf dem Gehäuse übereinstimmen; durch diese Zuordnung entsteht erst "
         "die Verbindung zu Ihren Tätigkeiten.",
@@ -117,6 +126,7 @@ def render(client: ApiClient, tz: str) -> None:
     if st.session_state.get(key) not in FACES:
         st.session_state[key] = next_free_face(device) or 1
 
+    _mode_switch(client, device)
     done = len(assigned_faces(device))
     st.progress(done / len(FACES), text=f"{done} von {len(FACES)} Seiten eingerichtet")
     _connection_hint(client, device)
@@ -146,6 +156,43 @@ def render(client: ApiClient, tz: str) -> None:
             type="primary",
             width="stretch",
             help="Dort sehen Sie, was gerade läuft.",
+        )
+
+
+def _on_mode_change(client: ApiClient, device_id: str, key: str, current: str) -> None:
+    """Callback of the mode switch: apply it, or put it back and remember why it failed."""
+    wanted = st.session_state[key]
+    try:
+        client.set_device_mode(device_id, wanted)
+    except OctaLedgerError as exc:
+        st.session_state[key] = current
+        st.session_state[MODE_ERROR_KEY] = (exc.user_message, exc.error_code)
+
+
+def _mode_switch(client: ApiClient, device: dict[str, Any]) -> None:
+    """The switch between time recording and control for this cube."""
+    key = f"faces_mode_{device['id']}"
+    if key not in st.session_state:
+        st.session_state[key] = device["mode"]
+    st.radio(
+        "Wofür benutzen Sie diesen Würfel?",
+        ("time", "control"),
+        key=key,
+        horizontal=True,
+        format_func=lambda mode: "⏱ Zeit erfassen" if mode == "time" else "🎛 Dinge steuern",
+        on_change=_on_mode_change,
+        args=(client, device["id"], key, device["mode"]),
+        help="Zeit erfassen: jede Seite ist eine Tätigkeit. Dinge steuern: jede Seite löst eine "
+        "Aktion aus (Licht, Szene, Nachricht). Ein Würfel kennt immer nur einen Modus.",
+    )
+    failure = st.session_state.pop(MODE_ERROR_KEY, None)
+    if failure:
+        st.error(failure[0], icon="🚫")
+        st.caption(f"Fehlercode: {failure[1]}")
+    if device["mode"] == "control":
+        st.caption(
+            "Dieser Würfel **steuert**: Eine Drehung löst die Aktion der Seite aus und erfasst "
+            "keine Zeit."
         )
 
 
@@ -243,6 +290,9 @@ def _editor(
         help="Die Seite, die Sie gerade einrichten. Ein Haken bedeutet: hat schon eine Tätigkeit.",
     )
     face = int(st.session_state[key])
+    if device["mode"] == "control":
+        render_action_editor(client, device, face)
+        return
     current = device["faces"].get(str(face)) or {}
     by_id = {a["id"]: a for a in activities}
     st.markdown(

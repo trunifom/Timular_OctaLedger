@@ -39,11 +39,12 @@ def tracker_summary(status: dict[str, Any]) -> tuple[str, str, bool]:
     if not devices:
         return "Kein Tracker eingerichtet", "warn", False
     active = next((d for d in devices if d["is_active"]), devices[0])
+    mark = " (Steuerung)" if active.get("mode") == "control" else ""
     live = active["live"]
     if live is None:
-        return f"{active['alias']}: nicht verbunden", "bad", True
+        return f"{active['alias']}{mark}: nicht verbunden", "bad", True
     state = live["state"]
-    text = f"{active['alias']}: {STATE_LABELS.get(state, state)}"
+    text = f"{active['alias']}{mark}: {STATE_LABELS.get(state, state)}"
     level = STATE_LEVEL.get(state, "warn")
     return text, level, state in NOT_RECORDING
 

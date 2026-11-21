@@ -1777,3 +1777,42 @@ nicht idempotenten Aktionen, Einstellungen ändern (leeres Passwort behält), ei
 eine Seite die Verbindung nutzt**, Verlauf mit allen Ergebnissen, Hilfetexte an allen Feldern, Seite meldet fehlenden Dienst, und der
 Formular-Generator selbst (jede Feldart, Rückgabewerte, gemischte Auswahllisten, Hilfsfunktionen, kein Geheimnis im Widget-Zustand).
 Im Browser angesehen; mit dem Test-Adapter, nicht mit einem echten Ziel.
+
+### 31.22 Steuerungsmodus in der Oberfläche (AP-31b)
+
+- **Moduswechsel pro Würfel** in *Seiten zuordnen* (`_mode_switch`): ein Umschalter *Zeit erfassen / Dinge steuern*. Die Umstellung
+  läuft in einem **`on_change`-Rückruf** (`_on_mode_change`), der `PUT /devices/{id}/mode` aufruft; scheitert er (zum Beispiel
+  `OL-STATE-003`, weil eine Zeit läuft), setzt er den Umschalter **auf den alten Wert zurück** und merkt sich Meldung und Code für die
+  nächste Anzeige (ein Widget-Schlüssel darf erst vor dem Erzeugen des Widgets geändert werden; sonst würde der Fehlschlag bei jedem
+  Neuladen wiederholt).
+- **Aktions-Editor** (`views/faces_actions.py`, ohne adapterspezifischen Code): Verbindung wählen (nur eingeschaltete; ohne eine Hinweis
+  mit Weg zu *Verbindungen*), Aktion (aus der Selbstbeschreibung; Warnung bei nicht idempotenten), Felder über `render_fields` (mit
+  Auswahllisten nach „Geräte auflisten“), **Name der Seite**, *Jetzt ausprobieren* (`probe`, speichert nichts), *Seite N speichern*
+  (springt zur nächsten freien Seite, gleiche Mechanik `faces_pending_target` wie bei Tätigkeiten), *Entfernen*. Der Editor liegt wie der
+  Tätigkeits-Editor **außerhalb** des sich erneuernden Fragments. `assigned_faces` zählt im Steuerungsmodus die Aktionen.
+- **Bild und Live-Ansicht:** `face_labels` nutzt im Steuerungsmodus die **Aktionsnamen** (feste Farbe `ACTION_COLOR`, der Name unterscheidet).
+  Live: ③ heißt „Die Aktion“ (steuert Dinge, keine Zeit; „Seite N: Die Aktion „x“ wird ausgelöst“ bzw. Hinweis auf fehlende Aktion),
+  der Verlauf nennt „Die Aktion „x“ wird gesendet“ und darunter stehen **„Letzte Aktionen“** (`GET /jobs`). Zeit-Würfel bleiben unverändert.
+- **Geräte-Seite:** Ein Steuerungs-Würfel trägt „🎛 Steuerung“ im Titel, zeigt statt der Tätigkeits-Tabelle einen Hinweis mit Weg zu *Seiten
+  zuordnen*, und „Zum aktiven Tracker machen“ ist gesperrt (er erfasst keine Zeit). **Statusleiste:** „Name (Steuerung): Bereit“
+  (`GET /status` meldet `mode` je Gerät). **Startseite:** zwei neue Karten („Dinge steuern“, „Offen für weitere Standards“ mit dem Hinweis, dass
+  Matter und Google Home über Home Assistant laufen).
+
+### 31.23 Tests (AP-31b)
+
+`tests/gui/test_gui_control.py` (23): Moduswechsel, **laufende Zeit verweigert den Wechsel und der Umschalter springt zurück** (mit Code),
+Zurückschalten, Editor ohne Verbindung (Hinweis) und mit ausgeschalteter Verbindung, Seite bekommt eine benannte Aktion und der Assistent geht
+weiter (Bild zeigt den Namen), Speichern braucht einen Namen, ungültige Aktion wird gemeldet und nichts gespeichert, **Auswahlliste aus
+„Entdecken“** und Ausprobieren (speichert nichts), Warnung bei nicht idempotenten Aktionen, bestehende Aktion anzeigen/entfernen
+(Fortschritt zählt Aktionen), Hilfetexte, Live-Ansicht (Aktion benannt, Seite ohne Aktion, letzte Aktionen mit Ergebnis, Zeit-Würfel
+unverändert), Geräte-Seite (Steuerungs-Würfel markiert, Zeit-Würfel behält die Tabelle), Statusleiste, Status-API, Startseite, ein
+vollständig eingerichteter Steuerungs-Würfel gilt als eingerichtet, Verlaufssätze je Modus. Im Browser (Chromium) angesehen, mit
+Test-Adapter und simuliertem Würfel.
+
+### 31.24 Gesamtbild und Grenzen von AP-26 bis AP-31
+
+Reihenfolge einer Drehung im Steuerungsmodus: Würfel (BLE) → Supervisor/Entprellung → `TrackingService.record_event` schreibt Ereignis **und**
+Auftrag in einer Transaktion → `ActionDispatcher` (eigener Thread) → `IntegrationService.process_due` → Adapter → Ziel; das Ergebnis steht im
+Verlauf. **Nicht geprüft:** echte Geräte, Hubs und Broker (nur lokale Testziele und Attrappen); ein echter TLS-Handshake mit der Hue-Anheftung und
+mit MQTT-TLS; ein Dauerbetrieb. **Nicht vorhanden:** eigene Matter- oder Google-Home-Anbindung (über Home Assistant), Verschlüsselung der
+Zugangsdaten, Sprachsteuerung, Aktionen mit mehreren Schritten oder Bedingungen, ein Ereignisstrom von den Zielen zurück.

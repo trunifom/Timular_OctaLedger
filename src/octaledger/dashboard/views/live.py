@@ -27,6 +27,8 @@ from octaledger.dashboard_client.client import ApiClient
 
 HISTORY_LINES = 12
 READY = "ready"
+#: Fill colour of a face that has an action (control mode); the name tells them apart.
+ACTION_COLOR = "#6D597A"
 _MARKDOWN_SPECIAL = re.compile(r"[\\`*_{}\[\]<>()#+!|~$]")
 
 
@@ -38,7 +40,12 @@ def escape_markdown(text: str) -> str:
 def face_labels(live: dict[str, Any]) -> dict[int, FaceLabel]:
     """Names and colours of the eight faces from a live-view response."""
     labels: dict[int, FaceLabel] = {}
+    control = live.get("mode") == "control"
     for key, entry in live["faces"].items():
+        if control:
+            action = entry.get("action")
+            labels[int(key)] = FaceLabel(action["label"], ACTION_COLOR) if action else FaceLabel()
+            continue
         activity = entry["activity"]
         labels[int(key)] = (
             FaceLabel(activity["name"], activity["color"]) if activity else FaceLabel()
@@ -56,16 +63,27 @@ def face_text(value: int | None, labels: dict[int, FaceLabel]) -> str:
     return f"Seite {value} („{label.name}“)" if label.name else f"Seite {value} (noch frei)"
 
 
-def describe_event(event: dict[str, Any], labels: dict[int, FaceLabel]) -> str:
+def _action_hint(value: int | None, labels: dict[int, FaceLabel]) -> str:
+    """Control mode: what the accepted face triggers (or that it triggers nothing)."""
+    name = labels.get(value or 0, FaceLabel()).name
+    return f" Die Aktion „{name}“ wird gesendet." if name else " Diese Seite hat keine Aktion."
+
+
+def describe_event(
+    event: dict[str, Any], labels: dict[int, FaceLabel], control: bool = False
+) -> str:
     """One history entry as a German sentence (what happened, and what it means)."""
     kind, value = event["kind"], event["value"]
     where = face_text(value, labels)
+    nothing = "Das löst noch nichts aus." if control else "Das startet noch nichts."
+    lost = "" if control else " Laufende Zeit gilt als unsicher."
     return {
         "raw": f"Der Würfel zeigt {where}.",
-        "baseline": f"Verbunden. Ausgangslage: {where}. Das startet noch nichts.",
-        "face_change": f"{where} wurde angenommen.",
+        "baseline": f"Verbunden. Ausgangslage: {where}. {nothing}",
+        "face_change": f"{where} wurde angenommen."
+        + (_action_hint(value, labels) if control else ""),
         "neutral": "Der Würfel liegt in einer Zwischenlage (angenommen).",
-        "disconnect": "Die Verbindung ging verloren. Laufende Zeit gilt als unsicher.",
+        "disconnect": f"Die Verbindung ging verloren.{lost}",
         "reconnect": "Die Verbindung steht wieder.",
         "invalid": "Eine unverständliche Meldung wurde ignoriert.",
     }.get(kind, f"Ereignis: {kind}")
@@ -138,6 +156,7 @@ def _live(client: ApiClient, device_id: str, tz: str, theme: Theme) -> None:
     committed = live["committed_value"]
     up = committed if committed in range(1, 9) and connected else None
     pending = pending_face(live) if connected else None
+    control = live.get("mode") == "control"
 
     picture, steps = st.columns([5, 6], vertical_alignment="center")
     with picture:
@@ -154,7 +173,7 @@ def _live(client: ApiClient, device_id: str, tz: str, theme: Theme) -> None:
         if not connected:
             st.caption("Nicht verbunden: das Bild zeigt nur die Zuordnung der Seiten.")
     with steps:
-        _flow(live, labels, connected, pending)
+        _flow(live, labels, connected, pending, control)
 
     st.subheader("Letzte Bewegungen")
     events = live["recent"][:HISTORY_LINES]
@@ -163,17 +182,51 @@ def _live(client: ApiClient, device_id: str, tz: str, theme: Theme) -> None:
             "Noch keine Bewegung gesehen. Sobald der Würfel verbunden ist und Sie ihn drehen, "
             "erscheint es hier."
         )
+    else:
+        lines = []
+        for event in events:
+            moment = to_local(event["at"], tz)
+            clock = moment.strftime("%H:%M:%S") if moment else "–"
+            lines.append(f"- `{clock}` {escape_markdown(describe_event(event, labels, control))}")
+        st.markdown("\n".join(lines))
+    if control:
+        _recent_actions(client, tz)
+
+
+def _recent_actions(client: ApiClient, tz: str) -> None:
+    """Control mode: the last actions that were sent and how each ended."""
+    st.subheader("Letzte Aktionen")
+    try:
+        jobs = client.jobs(5)
+    except OctaLedgerError:
+        st.caption("Der Verlauf der Aktionen ist gerade nicht erreichbar.")
         return
+    if not jobs:
+        st.caption("Noch wurde keine Aktion gesendet.")
+        return
+    status = {
+        "pending": "⏳ wartet",
+        "done": "✅ gesendet",
+        "failed": "❌ fehlgeschlagen",
+        "expired": "⌛ verfallen",
+    }
     lines = []
-    for event in events:
-        moment = to_local(event["at"], tz)
+    for job in jobs:
+        moment = to_local(job["created_at"], tz)
         clock = moment.strftime("%H:%M:%S") if moment else "–"
-        lines.append(f"- `{clock}` {escape_markdown(describe_event(event, labels))}")
+        note = f" – {job['error']}" if job["error"] else ""
+        result = status.get(job["status"], job["status"])
+        text = f"{job['label']} ({job['integration']}): {result}{note}"
+        lines.append(f"- `{clock}` {escape_markdown(text)}")
     st.markdown("\n".join(lines))
 
 
 def _flow(
-    live: dict[str, Any], labels: dict[int, FaceLabel], connected: bool, pending: int | None
+    live: dict[str, Any],
+    labels: dict[int, FaceLabel],
+    connected: bool,
+    pending: int | None,
+    control: bool = False,
 ) -> None:
     """The three cards: what the cube reports, whether it is checked, what the software does."""
     with st.container(border=True):
@@ -207,8 +260,27 @@ def _flow(
         else:
             st.markdown("–")
     with st.container(border=True):
-        st.markdown("**③ Die Software**")
-        _software(live, labels, connected)
+        st.markdown("**③ Die Aktion**" if control else "**③ Die Software**")
+        if control:
+            _control_effect(live, labels, connected)
+        else:
+            _software(live, labels, connected)
+
+
+def _control_effect(live: dict[str, Any], labels: dict[int, FaceLabel], connected: bool) -> None:
+    """Control mode: what the accepted face triggers."""
+    st.markdown("🎛 Dieser Würfel **steuert** Dinge und erfasst keine Zeit.")
+    committed = live["committed_value"]
+    if not connected or committed not in range(1, 9):
+        return
+    name = labels.get(committed, FaceLabel()).name
+    if name:
+        st.markdown(f"Seite {committed}: Die Aktion „{escape_markdown(name)}“ wird ausgelöst.")
+    else:
+        st.info(
+            f"Seite {committed} hat noch keine Aktion, darum passiert hier nichts. Ordnen Sie "
+            "ihr im Bereich *Seiten zuordnen* eine zu."
+        )
 
 
 def _software(live: dict[str, Any], labels: dict[int, FaceLabel], connected: bool) -> None:

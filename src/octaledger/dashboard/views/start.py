@@ -184,8 +184,18 @@ def _welcome(devices: list[dict[str, Any]], state: SetupState) -> None:
             "Ihre Daten bleiben auf Ihrem Computer. Sicherung, Export und Wiederherstellung "
             "gehören dazu.",
         ),
+        (
+            "🏠 Mehr als Zeiterfassung: Dinge steuern",
+            "Stellen Sie einen Würfel auf *Steuerung*, und jede Seite schaltet etwas: eine Lampe, "
+            "eine Szene, eine Nachricht. Zum Beispiel Licht mit Philips Hue oder Home Assistant.",
+        ),
+        (
+            "🔌 Offen für weitere Standards",
+            "Home Assistant, MQTT, Philips Hue und beliebige Web-Adressen sind dabei. "
+            "**Matter** und **Google Home** erreichen Sie über Home Assistant.",
+        ),
     )
-    for row in (cards[:2], cards[2:]):
+    for row in (cards[:2], cards[2:4], cards[4:]):
         for column, (title, body) in zip(st.columns(2), row, strict=True):
             with column, st.container(border=True):
                 st.markdown(f"**{title}**")
