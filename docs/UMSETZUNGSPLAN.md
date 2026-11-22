@@ -25,6 +25,7 @@ Dieser Plan beschreibt **der Reihe nach**, was als Nächstes gebaut werden soll 
 17. [AP-47 Optionale Pakete (nur auf Wunsch)](#17-ap-47-optionale-pakete-nur-auf-wunsch)
 18. [Bewusst nicht geplant](#18-bewusst-nicht-geplant)
 19. [Querschnitt: Tests, Doku, Sicherheit, Hardware](#19-querschnitt-tests-doku-sicherheit-hardware)
+20. [AP-51 bis AP-56 Würfel-Cockpit: mehrere Würfel, Batterie, Inspektor](#20-ap-51-bis-ap-56-würfel-cockpit-mehrere-würfel-batterie-inspektor)
 
 ---
 
@@ -95,6 +96,12 @@ AP-35 ──► AP-45 ──► AP-48 Musik-Modus ──► AP-49 Spotify, AP-50
 | 48 | **Musik-Modus Kern** (PC lokal, Home Assistant) | M | F-51 bis F-55, F-57, F-59 bis F-63 | 0009 | [HW] Halterung |
 | 49 | **Spotify direkt** | M | F-56 | – | [HW] |
 | 50 | **Browser-Player für YouTube Music** | M | F-58 | – | [HW] Browser |
+| 51 | **Würfel-Identität und ausgewählter Würfel** (Farbe, Banner, Auswahl überall gleich) | C | F-64, F-65 | 0010 | – |
+| 52 | **Batterie-Cockpit** (immer sichtbar, gespeichert, Warnungen, Schätzung) | C | F-66 | 0011 | [HW] |
+| 53 | **Funktionsbereiche** (Zeit, Smarthome, Musik unterscheiden und umschalten) | C | F-67 | – | – |
+| 54 | **Würfel-Inspektor** (klickbarer Würfel, Einstellungen je Seite, Neuprogrammieren) | C | F-68, F-69 | – | – |
+| 55 | **Mehrere Würfel parallel** (Vorrangregeln für Musik und Ziele, Konfliktprotokoll) | C | F-70 | 0012 | [HW] |
+| 56 | **Würfel auslesen** (alle lesbaren Daten, Datenblatt; Schreiben nur belegt) | C | F-71, F-72 | 0013 | [HW] |
 
 **Warum diese Reihenfolge:** Zuerst die Fehlerquellen, die **Daten verfälschen** (AP-35/36: falsche oder fehlende Zeiten), dann die Bedienung (Taste, Tray, Erinnerungen), dann die Auswertung (Soll-Zeit, Berichte), zuletzt der Ausbau von Funktion A (Hue, Ketten, Medien). Funktion A, B und der Musik-Modus M sind **unabhängig**; wer zuerst Smarthome möchte, darf AP-43 bis AP-46 vorziehen (sie hängen nur von AP-26 bis AP-31 ab, die schon fertig sind).
 
@@ -663,3 +670,91 @@ Jedes Paket wird **nur auf ausdrücklichen Wunsch** begonnen und ist unabhängig
 **Sicherheit (Querschnitt):** Alle neuen Eingaben strikt validiert (`extra="forbid"`), alle neuen Netzwerkziele mit Zeitlimits, Größenlimits, ohne Weiterleitungen/Proxys, SSRF-Schutz für beliebige Adressen; **keine** neuen BLE-Schreibzugriffe; Zugangsdaten nur im `SecretStore`; fremde Dateien (ICS, Sicherungen) nie ausführen; optionale Zusatzbibliotheken mit geprüfter Lizenz.
 
 **Ehrlichkeitsregel:** Nichts wird als „hardwaregeprüft“ oder „mit echtem Ziel geprüft“ bezeichnet, bevor es so geprüft wurde; jedes [U] wird beim Bauen durch Primärquelle oder Test ersetzt und das Ergebnis dokumentiert.
+
+
+## 20. AP-51 bis AP-56 Würfel-Cockpit: mehrere Würfel, Batterie, Inspektor
+
+**Auftrag des Anwenders (2026-11-22):** Die Bedienung soll **klarer zwischen den Funktionsbereichen** (Zeiterfassung, Smarthome, Musik) unterscheiden und das Umschalten erleichtern; die **bisherigen Einstellungen eines Würfels** sollen **jederzeit sichtbar** sein; im **Würfelbild** sollen die Seiten **anklickbar** sein (Einstellungen ansehen, neu programmieren); der **Batteriestand** soll **immer sichtbar**, **gespeichert/protokolliert** und ein baldiges Ende **angekündigt** werden; **alles Lesbare vom Würfel** soll lesbar und als Daten nutzbar sein, einstellbare Werte (Genauigkeit des Beschleunigungssensors, Energiemodus, LED) sollen geprüft werden; **mehrere Würfel** sollen **unterscheidbar** sein und **gleichzeitig** programmiert, gesteuert und dargestellt werden können, mit **geregelten Konflikten** (eine Musik gleichzeitig, widersprüchliche Lampenbefehle).
+
+### 20.1 Ist-Stand
+
+* Mehrere Würfel sind **fachlich möglich** (ein Arbeiter je Würfel, Tabelle `devices`), aber **jede Seite wählt ihren Würfel selbst** (Auswahlfeld „Tracker“ mit ⭐ für den *aktiven Zeit-Würfel*). Es gibt **keine durchgehende Identität** (Farbe), **keine gemeinsame Auswahl**, keine Übersicht aller Würfel nebeneinander.
+* Der **Batteriestand** wird gelesen (beim Verbinden, alle 10 Minuten) und einmal unter der Grenze gemeldet, aber **nicht gespeichert**, nicht dauerhaft sichtbar, ohne Prognose.
+* Das Würfelbild (SVG) ist **nicht anklickbar**; die Einstellungen einer Seite sieht man nur im Editor der jeweiligen Betriebsart.
+* Der Würfel wird **nur gelesen** (keine Schreiboperation in der BLE-Schicht, per Konstruktion getestet).
+
+### 20.2 Recherche: was der Würfel sendet und was einstellbar ist (Stand 2026-11-22)
+
+**Es gibt keine offizielle Bluetooth-Dokumentation des Herstellers**, die gefunden wurde (offiziell ist nur die Cloud-Schnittstelle, kein Bluetooth). Alles Folgende ist **Community-Wissen** (Quellen: `codingforfun/zeipy`, `maslovw/timeular-local`, `adn77/timeular`, `zntrio/timeular`, Blog von LeMaRiva) und **am eigenen Würfel zu bestätigen**. Teile der Quellen **widersprechen sich**.
+
+| Dienst / Characteristic | Eigenschaften | Bedeutung (Community) | Verwendung in OctaLedger |
+|---|---|---|---|
+| `1800` Gerätename `2A00` | lesen, schreiben | Name des Geräts | nur lesen |
+| `180A` `2A24/2A25/2A26/2A27/2A28/2A29/2A23/2A50` | lesen | Modell, **Seriennummer**, Firmware, Hardware, Software, Hersteller, System-ID, PnP-ID | **lesen** (Datenblatt, Unterscheidung mehrerer Würfel) |
+| `180F` Batterie `2A19` | lesen, Benachrichtigung | Prozent | **lesen** (AP-52) |
+| `1804` Tx Power `2A07` | lesen | Sendeleistung | lesen (Datenblatt) |
+| `c7e70012` | lesen, Anzeige | Seite oben (1–8, 0 neutral, **auch andere Werte** wie 9/11/13, siehe BLE_PROTOCOL) | wie bisher |
+| `c7e70011` | lesen | **Beschleunigungssensor**; Format **unsicher** (3 × uint16 laut einer, 3 × int32 laut anderer Quelle) | **nur lesen**, Länge prüfen, Roh-Aufzeichnung (AP-56) |
+| `c7e70021` | Anzeige | Taste, 1 Byte (0 kurz, 1 lang); „1“ auch beim Ausschalten beobachtet | wie bisher |
+| `c7e70022` | schreiben | „LED-Steuerung“ laut zeipy, **kein Datenformat bekannt** | **nicht schreiben** |
+| `c7e70030/32` | schreiben, Benachrichtigung | beim Abonnieren ca. 169 Byte, vermutlich Kalibrierung je Seite; **nur eine Quelle** | höchstens lesen/mitschneiden |
+| `c7e70041/42` | schreiben | Zweck unbekannt | **nicht schreiben** |
+| `c7e70001` | schreiben, Benachrichtigung | „wechselt in den Firmware-Lade-Modus (DFU)“ | **niemals schreiben** (Risiko: Würfel im Bootloader) |
+
+**Antworten auf die Fragen des Anwenders:**
+* **Mehr Daten als die Lage?** Ja, lesbar sind **Batterie, Modell, Firmware, Seriennummer, Sendeleistung, Taste** und vermutlich der **Beschleunigungssensor** (Format ungeklärt). Es gibt **keine** belegten Ereignisse für „Doppelklopfen/Schütteln“; die Lageänderung selbst ist das Ereignis.
+* **Beeinflussbar?** **Belegt ist nichts.** Genauigkeit des Beschleunigungssensors, Energiemodus/Schlafzeit: **kein Hinweis** auf eine Einstellung. **LED:** Es gibt eine Characteristic, deren Datenformat **unbekannt** ist. Der Würfel schläft in der Halterung von selbst und wacht beim Kippen auf. Deshalb werden diese Werte in OctaLedger **nur gezeigt, nicht verändert** (AP-56), bis eine belastbare Quelle vorliegt.
+* **Mehrere Würfel unterscheiden:** **Seriennummer `2A25`** (lesen) und die **Bluetooth-Adresse**; welche der beiden die Werbedaten enthalten, ist **unbekannt**. OctaLedger kennt die Adresse und vergibt **Namen, Nummer und Farbe** (AP-51).
+* **Gleichzeitige Verbindungen:** wie viele Würfel Windows mit dem vorhandenen Bluetooth-Adapter gleichzeitig hält, ist **nicht belegt** und am Gerät zu prüfen (nur der Würfel selbst: solange eine andere App verbunden ist, wirbt er nicht).
+* **Batterie:** laut Blog **Knopfzelle** (Typ unbestätigt: CR2032 genannt), rote LED bei schwacher Batterie; Aktualisierungsrate des Prozentwerts **unbekannt**.
+
+### 20.3 AP-51 Würfel-Identität und ausgewählter Würfel
+
+* **Begriffe:** *Ausgewählter Würfel* = der Würfel, den man gerade ansieht/bearbeitet (Sitzungs-Auswahl, überall gleich); *Aktiver Zeit-Würfel* (⭐) = der Würfel, der die Zeiterfassung steuert (Einstellung „ein aktiver Tracker“, unverändert). Beides wird in der Oberfläche **nie** vermischt.
+* **Identität:** jeder Würfel bekommt **Namen, laufende Nummer und Farbe** (Migration 0010: `devices.color`, automatisch aus einer festen, gut unterscheidbaren Palette vergeben, änderbar). Die Farbe erscheint **zusammen mit Name und Nummer** (nie Farbe allein) am Banner, im Menü, im Würfelbild (Rahmen), im Verlauf und in Auswahllisten.
+* **Auswahl:** ein Würfel-Wähler **in der Seitenleiste** (immer sichtbar); alle würfelbezogenen Seiten benutzen **dieselbe** Auswahl. Ein **Banner** oben: „Sie bearbeiten: ● Regenbogen (Würfel 2 · Musik)“.
+* **Übersicht:** die Übersichtsseite zeigt **alle Würfel als Karten** (Name, Farbe, Bereich, Verbindung, Batterie, Lage, was läuft).
+* **Tests:** Farbvergabe (eindeutig, stabil), Auswahl bleibt über Seitenwechsel, Banner, Karten; Sicherungsformat nimmt `color` auf.
+
+### 20.4 AP-52 Batterie-Cockpit
+
+* **Speichern:** Tabelle `battery_log` (Migration 0011: Würfel, Zeit, Prozent); ein Eintrag **nur bei Änderung oder spätestens alle 6 Stunden**, Aufbewahrung 400 Tage, Teil der Sicherung.
+* **Immer sichtbar:** in der **Statusleiste für jeden Würfel** (Symbol **und** Zahl), im Banner und in den Karten; **Stufen** (≥ 40 % gut, 20–39 % „bald tauschen“, 10–19 % „schwach“, < 10 % „fast leer“) **mit Text**.
+* **Prognose (ehrlich):** aus dem gespeicherten Verlauf nur eine **Schätzung** der Restdauer (Steigung über mindestens 3 Tage und 5 Punkte), sonst „noch keine Schätzung“.
+* **Warnungen:** WARNING im Protokoll einmal je Stufe, Eintrag unter „Hinweise“, Toast/Tray wie bisher; Stufenwechsel bleiben im Verlauf.
+* **Grenze [HW]:** Meldefrequenz und Genauigkeit des Würfels sind unbekannt; die Prozentwerte sind **die des Würfels**.
+
+### 20.5 AP-53 Funktionsbereiche unterscheiden und umschalten
+
+* Drei **Bereiche** mit **eigener Farbe, eigenem Symbol und Text**: **Zeit**, **Smarthome**, **Musik**. Jeder Würfel hat **genau einen** Bereich (die vorhandene Betriebsart), **groß** gezeigt (Banner, Karte, Bild).
+* **Umschalten an einer Stelle:** im **Banner des ausgewählten Würfels** mit Erklärung und Folgen („Zeit läuft noch – erst beenden“).
+* **Bereichsfilter** in der Seitenleiste (Alle · Zeit · Smarthome · Musik): filtert Würfel-Wähler, Karten und bereichsbezogene Menüeinträge; Voreinstellung „Alle“.
+* **Tests:** Umschalten mit Sperre bei laufender Zeit, Filterwirkung, Beschriftungen, Hilfetexte.
+
+### 20.6 AP-54 Würfel-Inspektor (anklickbarer Würfel)
+
+* Neue Seite **„Würfel-Inspektor“** (Gruppe *Würfel*): links das **Würfelbild**, rechts das **Seitenblatt** der gewählten Seite.
+* **Anklickbar:** mit **`st.components.v2`** (in Streamlit 1.67 vorhanden, ohne Bauwerkzeug und ohne fremde Quellen) ist das SVG anklickbar, **und** es gibt immer eine **gleichwertige Knopfreihe 1–8** (Tastatur, Bildschirmleser, Tests, Rückfall ohne Komponente).
+* **Seitenblatt (alles im Detail):** **Zeit** – Tätigkeit, Projekt, Tags, Notizvorlage, Bedingungen; **Smarthome** – die **ganze Aktionskette** (je Schritt: Verbindung, Aktion, Werte, Verzögerung, Fehlerverhalten, Bedingung) in Klartext; **Musik** – Titel, Ziel, Lautstärke, Halterungs-Verhalten; **leer** – „Noch nichts zugeordnet“. Knöpfe: **Neu programmieren** (springt in den passenden Editor mit vorgewählter Seite), **Entfernen**.
+* **Alle Seiten auf einen Blick:** Klartext-Tabelle der 8 Seiten und der Halterung; kopier- und exportierbar („Einstellungen des Würfels“).
+* **Tests:** Klartext-Erzeuger (reine Funktion) je Bereich, Auswahl über Knopf, Rückfall, Sprung zum Editor.
+
+### 20.7 AP-55 Mehrere Würfel parallel
+
+* **Zeit:** „ein aktiver Tracker“ bleibt Voreinstellung. Ob **mehrere Zeit-Würfel** gleichzeitig sinnvoll auswertbar sind (Journal/Statistik/Bericht je Würfel), wird **beim Bauen geklärt**, nicht vorab versprochen.
+* **Musik, eine Wiedergabe je Ziel:** pro **Ziel** (Lokaler Player, ein Home-Assistant-Lautsprecher, Spotify-Konto, Browser-Player) läuft **nur ein Titel**. **Der zuletzt gestartete gewinnt**; „läuft gerade“ gehört dem Würfel, der zuletzt gestartet hat (`music_owner:<Ziel>`). **Ein Stopp durch die Halterung wirkt nur, wenn der Würfel Besitzer ist** (sonst beendete Würfel A die Musik von Würfel B). Ein Besitzwechsel steht im Verlauf.
+* **Smarthome, widersprüchliche Befehle:** Aufträge an **dasselbe Ziel-Objekt** von **verschiedenen Würfeln** innerhalb eines **Konfliktfensters** (Voreinstellung 5 s) werden **in Eingangsreihenfolge** gesendet (der letzte gewinnt) und als **Konflikt im Verlauf** markiert; wahlweise „ältere verwerfen“. Keine stillschweigende Zusammenführung.
+* **Anzeige:** Übersicht „**Wer steuert was?**“ (Ziel → Besitzer, seit wann).
+* **Tests:** zwei Fake-Würfel mit gleichem Ziel: Besitz, Stopp nur durch Besitzer, Konflikt-Markierung, Unabhängigkeit verschiedener Ziele.
+
+### 20.8 AP-56 Würfel auslesen (Datenblatt) und Grenzen des Einstellens
+
+* **Lesen (sicher):** ein **Auslesen** je Würfel liest **alle lesbaren Characteristics** (nur READ, kein Schreiben) und speichert einen **Schnappschuss** (`device_snapshots`, Migration 0013) – angezeigt als **„Datenblatt“** (Dienste, Rechte, Werte, Modell, Firmware, **Seriennummer**, Batterie) mit **Export** (JSON/CSV). Unbekannte Characteristics erscheinen mit Rohwert, **ohne erfundene Deutung**.
+* **Aufzeichnen:** ein **Aufzeichnungsmodus** für den Beschleunigungssensor `c7e70011` (nur lesen, nur auf Knopfdruck, begrenzte Dauer, Datei im Benutzerprofil, **Länge der Antwort wird geprüft**, bevor irgendetwas gedeutet wird).
+* **Einstellbare Werte:** **kein Schreiben.** Für LED, Beschleunigungs-Genauigkeit und Energiemodus gibt es **keine belegte Quelle**; die Datenblatt-Ansicht sagt das ehrlich. Eine Schreibfunktion entsteht **nur**, wenn später eine **Primärquelle** und ein **Test am Gerät** vorliegen (dann mit doppelter Bestätigung, altem Wert und Rückweg). `c7e70001` (Firmware-Lade-Modus) wird **nie** beschrieben. Projektregel bleibt: **keine BLE-Schreiboperation auf unbekannte Characteristics.**
+
+### 20.9 Reihenfolge, Abhängigkeiten, Abnahme
+
+AP-51 → AP-52 → AP-53 → AP-54 → AP-55 → AP-56. AP-51 (Identität/Auswahl) ist die Grundlage; AP-54 setzt die gemeinsame Auswahl voraus; AP-55 setzt Identität und Bereiche voraus; AP-56 hängt am meisten von der echten Hardware ab und folgt zuletzt.
+
+**A-36:** Zwei Würfel sind in Name, Nummer **und** Farbe unterscheidbar; die Auswahl gilt auf allen Seiten; das Banner nennt den bearbeiteten Würfel. **A-37:** Der Batteriestand jedes Würfels ist ständig sichtbar, wird gespeichert und warnt je Stufe einmal. **A-38:** Der Bereich eines Würfels ist am Bild erkennbar und an einer Stelle umschaltbar. **A-39:** Ein Klick auf eine Seite im Würfelbild (oder die Knopfreihe) zeigt die vollständige Einstellung der Seite. **A-40:** Zwei Musik-Würfel mit gleichem Ziel stören sich nicht: Stopp nur durch den Besitzer. **A-41 [HW]:** Das Datenblatt eines echten Würfels listet alle lesbaren Characteristics.

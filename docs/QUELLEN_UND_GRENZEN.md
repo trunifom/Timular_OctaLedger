@@ -57,6 +57,10 @@ Die Endpunkte (`/authorize` und `/api/token` mit PKCE, `/v1/me/player/play|pause
 
 Geprüft (automatisch): der Zustand des Adapters, die Form der YouTube-Kennungen (nur `[A-Za-z0-9_-]`, 11 bzw. 10–60 Zeichen), dass ein falscher Wert nie in die Seite gelangt, dass derselbe Zustand denselben Seitentext ergibt (der Browser behält den laufenden Player) und dass vor der Zustimmung nichts Externes geladen wird. **Nicht geprüft:** Verhalten der IFrame-Player-API (`YT.Player`, `setVolume`, `playVideo`, Fehlercodes 101/150), Autoplay-Regeln der Browser, ob Streamlit das Neuzeichnen ohne Unterbrechung der Wiedergabe erlaubt, und welche Videos einbettbar sind. Harte Grenze: **nur bei geöffneter Seite**. Datenschutz und Sicherheit: Der Player ist ein **eingebetteter Rahmen von `youtube-nocookie.com`** (fremde Herkunft); **es läuft kein fremdes Skript im Dashboard** (Lautstärke und Start gehen per `postMessage` an den Rahmen, das einzige Skript der Seite ist unser eigenes und enthält nur geprüfte Werte). Ob der Rahmen diese Befehle in Ihrem Browser annimmt (`enablejsapi=1`), ist **nicht geprüft**; ohne sie startet das Video trotzdem (Autoplay), nur die Lautstärke bliebe die des Videos.
 
+## Bluetooth-Schnittstelle des Würfels (Recherche vom 2026-11-22)
+
+Es wurde **keine offizielle Bluetooth-Dokumentation** des Herstellers gefunden; die Tabelle der Dienste und Characteristics steht in `docs/UMSETZUNGSPLAN.md` §20.2 und stammt aus Community-Quellen (`codingforfun/zeipy`, `maslovw/timeular-local`, `adn77/timeular`, `zntrio/timeular`, Blog von LeMaRiva), die sich teilweise **widersprechen** (Format des Beschleunigungssensors, Werte der Halterung, Dienst `c7e70030`). Einstellbare Werte (LED, Empfindlichkeit, Energiemodus) sind **nicht belegt**; ein Schreibzugriff auf unbekannte Characteristics findet nicht statt.
+
 ## Was **nicht** geprüft wurde (Grenzen)
 
 - **Keine echte BLE-Hardware:** Weder Scan noch Verbindung, Benachrichtigungen, Reconnect, Reichweite,

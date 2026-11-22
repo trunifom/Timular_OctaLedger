@@ -266,3 +266,18 @@ Dritte Betriebsart je Würfel neben *Zeit* und *Steuerung*: **Jede Seite hat ein
 | A-33 | „Läuft gerade“ stimmt nach Play/Stopp/Fehler; Verbindungsverlust stoppt die Musik erst nach der Frist. **[HW]** A-33b: Am echten Würfel entspricht die Halterung dem dokumentierten Rohwert und stoppt die Musik; ein PC-Radiostream und ein HA-`media_player` spielen | 48 |
 | A-34 | Spotify gegen Fake-Server: PKCE, `state`-Prüfung, Token-Erneuerung, `PREMIUM_REQUIRED`, `NO_ACTIVE_DEVICE`; Geheimnisse nie in Meldungen/Protokoll. **[HW]** A-34b: echtes Konto spielt/pausiert | 49 |
 | A-35 | Browser-Player nur mit Opt-in sichtbar; Neuzeichnen nur bei neuem `nonce`; Token nie im HTML; IDs escaped. **[HW]** A-35b: im echten Browser startet/stoppt ein einbettbares Video | 50 |
+
+
+### 12.7 Würfel-Cockpit (Funktion C: mehrere Würfel, Batterie, Inspektor), geplant
+
+| Nr. | Prio | Anforderung | AP | Risiko |
+|---|---|---|---|---|
+| F-64 | Muss | Jeder Würfel hat **Namen, Nummer und Farbe**; überall (Banner, Auswahl, Karten, Bild) **mit Text, nie nur Farbe** erkennbar | 51 | – |
+| F-65 | Muss | **Ein ausgewählter Würfel** gilt auf allen würfelbezogenen Seiten (Wähler in der Seitenleiste, Banner „Sie bearbeiten …“); Übersicht aller Würfel als Karten | 51 | – |
+| F-66 | Muss | **Batteriestand jedes Würfels immer sichtbar**, **gespeichert** (Verlauf), **Stufen mit Text**, einmalige Warnung je Stufe (Log, Hinweise, Toast), **ehrlich gekennzeichnete Schätzung** der Restdauer | 52 | Meldefrequenz des Würfels [HW] |
+| F-67 | Muss | **Funktionsbereiche** Zeit, Smarthome, Musik mit eigener Farbe/Symbol/Text, **Umschalter im Banner** mit Folgenhinweis, **Bereichsfilter** der Seitenleiste | 53 | – |
+| F-68 | Muss | **Anklickbares Würfelbild** (mit gleichwertiger Knopfreihe) und **Seitenblatt** mit der vollständigen Einstellung der Seite; **Neu programmieren** springt in den Editor | 54 | Komponenten-API von Streamlit |
+| F-69 | Soll | **Alle Seiten auf einen Blick** als Klartext-Tabelle, kopier- und exportierbar | 54 | – |
+| F-70 | Muss | **Mehrere Würfel parallel**: eine Wiedergabe je Ziel (zuletzt gestartet gewinnt, Stopp nur durch den Besitzer), widersprüchliche Befehle an dasselbe Objekt als **Konflikt** markiert, Anzeige „Wer steuert was?“ | 55 | Echte Parallelität mehrerer Würfel [HW] |
+| F-71 | Soll | **Würfel auslesen**: alle lesbaren Characteristics als **Datenblatt** gespeichert und exportierbar, ohne erfundene Deutung | 56 | [HW] |
+| F-72 | Kann | **Einstellbare Werte** (Beschleunigungs-Genauigkeit, Energiemodus, LED) **nur**, wenn aus Primärquelle belegt, mit doppelter Bestätigung und Rückweg; Stand der Recherche: **nicht belegt** | 56 | Kopplungsverlust, fehlende Quelle |
