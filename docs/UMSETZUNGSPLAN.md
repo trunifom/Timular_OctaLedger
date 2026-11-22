@@ -760,3 +760,36 @@ Jedes Paket wird **nur auf ausdrücklichen Wunsch** begonnen und ist unabhängig
 AP-51 → AP-52 → AP-53 → AP-54 → AP-55 → AP-56. AP-51 (Identität/Auswahl) ist die Grundlage; AP-54 setzt die gemeinsame Auswahl voraus; AP-55 setzt Identität und Bereiche voraus; AP-56 hängt am meisten von der echten Hardware ab und folgt zuletzt.
 
 **A-36:** Zwei Würfel sind in Name, Nummer **und** Farbe unterscheidbar; die Auswahl gilt auf allen Seiten; das Banner nennt den bearbeiteten Würfel. **A-37:** Der Batteriestand jedes Würfels ist ständig sichtbar, wird gespeichert und warnt je Stufe einmal. **A-38:** Der Bereich eines Würfels ist am Bild erkennbar und an einer Stelle umschaltbar. **A-39:** Ein Klick auf eine Seite im Würfelbild (oder die Knopfreihe) zeigt die vollständige Einstellung der Seite. **A-40:** Zwei Musik-Würfel mit gleichem Ziel stören sich nicht: Stopp nur durch den Besitzer. **A-41 [HW]:** Das Datenblatt eines echten Würfels listet alle lesbaren Characteristics.
+
+
+## 21. Einträge verwalten und Diagramme (AP-57 bis AP-59)
+
+**Ausgangslage:** Das Zeitjournal kann Einträge einzeln korrigieren, teilen, löschen und mit Tags versehen und nach Zeitraum, Tätigkeit, Projekt, Gerät und Tag filtern. Es fehlen: Volltextsuche, weitere Filter, **Mehrfachauswahl mit Sammelaktionen**, ein **Änderungsprotokoll** und viel mehr **Diagramme** (bisher: wenige Balken-/Kreisdiagramme in der Statistik).
+
+**Entscheidungen**
+* **Sammelaktionen sind alles oder nichts** (eine Transaktion). Jede geänderte Angabe jedes Eintrags landet in der bestehenden Prüfspur (`corrections`), das Löschen nach einer **automatischen Sicherung** mit Eintrag im Audit-Protokoll. Ein **Grund ist Pflicht**.
+* **Laufende Einträge** werden nie verschoben oder gelöscht (sie werden noch aufgezeichnet); sie werden gezählt und genannt, nie stillschweigend geändert.
+* **„Person“ und „Tag“** sind dasselbe: ein Tag (z. B. `PERSON-B`, `TAG-1`). Bereiche markiert man über Filter + „alle Treffer auswählen“.
+* **Suchen und Filtern** läuft in der Oberfläche über die geladenen Einträge (rein, getestet), weil alles lokal liegt; der Zeitraum wird beim Laden eingegrenzt. Kein neues Datenformat.
+* **Kein Rückgängig-Knopf:** Rückweg ist die Sicherung vor dem Löschen (Seite *Daten*) und die alten Werte im Änderungsprotokoll.
+
+### 21.1 AP-57 Sammelbearbeitung (Backend)
+* `application/entry_service.py`: `apply` (Tätigkeit, Projekt, Notiz setzen/anhängen/leeren, **Zeit verschieben**, Qualität, Tags hinzufügen/entfernen/ersetzen), `delete`, `history` (Korrekturen und Audit-Einträge zusammen, mit Namen statt Kennungen).
+* Repository `delete_many` (parametrisiert, in Blöcken, ein Sammel-Audit-Eintrag).
+* API `POST /entries/edit`, `POST /entries/delete`, `GET /entries/history`; Client-Methoden `bulk_edit`, `bulk_delete`, `entry_history`.
+* **Tests:** Änderung aller Felder, Wiederholung = „unverändert“, Verschieben ohne Zwischen-Überlappung, Rollback bei Konflikt, Zukunft verboten, Tags, Pflichtgrund, laufende Einträge, Sicherung und Audit, Verlauf.
+
+### 21.2 AP-58 Seite „Einträge“ (Oberfläche)
+* Neue Seite **Einträge** (Gruppe *Alltag*): **Suche** (Notiz, Tätigkeit, Projekt, Tags, Gerät), **Filter** (Zeitraum mit Schnellwahl, Tätigkeit, Projekt, Gerät, Tags **beliebig/alle/keiner**, Qualität, Quelle, Dauer von–bis, Wochentage, Tageszeit), **Suchprotokoll** (zuletzt benutzte Filter, mit einem Klick erneut anwenden, in der Sitzung).
+* **Tabelle** mit allen Werten (Beginn, Ende, Dauer, Tätigkeit, Projekt, Tags, Gerät, Quelle, Qualität, Revision, Notiz, Betrag), sortierbar, **Zeilen anklickbar** (Mehrfachauswahl) plus „alle Treffer auswählen“ / „Auswahl aufheben“; Zusammenfassung der Auswahl (Anzahl, Summe, Zeitspanne).
+* **Sammelaktionen** auf der Auswahl: zuordnen (Tätigkeit/Projekt), **Tags** hinzufügen/entfernen/ersetzen, Notiz, **verschieben** (± Minuten/Stunden/Tage), bestätigen/als unsicher markieren, **löschen** (mit Vorschau, Grund und Zahlenbestätigung).
+* **Änderungsprotokoll** (Reiter): wer/was/wann/Grund mit altem und neuem Wert, filterbar.
+* Das einzelne Bearbeiten (korrigieren, teilen, löschen) bleibt im Journal erreichbar; die neue Seite ersetzt es nicht.
+
+### 21.3 AP-59 Diagramme
+* Neue Seite **Diagramme** (Gruppe *Alltag*) mit einer Auswahl vieler **interaktiver** Plotly-Diagramme auf den gefilterten Einträgen (gleiche Filterleiste): Stapelbalken je Tag/Woche/Monat nach Tätigkeit oder Projekt, Kreis/Ring, Sonnenstrahl (Tätigkeit → Projekt), Treemap, Wärmekarte Wochentag × Stunde, Kalender-Wärmekarte, Zeitstrahl/Gantt der Einträge, kumulierte Linie, Verlauf mit Bereichsregler, Histogramm und Boxplot der Dauer, Streudiagramm Tageszeit × Dauer, Tag-Vergleich.
+* **Interaktiv:** Zoomen, Schwebetext, Legende ein-/ausblenden, Bereichsregler; **Klick auf ein Element** (Balken, Kreisstück) filtert die Tabelle darunter auf genau diese Einträge. Zu jedem Diagramm gibt es die **Daten als Tabelle** und einen Export (PNG über die Plotly-Leiste, CSV).
+* Die Diagramme sind **reine Funktionen** (Einträge → Figur) und einzeln getestet; die Farben kommen aus dem Design-System (hell/dunkel), nie Farbe allein (Beschriftung und Schwebetext).
+* Ehrlich: die Auswertung beruht auf den **Geräte-Einträgen** (Überlappungen werden hier nicht herausgerechnet; die Statistik-Seite bleibt für die „persönliche Arbeitszeit“ maßgeblich); die Diagramme weisen darauf hin.
+
+**Reihenfolge:** AP-57 → AP-58 → AP-59. **Abnahme A-42:** Mehrere Einträge lassen sich auswählen und gemeinsam zuordnen, taggen, verschieben und löschen (alles oder nichts, mit Grund, Sicherung und Protokoll). **A-43:** Suche und Filter grenzen Einträge nach allen genannten Angaben ein; das Suchprotokoll wendet frühere Filter wieder an. **A-44:** Jedes Diagramm hat eine Tabelle zu den Daten, ein Klick auf ein Element filtert die Einträge.

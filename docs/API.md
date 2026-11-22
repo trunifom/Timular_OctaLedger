@@ -257,6 +257,9 @@ Namen sind unter den nicht archivierten Einträgen eindeutig (ohne Beachtung von
 | `POST /sessions/{id}/split` | in zwei Sitzungen teilen | `{"at", "reason"}` | Liste mit zwei **Sitzungen** |
 | `POST /sessions/{id}/confirm` | unsichere Sitzung bestätigen | – | **Sitzung** |
 | `POST /sessions/{id}/delete` | löschen (Begründung Pflicht, protokolliert) | `{"reason"}` | 204 |
+| `POST /entries/edit` | **viele** Einträge auf einmal ändern (alles oder nichts, Grund Pflicht, Prüfspur je Feld; laufende werden beim Verschieben ausgelassen) | `{"ids": [], "reason", "activity_id"?, "project_id"?, "clear_project"?, "note_mode"? (keep\|set\|append\|clear), "note"?, "shift_seconds"?, "quality"?, "tags_add"?, "tags_remove"?, "tags_replace"?}` | `{changed, unchanged, skipped_running, safety_backup}` |
+| `POST /entries/delete` | **viele** fertige Einträge löschen nach automatischer Sicherung (laufende bleiben; ein Sammel-Audit-Eintrag) | `{"ids": [], "reason"}` | `{changed, unchanged, skipped_running, safety_backup}` |
+| `GET /entries/history` | Änderungsprotokoll: Korrekturen (mit altem/neuem Wert, Namen statt Kennungen) und Löschungen, neueste zuerst | Query `session_id?`, `limit?` (1–5000) | Liste `{at, kind, session_id, field, old_value, new_value, reason, revision}` |
 
 **Sitzung:** `{id, activity_id, project_id, device_id, started_at, ended_at, running, duration_seconds, source, quality, note,
 revision}`. `source` ist `device` oder `manual`; `quality` ist `confirmed` oder `uncertain`. Eine laufende Sitzung hat

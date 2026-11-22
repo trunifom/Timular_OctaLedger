@@ -1558,6 +1558,33 @@ class SessionRepository:
                 )
         return int(cursor.rowcount)
 
+    def delete_many(self, ids: Sequence[str], reason: str, audit: AuditLogRepository) -> int:
+        """Delete the **finished** sessions among ``ids`` (running ones are left alone).
+
+        One summary entry (count and reason, not one per session) goes into the audit log. The
+        ids are bound as parameters in chunks, never formatted into the SQL text.
+
+        Returns:
+            Number of deleted sessions.
+        """
+        unique = list(dict.fromkeys(ids))
+        deleted = 0
+        with _savepoint(self._c, "delete_many_sessions"):
+            with _db_errors("delete selected sessions"):
+                for index in range(0, len(unique), 500):
+                    chunk = unique[index : index + 500]
+                    marks = ",".join("?" * len(chunk))
+                    cursor = self._c.execute(
+                        f"DELETE FROM sessions WHERE ended_at IS NOT NULL AND id IN ({marks})",  # noqa: S608
+                        chunk,
+                    )
+                    deleted += cursor.rowcount
+            if deleted:
+                audit.add(
+                    "delete", "sessions", None, f"{deleted} selected sessions, reason={reason}"
+                )
+        return deleted
+
     def delete_all_of_device(self, device_id: str, audit: AuditLogRepository) -> int:
         """Delete every session of a device, a running one included (used when removing it)."""
         with _savepoint(self._c, "delete_device_sessions"):

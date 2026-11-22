@@ -16,6 +16,7 @@ from octaledger.application.battery_service import BatteryService
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.data_service import DataService
 from octaledger.application.device_service import DeviceService
+from octaledger.application.entry_service import EntryService
 from octaledger.application.export_service import ExportService
 from octaledger.application.ics_import import IcsService
 from octaledger.application.integration_service import IntegrationService
@@ -99,6 +100,7 @@ class AppContext:
     ics: IcsService = field(init=False)
     battery: BatteryService = field(init=False)
     readout: ReadoutService = field(init=False)
+    entries: EntryService = field(init=False)
     music: MusicService | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
@@ -109,6 +111,7 @@ class AppContext:
         self.ics = IcsService(self.storage)
         self.battery = BatteryService(self.storage)
         self.readout = ReadoutService(self.storage, lambda: self.agent)
+        self.entries = EntryService(self.storage, self.exports)
         if self.integrations is not None:
             self.music = MusicService(
                 self.storage, self.integrations, lambda: self.settings.settings

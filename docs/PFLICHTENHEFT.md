@@ -281,3 +281,16 @@ Dritte Betriebsart je Würfel neben *Zeit* und *Steuerung*: **Jede Seite hat ein
 | F-70 | Muss | **Mehrere Würfel parallel**: eine Wiedergabe je Ziel (zuletzt gestartet gewinnt, Stopp nur durch den Besitzer), widersprüchliche Befehle an dasselbe Objekt als **Konflikt** markiert, Anzeige „Wer steuert was?“ | 55 | Echte Parallelität mehrerer Würfel [HW] |
 | F-71 | Soll | **Würfel auslesen**: alle lesbaren Characteristics als **Datenblatt** gespeichert und exportierbar, ohne erfundene Deutung | 56 | [HW] |
 | F-72 | Kann | **Einstellbare Werte** (Beschleunigungs-Genauigkeit, Energiemodus, LED) **nur**, wenn aus Primärquelle belegt, mit doppelter Bestätigung und Rückweg; Stand der Recherche: **nicht belegt** | 56 | Kopplungsverlust, fehlende Quelle |
+
+
+### 12.8 Einträge verwalten und Diagramme (geplant/umgesetzt je nach AP)
+
+| Nr. | Prio | Anforderung | AP | Risiko |
+|---|---|---|---|---|
+| F-73 | Muss | **Sammelbearbeitung:** mehrere Einträge gemeinsam zuordnen (Tätigkeit, Projekt, Tags), Notiz ändern, Zeit verschieben, Qualität setzen; **alles oder nichts**, Grund Pflicht, jede Änderung in der Prüfspur | 57 | – |
+| F-74 | Muss | **Sammelweise löschen** (Auswahl, Filtertreffer oder alle) nach Vorschau, Zahlenbestätigung und automatischer Sicherung; laufende Einträge bleiben | 57, 58 | – |
+| F-75 | Muss | **Suche und Filter** über alle Angaben (Text, Zeitraum, Tätigkeit, Projekt, Gerät, Tags beliebig/alle/keiner, Qualität, Quelle, Dauer, Wochentag, Tageszeit) | 58 | – |
+| F-76 | Soll | **Suchprotokoll:** zuletzt benutzte Filter erneut anwenden | 58 | – |
+| F-77 | Muss | **Tabelle mit allen Werten**, sortierbar, Mehrfachauswahl, Zusammenfassung der Auswahl | 58 | – |
+| F-78 | Muss | **Änderungsprotokoll** (Korrekturen und Löschungen mit altem/neuem Wert, Grund, Zeit) einsehbar und filterbar | 57, 58 | – |
+| F-79 | Muss | **Viele interaktive Diagramme** (Balken, Kreis, Sonnenstrahl, Treemap, Wärmekarten, Zeitstrahl, Linien, Histogramm, Boxplot, Streudiagramm), jedes mit Datentabelle; Klick filtert die Einträge | 59 | – |

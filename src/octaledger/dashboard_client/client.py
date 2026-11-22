@@ -536,6 +536,27 @@ class ApiClient:
         result: dict[str, Any] = self._post(f"/sessions/{session_id}/confirm")
         return result
 
+    def bulk_edit(self, ids: list[str], reason: str, **change: Any) -> dict[str, Any]:
+        """Change many entries at once (all or nothing); ``change`` holds the wanted fields."""
+        result: dict[str, Any] = self._post(
+            "/entries/edit", {"ids": ids, "reason": reason, **change}
+        )
+        return result
+
+    def bulk_delete(self, ids: list[str], reason: str) -> dict[str, Any]:
+        """Delete many finished entries (after an automatic safety backup)."""
+        result: dict[str, Any] = self._post("/entries/delete", {"ids": ids, "reason": reason})
+        return result
+
+    def entry_history(
+        self, session_id: str | None = None, limit: int = 300
+    ) -> list[dict[str, Any]]:
+        """The change protocol (corrections and deletions), newest first."""
+        result: list[dict[str, Any]] = self._get(
+            "/entries/history", session_id=session_id, limit=limit
+        )
+        return result
+
     def delete_session(self, session_id: str, reason: str) -> None:
         """Delete a session."""
         self._post(f"/sessions/{session_id}/delete", {"reason": reason})

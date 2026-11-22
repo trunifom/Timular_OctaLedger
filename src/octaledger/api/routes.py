@@ -37,6 +37,8 @@ from octaledger.api.schemas import (
     AttentionResolve,
     AutostartBody,
     BillingBody,
+    BulkDeleteBody,
+    BulkEditBody,
     ButtonBody,
     CatalogCreate,
     CatalogUpdate,
@@ -82,7 +84,9 @@ from octaledger.api.schemas import (
     battery_out,
     billing_out,
     budget_out,
+    bulk_out,
     device_out,
+    history_out,
     ics_preview_out,
     integration_out,
     iso,
@@ -101,6 +105,7 @@ from octaledger.api.schemas import (
 )
 from octaledger.api.security import parse_bearer, verify_token
 from octaledger.application.data_service import DataService
+from octaledger.application.entry_service import BulkChange
 from octaledger.application.ics_import import IcsEntry, ics_available
 from octaledger.application.report_render import (
     build_document,
@@ -752,6 +757,33 @@ def build_router(ctx: AppContext) -> APIRouter:
             for key, value in body.changes.items()
         }
         return session_out(ctx.tracking.correct_session(session_id, changes, body.reason))
+
+    @router.post("/entries/edit")
+    def bulk_edit(body: BulkEditBody) -> dict[str, Any]:
+        """Change many entries at once in one transaction (all or nothing, audited)."""
+        change = BulkChange(
+            activity_id=body.activity_id,
+            project_id=body.project_id,
+            clear_project=body.clear_project,
+            note_mode=body.note_mode,
+            note=body.note,
+            shift_seconds=body.shift_seconds,
+            quality=body.quality,
+            tags_add=tuple(body.tags_add),
+            tags_remove=tuple(body.tags_remove),
+            tags_replace=None if body.tags_replace is None else tuple(body.tags_replace),
+        )
+        return bulk_out(ctx.entries.apply(body.ids, change, body.reason))
+
+    @router.post("/entries/delete")
+    def bulk_delete(body: BulkDeleteBody) -> dict[str, Any]:
+        """Delete many finished entries after an automatic safety backup."""
+        return bulk_out(ctx.entries.delete(body.ids, body.reason))
+
+    @router.get("/entries/history")
+    def entry_history(session_id: str | None = None, limit: int = 300) -> list[dict[str, Any]]:
+        """The change protocol (corrections and deletions), newest first."""
+        return [history_out(r) for r in ctx.entries.history(session_id=session_id, limit=limit)]
 
     @router.post("/sessions/{session_id}/split")
     def split_session(session_id: str, body: SplitBody) -> list[dict[str, Any]]:

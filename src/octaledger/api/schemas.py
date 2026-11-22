@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.battery_service import BatterySummary
 from octaledger.application.device_service import DeviceInfo
+from octaledger.application.entry_service import BulkResult, HistoryRow
 from octaledger.application.ics_import import IcsPreview
 from octaledger.application.integration_service import IntegrationInfo, JobInfo
 from octaledger.application.reporting_service import (
@@ -193,6 +194,30 @@ class CorrectBody(_Strict):
     """Correct a session (allowed fields are checked by the service)."""
 
     changes: dict[str, Any]
+    reason: str = Field(max_length=2000)
+
+
+class BulkEditBody(_Strict):
+    """Change many entries at once (all or nothing); every field is optional."""
+
+    ids: list[str] = Field(min_length=1, max_length=10_000)
+    reason: str = Field(max_length=2000)
+    activity_id: str | None = None
+    project_id: str | None = None
+    clear_project: bool = False
+    note_mode: str = Field(default="keep", pattern="^(keep|set|append|clear)$")
+    note: str | None = Field(default=None, max_length=500)
+    shift_seconds: int = Field(default=0, ge=-31_622_400, le=31_622_400)
+    quality: str | None = Field(default=None, pattern="^(confirmed|uncertain)$")
+    tags_add: list[str] = Field(default_factory=list, max_length=100)
+    tags_remove: list[str] = Field(default_factory=list, max_length=100)
+    tags_replace: list[str] | None = Field(default=None, max_length=100)
+
+
+class BulkDeleteBody(_Strict):
+    """Delete many entries; the finished ones go, running ones are left alone."""
+
+    ids: list[str] = Field(min_length=1, max_length=10_000)
     reason: str = Field(max_length=2000)
 
 
@@ -872,6 +897,30 @@ def report_out(report: Report) -> dict[str, Any]:
         "uncertain_seconds": seconds(report.uncertain_time),
         "session_count": report.session_count,
         "includes_running": report.includes_running,
+    }
+
+
+def bulk_out(result: BulkResult) -> dict[str, Any]:
+    """Serialise the outcome of a bulk edit or delete."""
+    return {
+        "changed": result.changed,
+        "unchanged": result.unchanged,
+        "skipped_running": result.skipped_running,
+        "safety_backup": result.safety_backup,
+    }
+
+
+def history_out(row: HistoryRow) -> dict[str, Any]:
+    """Serialise one line of the change protocol."""
+    return {
+        "at": iso(row.at),
+        "kind": row.kind,
+        "session_id": row.session_id,
+        "field": row.field_name,
+        "old_value": row.old_value,
+        "new_value": row.new_value,
+        "reason": row.reason,
+        "revision": row.revision,
     }
 
 
