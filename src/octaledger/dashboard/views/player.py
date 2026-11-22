@@ -1,9 +1,10 @@
 """Page "Musik-Player": the built-in player for YouTube and YouTube Music titles.
 
 The agent cannot control a browser, so this page *is* the player: it reads the wanted state from
-``GET /music/browser-state`` every second and draws the embedded YouTube player. **Music plays only
-while this page is open.** The player loads the video from youtube-nocookie.com (a cross-origin frame; no third-party
-script runs in the dashboard), so nothing is loaded until the user agrees on this page (the agreement lasts for the browser session only).
+``GET /music/browser-state`` every second and draws the embedded YouTube player. **Music plays
+only while this page is open.** The video comes from youtube-nocookie.com as a cross-origin frame
+(no third-party script runs in the dashboard). Nothing is loaded until the user agrees on this
+page; the agreement lasts for the browser session only.
 
 The HTML is built by :func:`player_document` from a few validated values (a video id, an optional
 playlist id, a volume); the same state yields the **same** text, so the browser keeps the running
