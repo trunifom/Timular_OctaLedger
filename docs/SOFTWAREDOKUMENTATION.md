@@ -1931,7 +1931,7 @@ Ergebnisse stehen als Regeln in den folgenden Entscheidungen.
 | 3. Darstellung | *Darstellung* (`display`) | Hell/Dunkel, Schriftgröße (wirkt sofort) |
 | 4. Komplexe Funktionen | *Smarthome & Verbindungen* (`connections`) | Home Assistant, Hue, MQTT, Webhook |
 
-Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 15 Seiten (mit „Musik-Player“, AP-50, und „Würfel-Inspektor“, AP-54).
+Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 16 Seiten (mit „Musik-Player“, AP-50, „Würfel-Inspektor“, AP-54, und „Würfel-Datenblatt“, AP-56).
 
 ### 33.2 Regeln aus der Recherche und ihre Umsetzung
 
@@ -1973,7 +1973,7 @@ ausgenommen. SQL steht nur in den Repositories (`SessionRepository.range_stats/d
 `tests/unit/test_data_service.py` (17): Übersicht, Vorschau, exklusives Ende, Sicherung vor dem Löschen und Wiederherstellung daraus, geänderte Zahl bricht ab, leerer Zeitraum, laufender
 Eintrag bleibt, Prüfspur, Würfel mit/ohne Daten, aktive Auswahl, Zurücksetzen mit/ohne Einstellungen, Kopplung aufheben. `tests/unit/test_api.py` (+6): Endpunkte der Datenverwaltung,
 Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/test_gui_data_cleanup.py` (8), `tests/gui/test_gui_settings_areas.py` (7), erweiterte
-`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (15 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
+`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (16 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
 
 ## 34. Spotify-Adapter (`infrastructure.integrations.spotify`, AP-49)
 
@@ -2029,3 +2029,13 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Konflikte (`conflict.py`, rein; `outbox._conflict_note`):** `target_of` (das Objekt, auf das eine Aktion wirkt: `entity_id`, `light_id`, `group_id`, `scene_id`, `topic`), `conflicts` (gleiches Objekt, **verschiedener** Befehl), Fenster 5 s. Nur Aufträge **anderer** Würfel zählen; Musik-Würfel und Stopps sind ausgenommen (dort gilt die Besitzer-Regel). Der spätere Auftrag trägt den Hinweis; gesendet wird in Eingangsreihenfolge.
 * **Anzeige:** `GET /music/owners`, Übersicht „Wer steuert was?“, Hinweis-Spalte der Aktionshistorie.
 * **Grenzen:** Mehrere gleichzeitige Zeit-Würfel sind nicht gebaut (ein laufender Eintrag). Ob der Bluetooth-Adapter mehrere Würfel gleichzeitig verbindet, ist **nicht geprüft** [HW].
+
+
+## 41. Würfel auslesen und Datenblatt (`domain.readout`, `agent.supervisor`, `application.readout_service`, `dashboard.views.datasheet`, AP-56)
+
+* **Domäne (`readout.py`, rein):** `Reading` (Dienst, Characteristic, Rechte, Rohwert hex, Fehler), `Snapshot`, `interpret` (Deutung **nur** für bekannte Angaben: Batterie, Texte der Geräteinformation, Sendeleistung, Lage, Taste; Beschleunigungssensor nur Länge), `is_forbidden` (Firmware-Update-Dienst), `readable`, Namenslisten `KNOWN`/`SERVICES`, JSON-Form (`to_json`/`from_json`, beschädigte Einträge werden übersprungen).
+* **Auf der Verbindung (`DeviceWorker.read_out`):** Die Anfrage kommt von der API, wird auf der BLE-Schleife in die Warteliste des Arbeiters gelegt und **in der eigenen Schleife der Verbindung** bedient (`_serve_readouts`): Datenblatt (`_datasheet`: `discover`, nur `read` lesen, Update-Dienst und nicht lesbare Angaben aufführen, nicht anfassen) oder Aufzeichnung (`_record_accelerometer`: wiederholt lesen, dazwischen `_drain`, damit die Lageereignisse weiterlaufen). Es gibt **keinen Schreibweg**; der Arbeiter muss `READY` sein. `AgentSupervisor.read_out`, `Agent.read_out` (Faden-sicher über `_call`) und `AgentControl.read_out`.
+* **Dienst (`readout_service.py`):** prüft Dauer 5–30 s und Abstand 200–2000 ms, ruft den Agenten, speichert (`SnapshotRepository`, 20 je Würfel), listet, liest, löscht.
+* **Speicher:** Migration 0013 (`device_snapshots`), in `SIMPLE_TABLES` (Sicherung).
+* **Oberfläche:** `datasheet.py`: Auslesen-Knopf (nur bei bereitem Würfel), Aufzeichnung (Dauer/Abstand), gespeicherte Auslesungen mit Tabelle, Export JSON/CSV (`safe_cell` entschärft Formeln, weil Texte vom Würfel stammen), Löschen.
+* **Grenzen:** Das Auslesen an einem echten Würfel ist **nicht geprüft** [HW]; einstellbare Werte sind nicht umgesetzt (keine Quelle).

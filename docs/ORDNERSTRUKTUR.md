@@ -85,6 +85,7 @@ octaledger/
   src/octaledger/application/music_state.py
   src/octaledger/application/notifier.py
   src/octaledger/application/outbox.py
+  src/octaledger/application/readout_service.py
   src/octaledger/application/report_render.py
   src/octaledger/application/reporting_service.py
   src/octaledger/application/tag_service.py
@@ -121,6 +122,7 @@ octaledger/
   src/octaledger/dashboard/views/connections.py
   src/octaledger/dashboard/views/data.py
   src/octaledger/dashboard/views/data_cleanup.py
+  src/octaledger/dashboard/views/datasheet.py
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
   src/octaledger/dashboard/views/display.py
@@ -154,6 +156,7 @@ octaledger/
   src/octaledger/domain/music_source.py
   src/octaledger/domain/orientation.py
   src/octaledger/domain/placeholders.py
+  src/octaledger/domain/readout.py
   src/octaledger/domain/schedule.py
   src/octaledger/domain/state_machine.py
   src/octaledger/domain/steps.py
@@ -197,6 +200,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0010_device_color.sql
   src/octaledger/infrastructure/storage/migrations/0011_battery_log.sql
   src/octaledger/infrastructure/storage/migrations/0012_job_note.sql
+  src/octaledger/infrastructure/storage/migrations/0013_device_snapshots.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -216,6 +220,7 @@ octaledger/
   tests/gui/test_gui_core.py
   tests/gui/test_gui_data_cleanup.py
   tests/gui/test_gui_data_settings_diagnostics.py
+  tests/gui/test_gui_datasheet.py
   tests/gui/test_gui_devices_catalog.py
   tests/gui/test_gui_faces.py
   tests/gui/test_gui_identity.py
@@ -277,6 +282,7 @@ octaledger/
   tests/unit/test_music_mode.py
   tests/unit/test_orientation.py
   tests/unit/test_presets_placeholders.py
+  tests/unit/test_readout.py
   tests/unit/test_report_and_ics.py
   tests/unit/test_reporting_service.py
   tests/unit/test_repositories.py

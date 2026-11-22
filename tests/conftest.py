@@ -25,6 +25,7 @@ from octaledger.core.errors import BleConnectionError
 from octaledger.core.secrets import SecretStore
 from octaledger.core.settings import ENV_DATA_DIR, Settings, SettingsStore
 from octaledger.dashboard_client.client import ApiClient
+from octaledger.domain.readout import Reading
 from octaledger.domain.state_machine import ConnectionState
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.database import Database
@@ -61,6 +62,8 @@ class FakeAgent:
         self.started: list[str] = []
         self.stopped: list[str] = []
         self.fail_scan = False
+        self.readings: list[Reading] = []
+        self.read_calls: list[tuple[str, str, float, int]] = []
         self.scan_results = [ScanResult("AA:BB", "ZEI", -60, ("c7e70010",), True)]
 
     def start_device(self, device_id: str) -> None:
@@ -91,6 +94,14 @@ class FakeAgent:
             for d in self.started
             if d not in self.stopped
         ]
+
+    def read_out(
+        self, device_id: str, kind: str, seconds: float = 0.0, interval_ms: int = 500
+    ) -> list[Reading]:
+        self.read_calls.append((device_id, kind, seconds, interval_ms))
+        if device_id not in self.started:
+            raise BleConnectionError("off", user_message="Der Würfel ist nicht verbunden.")
+        return list(self.readings)
 
     def scan(self, seconds: float) -> list[ScanResult]:
         if self.fail_scan:

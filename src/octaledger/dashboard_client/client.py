@@ -640,6 +640,33 @@ class ApiClient:
         devices: list[dict[str, Any]] = result["devices"]
         return devices
 
+    def read_out(
+        self, device_id: str, kind: str = "datasheet", seconds: int = 10, interval_ms: int = 500
+    ) -> dict[str, Any]:
+        """Read out a connected cube (read only); waits for the result."""
+        result: dict[str, Any] = self._request(
+            "POST",
+            f"/devices/{device_id}/readout",
+            json={"kind": kind, "seconds": seconds, "interval_ms": interval_ms},
+            timeout=(3.0, float(seconds) + 60.0),
+        )
+        return result
+
+    def snapshots(self, device_id: str) -> list[dict[str, Any]]:
+        """The stored read-outs of a cube, newest first."""
+        result: dict[str, Any] = self._get(f"/devices/{device_id}/snapshots")
+        items: list[dict[str, Any]] = result["snapshots"]
+        return items
+
+    def snapshot(self, snapshot_id: str) -> dict[str, Any]:
+        """One stored read-out with its readings."""
+        result: dict[str, Any] = self._get(f"/snapshots/{snapshot_id}")
+        return result
+
+    def delete_snapshot(self, snapshot_id: str) -> None:
+        """Delete a stored read-out."""
+        self._request("DELETE", f"/snapshots/{snapshot_id}")
+
     def music_owners(self) -> list[dict[str, Any]]:
         """Who controls what: per music target the cube that started what plays."""
         result: dict[str, Any] = self._get("/music/owners")

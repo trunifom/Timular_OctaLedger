@@ -60,6 +60,8 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Datenblatt** – die Liste aller Angaben, die der Würfel über Bluetooth anbietet, mit den gelesenen Rohwerten und, wo bekannt, ihrer Bedeutung. Entsteht durch **Auslesen** (nur lesen, nie schreiben).
+
 **Besitzer (eines Ziels)** – der Würfel, der zuletzt gestartet hat, was auf einem Musik-Ziel läuft. Nur er kann es stoppen; ein anderer Würfel, der übernimmt, wird neuer Besitzer.
 
 **Konflikt** – zwei verschiedene Würfel schicken kurz nacheinander verschiedene Befehle an dasselbe Gerät. Beide werden gesendet (der spätere gilt) und der Verlauf nennt es.

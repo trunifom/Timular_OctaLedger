@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Würfel auslesen, AP-56)
+- Neue Seite **Würfel-Datenblatt**: liest alle lesbaren Angaben des verbundenen Würfels (nur lesen), zeigt Rohwert, Länge und – nur wo bekannt – die Bedeutung; unbekannte Angaben ohne erfundene Deutung, nicht lesbare werden nicht angefasst, der Firmware-Update-Dienst nie.
+- **Aufzeichnung** der Rohdaten des Beschleunigungssensors (5–30 s, nur auf Knopfdruck); Speicherung (Migration 0013, `device_snapshots`, 20 je Würfel, in der Sicherung), Export als JSON und CSV (Formeln entschärft); API `POST /devices/{id}/readout`, `GET /devices/{id}/snapshots`, `GET`/`DELETE /snapshots/{id}`.
+- Einstellbare Werte (LED, Empfindlichkeit, Energiemodus) bewusst **nicht** umgesetzt: keine belegte Quelle.
+
 ### Hinzugefügt (Mehrere Würfel parallel, AP-55)
 - **Ein Titel je Musik-Ziel, Besitzer-Regel:** Wer zuletzt startet, übernimmt (die Musik des anderen ist ersetzt); **ein Stopp wirkt nur durch den Besitzer** – auch ein schon eingereihter Stopp eines anderen Würfels wird beim Senden verworfen. Ziel = Verbindung (bei Home Assistant mit Mediengerät). Übersicht „Wer steuert was?“ (`GET /music/owners`).
 - **Konflikte:** Verschiedene Befehle zweier Würfel an dasselbe Gerät innerhalb von 5 s werden in Eingangsreihenfolge gesendet und im Verlauf markiert (Migration 0012, `integration_jobs.note`); derselbe Befehl zweimal ist kein Konflikt.

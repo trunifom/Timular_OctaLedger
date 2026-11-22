@@ -499,6 +499,16 @@ Sie können **mehrere Würfel parallel** betreiben, programmieren und steuern. D
 - **Smarthome – widersprüchliche Befehle:** Schicken zwei **verschiedene** Würfel innerhalb von **5 Sekunden verschiedene** Befehle an **dasselbe Gerät** (dieselbe Lampe, denselben Lautsprecher, dasselbe Thema), werden beide in der Reihenfolge gesendet, **der spätere gilt**, und der spätere Eintrag im Verlauf trägt den Hinweis **„Konflikt: …“**. Derselbe Befehl zweimal ist kein Konflikt. Eine Auswahl „ältere verwerfen“ gibt es **nicht**.
 - **Wichtig:** Ob Windows mit Ihrem Bluetooth-Adapter mehrere Würfel **gleichzeitig verbunden** hält, ist **nicht geprüft** und hängt vom Adapter ab.
 
+## 8e. Würfel-Datenblatt: alles auslesen, was der Würfel meldet
+
+Die Seite **Würfel-Datenblatt** (Gruppe *Würfel*) zeigt, **was der Würfel über Bluetooth anbietet und meldet**. Der Würfel muss **verbunden und bereit** sein.
+
+- **Jetzt auslesen** liest jede Angabe, die der Würfel zum Lesen anbietet (Modell, Firmware, Seriennummer, Batterie, Lage …). **Es wird nichts geschrieben, nichts am Würfel verändert.** Nicht lesbare Angaben stehen in der Tabelle und werden **nicht angefasst**; der Firmware-Update-Modus des Würfels wird nie berührt.
+- **Deutung nur, wo sie bekannt ist:** Bekannte Angaben stehen in Klartext („62 %“, „Seite 3“, „Tracker_001“). Alles andere zeigt die **Rohdaten (Hexwerte)** und die Länge, **ohne erfundene Bedeutung**.
+- **Beschleunigungssensor aufzeichnen:** 5 bis 30 Sekunden lang werden die Rohdaten mitgeschrieben (**bewegen Sie den Würfel dabei**). Das Format ist nicht bestätigt, deshalb gibt es nur Rohwerte; bleiben alle Werte gleich, liefert der Anschluss keine Bewegungsdaten.
+- **Gespeichert und exportierbar:** Jede Auslesung wird gespeichert (die letzten 20 je Würfel) und lässt sich als **JSON** (alle Rohwerte) oder **CSV** (Tabelle, für Excel) sichern.
+- **Einstellen** (Empfindlichkeit, Energiemodus, Leuchte) ist **nicht möglich**: Für diese Werte gibt es keine belegte Quelle, und OctaLedger schreibt nie auf unbekannte Angaben des Würfels.
+
 ## 9. Verbindungsverhalten im Alltag
 
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,

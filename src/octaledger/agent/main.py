@@ -67,6 +67,7 @@ from octaledger.core.settings import (
     load_settings,
     resolve_paths,
 )
+from octaledger.domain.readout import Reading
 from octaledger.infrastructure.ble.client import BleakTransportFactory
 from octaledger.infrastructure.ble.scanner import DiscoverFn, ScanResult, scan
 from octaledger.infrastructure.ble.transport import TransportFactory
@@ -418,6 +419,17 @@ class AgentRuntime:
         with self.context.storage.read() as repos:
             device = repos.devices.get(device_id)
         return device.alias if device else ""
+
+    def read_out(
+        self, device_id: str, kind: str, seconds: float = 0.0, interval_ms: int = 500
+    ) -> list[Reading]:
+        """Read out a connected cube on the BLE loop (read only; see ``domain/readout.py``)."""
+        supervisor = self._supervisor
+        if supervisor is None:
+            raise ApiUnavailableError("The BLE loop is not running")
+        return self._call(
+            supervisor.read_out(device_id, kind, seconds, interval_ms), timeout=seconds + 60
+        )
 
     def device_statuses(self) -> list[DeviceStatus]:
         """Live status of all started devices (immutable snapshots)."""

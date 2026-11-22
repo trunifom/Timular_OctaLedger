@@ -13,6 +13,7 @@ from octaledger.dashboard.views import (
     catalog,
     connections,
     data,
+    datasheet,
     devices,
     diagnostics,
     display,
@@ -94,6 +95,14 @@ _DEFINITIONS = (
         "Würfel",
         "Seite im Würfelbild anklicken und im Detail sehen, was darauf eingestellt ist",
         inspector.render,
+    ),
+    PageDef(
+        "datasheet",
+        "Würfel-Datenblatt",
+        "memory",
+        "Würfel",
+        "Alles auslesen, was der Würfel meldet (nur lesen), speichern und exportieren",
+        datasheet.render,
     ),
     PageDef(
         "faces",

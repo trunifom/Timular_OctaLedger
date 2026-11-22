@@ -59,6 +59,7 @@ from octaledger.api.schemas import (
     MusicTitleBody,
     ParseBody,
     ProbeBody,
+    ReadoutBody,
     ReasonBody,
     RenderBody,
     ResetBody,
@@ -92,6 +93,7 @@ from octaledger.api.schemas import (
     scan_out,
     schedule_out,
     session_out,
+    snapshot_out,
     source_out,
     step_out,
     tag_out,
@@ -219,6 +221,30 @@ def build_router(ctx: AppContext) -> APIRouter:
         if body.color is not None:
             ctx.devices.set_color(device_id, body.color)
         return device_out(ctx.devices.get(device_id))
+
+    @router.post("/devices/{device_id}/readout")
+    def read_out_device(device_id: str, body: ReadoutBody) -> dict[str, Any]:
+        """Read out a connected cube (read only): the data sheet or an accelerometer recording."""
+        if body.kind == "accelerometer":
+            snapshot = ctx.readout.record(device_id, body.seconds, body.interval_ms)
+        else:
+            snapshot = ctx.readout.take(device_id)
+        return snapshot_out(snapshot, detail=True)
+
+    @router.get("/devices/{device_id}/snapshots")
+    def device_snapshots(device_id: str) -> dict[str, Any]:
+        """The stored read-outs of a cube, newest first (without their readings)."""
+        return {"snapshots": [snapshot_out(s, detail=False) for s in ctx.readout.list(device_id)]}
+
+    @router.get("/snapshots/{snapshot_id}")
+    def get_snapshot(snapshot_id: str) -> dict[str, Any]:
+        """One stored read-out with its readings."""
+        return snapshot_out(ctx.readout.get(snapshot_id), detail=True)
+
+    @router.delete("/snapshots/{snapshot_id}", status_code=204)
+    def delete_snapshot(snapshot_id: str) -> None:
+        """Delete one stored read-out."""
+        ctx.readout.delete(snapshot_id)
 
     @router.get("/devices/{device_id}/battery")
     def device_battery(

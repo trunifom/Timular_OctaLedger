@@ -20,12 +20,14 @@ from octaledger.application.export_service import ExportService
 from octaledger.application.ics_import import IcsService
 from octaledger.application.integration_service import IntegrationService
 from octaledger.application.music_service import MusicService
+from octaledger.application.readout_service import ReadoutService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tag_service import TagService
 from octaledger.application.tracking_service import TrackingService
 from octaledger.application.work_time_service import WorkTimeService
 from octaledger.application.workday_service import WorkdayService
 from octaledger.core.settings import SettingsStore
+from octaledger.domain.readout import Reading
 from octaledger.infrastructure.ble.scanner import ScanResult
 from octaledger.infrastructure.storage.repositories import Storage
 from octaledger.infrastructure.system.autostart import Autostart
@@ -49,6 +51,12 @@ class AgentControl(Protocol):
 
     def scan(self, seconds: float) -> list[ScanResult]:
         """Scan for BLE devices (explicitly requested by the user)."""
+        ...
+
+    def read_out(
+        self, device_id: str, kind: str, seconds: float = 0.0, interval_ms: int = 500
+    ) -> list[Reading]:
+        """Read out a connected cube: ``datasheet`` or ``accelerometer`` (read only)."""
         ...
 
 
@@ -90,6 +98,7 @@ class AppContext:
     tag_service: TagService = field(init=False)
     ics: IcsService = field(init=False)
     battery: BatteryService = field(init=False)
+    readout: ReadoutService = field(init=False)
     music: MusicService | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
@@ -99,6 +108,7 @@ class AppContext:
         self.tag_service = TagService(self.storage)
         self.ics = IcsService(self.storage)
         self.battery = BatteryService(self.storage)
+        self.readout = ReadoutService(self.storage, lambda: self.agent)
         if self.integrations is not None:
             self.music = MusicService(
                 self.storage, self.integrations, lambda: self.settings.settings

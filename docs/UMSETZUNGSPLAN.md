@@ -676,6 +676,8 @@ Jedes Paket wird **nur auf ausdrücklichen Wunsch** begonnen und ist unabhängig
 
 **Auftrag des Anwenders (2026-11-22):** Die Bedienung soll **klarer zwischen den Funktionsbereichen** (Zeiterfassung, Smarthome, Musik) unterscheiden und das Umschalten erleichtern; die **bisherigen Einstellungen eines Würfels** sollen **jederzeit sichtbar** sein; im **Würfelbild** sollen die Seiten **anklickbar** sein (Einstellungen ansehen, neu programmieren); der **Batteriestand** soll **immer sichtbar**, **gespeichert/protokolliert** und ein baldiges Ende **angekündigt** werden; **alles Lesbare vom Würfel** soll lesbar und als Daten nutzbar sein, einstellbare Werte (Genauigkeit des Beschleunigungssensors, Energiemodus, LED) sollen geprüft werden; **mehrere Würfel** sollen **unterscheidbar** sein und **gleichzeitig** programmiert, gesteuert und dargestellt werden können, mit **geregelten Konflikten** (eine Musik gleichzeitig, widersprüchliche Lampenbefehle).
 
+**Stand der Umsetzung (2026-11-22):** AP-51 bis AP-56 sind umgesetzt (Einzelheiten und Abweichungen in `docs/FORTSCHRITT.md` und den Abschnitten 36 bis 41 der Softwaredokumentation). Abweichungen vom Plan: **keine gleichzeitigen Zeit-Würfel** (ein laufender Eintrag), **kein „ältere Befehle verwerfen“**, **kein Schreiben** am Würfel (keine Quelle), die Bereichsfarben stehen als Rahmen der Bereichs-Pille.
+
 ### 20.1 Ist-Stand
 
 * Mehrere Würfel sind **fachlich möglich** (ein Arbeiter je Würfel, Tabelle `devices`), aber **jede Seite wählt ihren Würfel selbst** (Auswahlfeld „Tracker“ mit ⭐ für den *aktiven Zeit-Würfel*). Es gibt **keine durchgehende Identität** (Farbe), **keine gemeinsame Auswahl**, keine Übersicht aller Würfel nebeneinander.

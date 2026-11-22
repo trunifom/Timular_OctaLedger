@@ -46,6 +46,13 @@ from octaledger.core.errors import (
     ValidationError,
 )
 from octaledger.domain.models import EventKind, RawEvent
+from octaledger.domain.readout import (
+    ACCELEROMETER,
+    MAX_READINGS,
+    Reading,
+    is_forbidden,
+    readable,
+)
 from octaledger.domain.state_machine import (
     ConnectionState,
     ConnectionStateMachine,
@@ -66,6 +73,7 @@ from octaledger.infrastructure.ble.protocol import (
     decode_orientation_payload,
     decode_text,
     discover_capabilities,
+    normalize_uuid,
 )
 from octaledger.infrastructure.ble.transport import DeviceTransport, TransportFactory
 
@@ -161,6 +169,16 @@ def _monotonic_ms() -> int:
     return time.monotonic_ns() // 1_000_000
 
 
+@dataclass(slots=True)
+class _ReadoutRequest:
+    """A read-out asked for by the API and served on the connection's loop."""
+
+    kind: str
+    seconds: float
+    interval_ms: int
+    future: asyncio.Future[list[Reading]]
+
+
 class DeviceWorker:
     """Connection lifecycle and event pipeline of one tracker."""
 
@@ -202,6 +220,7 @@ class DeviceWorker:
         self._dropped = 0
         self._last_error: str | None = None
         self._reread_due_ms = 0
+        self._readouts: list[_ReadoutRequest] = []
         self._last_value: int | None = None
         self._last_event_at: datetime | None = None
         self._battery: int | None = None
@@ -464,6 +483,7 @@ class DeviceWorker:
         hinted = False
         while True:
             await self._drain()
+            await self._serve_readouts(transport)
             if self._stop.is_set():
                 return
             if self._lost or not transport.is_connected:
@@ -475,7 +495,7 @@ class DeviceWorker:
                 logger.info("Device %s ready", self.device_id[:8])
             timeout = self._next_timeout(baseline_deadline, hinted)
             self._wake.clear()
-            if self._values or self._lost or self._stop.is_set():
+            if self._values or self._readouts or self._lost or self._stop.is_set():
                 continue  # something arrived between draining and clearing the event
             try:
                 await asyncio.wait_for(self._wake.wait(), timeout=timeout)
@@ -500,6 +520,115 @@ class DeviceWorker:
                             "No initial orientation yet; staying connected and waiting for the "
                             "first movement"
                         )
+
+    # ---------------------------------------------------------------- read-out (AP-56)
+
+    async def read_out(
+        self, kind: str, seconds: float = 0.0, interval_ms: int = 500
+    ) -> list[Reading]:
+        """Read the data sheet or record the accelerometer of the connected cube (read only).
+
+        Runs on the BLE loop; the request is served by the connection's own loop iteration, so
+        it never runs next to a reconnect. Normal orientation events keep flowing meanwhile.
+
+        Raises:
+            BleConnectionError: If the cube is not connected and ready, or the read fails.
+        """
+        if self._machine.state is not S.READY:
+            raise BleConnectionError(
+                "Cube not ready for a read-out",
+                user_message="Der Würfel ist nicht bereit. Verbinden Sie ihn zuerst "
+                "(Seite „Würfel verwalten“).",
+            )
+        loop = asyncio.get_running_loop()
+        request = _ReadoutRequest(kind, seconds, interval_ms, loop.create_future())
+        self._readouts.append(request)
+        self._set(self._wake)
+        return await asyncio.wait_for(request.future, timeout=seconds + 45)
+
+    async def _serve_readouts(self, transport: DeviceTransport) -> None:
+        """Run the pending read-out requests, one after the other."""
+        while self._readouts:
+            request = self._readouts.pop(0)
+            try:
+                if request.kind == "accelerometer":
+                    result = await self._record_accelerometer(transport, request)
+                else:
+                    result = await self._datasheet(transport)
+            except BleConnectionError as exc:
+                if not request.future.done():
+                    request.future.set_exception(exc)
+            else:
+                if not request.future.done():
+                    request.future.set_result(result)
+
+    @staticmethod
+    async def _datasheet(transport: DeviceTransport) -> list[Reading]:
+        """List every characteristic and read the readable ones (never write, never DFU)."""
+        readings: list[Reading] = []
+        for service in await transport.discover():
+            for characteristic in service.characteristics:
+                if len(readings) >= MAX_READINGS:
+                    return readings
+                properties = tuple(sorted(characteristic.properties))
+                if is_forbidden(service.uuid):
+                    readings.append(
+                        Reading(
+                            service.uuid,
+                            characteristic.uuid,
+                            properties,
+                            error="wird nie gelesen (Firmware-Update-Modus)",
+                        )
+                    )
+                    continue
+                if not readable(properties):
+                    readings.append(Reading(service.uuid, characteristic.uuid, properties))
+                    continue
+                try:
+                    value = await transport.read(characteristic.uuid)
+                except BleConnectionError as exc:
+                    readings.append(
+                        Reading(
+                            service.uuid,
+                            characteristic.uuid,
+                            properties,
+                            error=exc.user_message or "Lesen fehlgeschlagen",
+                        )
+                    )
+                else:
+                    readings.append(
+                        Reading(service.uuid, characteristic.uuid, properties, value.hex())
+                    )
+        return readings
+
+    async def _record_accelerometer(
+        self, transport: DeviceTransport, request: _ReadoutRequest
+    ) -> list[Reading]:
+        """Read the accelerometer characteristic repeatedly for a limited time (read only)."""
+        found = next(
+            (
+                (service.uuid, c)
+                for service in await transport.discover()
+                for c in service.characteristics
+                if normalize_uuid(c.uuid) == ACCELEROMETER and readable(tuple(c.properties))
+            ),
+            None,
+        )
+        if found is None:
+            raise BleConnectionError(
+                "No readable accelerometer characteristic",
+                user_message="Dieser Würfel bietet keinen lesbaren Beschleunigungssensor an.",
+            )
+        service_uuid, characteristic = found
+        properties = tuple(sorted(characteristic.properties))
+        readings: list[Reading] = []
+        end = self._mono_ms() + int(request.seconds * 1000)
+        while self._mono_ms() < end and not self._stop.is_set() and not self._lost:
+            value = await transport.read(characteristic.uuid)
+            readings.append(Reading(service_uuid, characteristic.uuid, properties, value.hex()))
+            await self._drain()  # orientation events keep being processed during a recording
+            await asyncio.sleep(request.interval_ms / 1000)
+        return readings
 
     async def _read_initial(
         self, transport: DeviceTransport, caps: DeviceCapabilities, *, quiet: bool = False
@@ -659,6 +788,18 @@ class AgentSupervisor:
         self._workers[device_id] = worker
         self._tasks[device_id] = asyncio.create_task(worker.run(), name=f"worker-{device_id[:8]}")
         return worker
+
+    async def read_out(
+        self, device_id: str, kind: str, seconds: float = 0.0, interval_ms: int = 500
+    ) -> list[Reading]:
+        """Read out one connected cube (see :meth:`DeviceWorker.read_out`)."""
+        worker = self._workers.get(device_id)
+        if worker is None:
+            raise BleConnectionError(
+                "Cube not started",
+                user_message="Der Würfel ist nicht verbunden. Verbinden Sie ihn zuerst.",
+            )
+        return await worker.read_out(kind, seconds, interval_ms)
 
     async def stop_device(self, device_id: str) -> None:
         """Stop one device on purpose (no further reconnects)."""

@@ -32,11 +32,11 @@ def test_menu_is_grouped_by_task_in_the_documented_order() -> None:
     assert order == {
         "Start": ["start"],
         "Alltag": ["overview", "live", "player", "journal", "statistics"],
-        "Würfel": ["devices", "inspector", "faces"],
+        "Würfel": ["devices", "inspector", "datasheet", "faces"],
         "Einstellungen": ["settings", "catalog", "display", "connections"],
         "System": ["data", "diagnostics"],
     }
-    assert len(PAGES) == 15
+    assert len(PAGES) == 16
 
 
 def test_group_headings_are_shown_and_the_active_page_is_filled(api_server: RunningApi) -> None:

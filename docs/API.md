@@ -143,6 +143,10 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `DELETE /devices/{id}` | entfernen (nur ohne erfasste Daten, sonst 409) | – | 204 |
 | `PUT /devices/{id}/faces/{1..8}` | Seite einer Aktivität (und Projekt) zuordnen | `{"activity_id"?, "project_id"?}` | **Gerät** |
 | `DELETE /devices/{id}/faces/{1..8}` | Zuordnung einer Seite löschen | – | **Gerät** |
+| `POST /devices/{id}/readout` | Den **verbundenen** Würfel **auslesen** (nur lesen, AP-56): Datenblatt oder Beschleunigungs-Aufzeichnung; wartet auf das Ergebnis und speichert es | `{"kind": "datasheet"\|"accelerometer", "seconds": 5–30, "interval_ms": 200–2000}` | **Auslesung** mit `readings`; 503/502 mit Erklärung, wenn der Würfel nicht bereit ist |
+| `GET /devices/{id}/snapshots` | gespeicherte Auslesungen (neueste zuerst, höchstens 20, ohne Einzelwerte) | – | `{snapshots: [{id, device_id, taken_at, kind, count, interval_ms}]}` |
+| `GET /snapshots/{id}` | eine Auslesung mit allen Angaben | – | **Auslesung**: `readings: [{service, service_name, service_short, uuid, name, short, properties, raw_hex, length, error, meaning}]` (`meaning` nur, wo die Bedeutung bekannt ist) |
+| `DELETE /snapshots/{id}` | eine Auslesung löschen | – | 204 |
 | `GET /devices/{id}/battery?days=60` | Batterie eines Würfels: Zusammenfassung (Live-Wert oder letzter gespeicherter) und gespeicherter Verlauf (AP-52) | – | `{summary: {percent, stage (good\|soon\|weak\|empty), stage_text, level, icon, bar, live, measured_at, days_left, estimate_text}\|null, history: [{at, percent}]}` |
 | `GET /devices/{id}/observed-face` | zuletzt gesehene Seite (für das geführte Zuordnen) | – | `{"face", "received_at", "kind"}` oder `{"face": null}` |
 | `GET /devices/{id}/live` | Live-Ansicht: Position, Entprellung, Bewegungen, Wirkung | – | siehe unten |

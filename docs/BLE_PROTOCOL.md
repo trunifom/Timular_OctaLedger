@@ -36,6 +36,10 @@ steuerung, Firmwareupdate oder Offlinebewegungshistorie.
 Ausgangswert kann dieselbe Meldung wie das Abonnement liefern: Duplikate tolerieren.
 Für zwei Clients Adapterressourcen und tatsächliche Parallelität praktisch testen.
 
+## Auslesen des Würfels (AP-56)
+
+Die Seite *Würfel-Datenblatt* **liest** jede Characteristic, die der verbundene Würfel mit dem Recht „read“ anbietet, und speichert den Rohwert (hex). **Es wird nie geschrieben**, und nicht lesbare Angaben (nur schreiben, nur Benachrichtigung) werden **nicht angefasst**. Der Firmware-Update-Dienst (`c7e70000`, Community-Angabe: „wechselt in den Lade-Modus“) wird **nie** gelesen oder beschrieben, auch wenn er etwas Lesbares anböte. Gedeutet werden nur Angaben, deren Bedeutung bekannt ist (Standard-Characteristics für Batterie, Geräteinformation, Sendeleistung; Lage und Taste des Würfels); der Beschleunigungssensor `c7e70011` erscheint nur mit seiner **Länge**, weil sich die Quellen über sein Format widersprechen (drei 16-Bit- oder drei 32-Bit-Werte). Eine **Aufzeichnung** liest ihn 5 bis 30 Sekunden lang alle 0,2 bis 2 Sekunden und speichert nur die Rohwerte. Welche Dienste Ihr Würfel wirklich anbietet, zeigt das Datenblatt; tragen Sie auffällige Befunde hier ein.
+
 ## Taste und Batterie (AP-37)
 
 - **Taste:** Characteristic `c7e70021-c847-11e6-8175-8c89a55d403c` (Community-Referenz `codingforfun/zeipy`), ein Byte: `0` = kurzer, `1` = langer Druck. OctaLedger **abonniert** sie nur (kein Schreiben), wenn der Würfel sie mit Notify/Indicate anbietet. **Nicht hardwarebestätigt:** UUID, Wertebedeutung und der Zeitpunkt der Meldung sind am echten Würfel zu prüfen (Seite *Würfel live*, „Letzte Bewegungen“). Unbekannte Werte werden als `invalid` mit Rohwert protokolliert. Gleiche Drücke innerhalb von 500 ms zählen einmal.

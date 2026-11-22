@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0012`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0013`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -234,6 +234,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
+| 0013 | `0013_device_snapshots.sql` | Tabelle `device_snapshots` (`id`, `device_id`, `taken_at`, `kind` = `datasheet`\|`accelerometer`, `payload` JSON): gespeicherte Auslesungen des Würfels (AP-56); die Liste der Angaben (`service`, `uuid`, `properties`, `raw_hex`, `error`) steht im JSON; höchstens 20 je Würfel; löscht mit dem Würfel; Teil der Sicherung |
 | 0012 | `0012_job_note.sql` | Spalte `integration_jobs.note` (Text, leer erlaubt): Hinweis zu einem Auftrag, zum Beispiel ein **Konflikt** mit einem anderen Würfel oder „Ersetzt die Musik von …“ (AP-55); alte Aufträge haben keinen Hinweis |
 | 0011 | `0011_battery_log.sql` | Tabelle `battery_log` (`device_id`, `at`, `percent` 0–100, Schlüssel `(device_id, at)`, löscht mit dem Würfel): der Batterie-Verlauf (AP-52); ein Eintrag, wenn sich der Wert ändert, spätestens alle 6 Stunden; Aufbewahrung 400 Tage; Teil der Sicherung |
 | 0010 | `0010_device_color.sql` | Spalte `devices.color` (Text, leer = nicht gewählt): die Farbe eines Würfels, zusammen mit Nummer und Name seine Identität (AP-51); die Nummer wird nicht gespeichert, sondern aus der Reihenfolge der Anlage berechnet; ohne Farbe gilt die Palettenfarbe der Nummer; in der Sicherung als optionales Feld `color` je Gerät (ältere Dateien ohne das Feld bleiben lesbar) |

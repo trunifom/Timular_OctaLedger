@@ -39,6 +39,7 @@ from octaledger.domain.models import (
     Session,
 )
 from octaledger.domain.music_source import MusicSource
+from octaledger.domain.readout import Snapshot, interpret, name_of, service_name, short_uuid
 from octaledger.domain.schedule import Absence, WorkSchedule
 from octaledger.domain.steps import ActionStep
 from octaledger.domain.tags import ProjectBilling, Tag
@@ -69,6 +70,14 @@ class AddressBody(_Strict):
     """Bluetooth address of a device (as found by a scan)."""
 
     platform_address: str = Field(min_length=1, max_length=200)
+
+
+class ReadoutBody(_Strict):
+    """Start a read-out of a connected cube."""
+
+    kind: str = Field(default="datasheet", pattern="^(datasheet|accelerometer)$")
+    seconds: int = Field(default=10, ge=5, le=30)
+    interval_ms: int = Field(default=500, ge=200, le=2000)
 
 
 class DeviceRename(_Strict):
@@ -686,6 +695,36 @@ def ics_preview_out(preview: IcsPreview) -> dict[str, Any]:
         ],
         "skipped": dict(preview.skipped),
     }
+
+
+def snapshot_out(snapshot: Snapshot, *, detail: bool) -> dict[str, Any]:
+    """Serialise a read-out; the readings (with their words) only when ``detail`` is set."""
+    result: dict[str, Any] = {
+        "id": snapshot.id,
+        "device_id": snapshot.device_id,
+        "taken_at": iso(snapshot.taken_at),
+        "kind": snapshot.kind,
+        "count": len(snapshot.readings),
+        "interval_ms": snapshot.interval_ms,
+    }
+    if detail:
+        result["readings"] = [
+            {
+                "service": r.service,
+                "uuid": r.uuid,
+                "properties": list(r.properties),
+                "raw_hex": r.raw_hex,
+                "length": r.length,
+                "error": r.error,
+                "name": name_of(r.uuid),
+                "short": short_uuid(r.uuid),
+                "service_name": service_name(r.service),
+                "service_short": short_uuid(r.service),
+                "meaning": interpret(r),
+            }
+            for r in snapshot.readings
+        ]
+    return result
 
 
 def battery_out(summary: BatterySummary | None) -> dict[str, Any] | None:

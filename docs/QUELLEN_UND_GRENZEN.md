@@ -61,6 +61,10 @@ Geprüft (automatisch): der Zustand des Adapters, die Form der YouTube-Kennungen
 
 Es wurde **keine offizielle Bluetooth-Dokumentation** des Herstellers gefunden; die Tabelle der Dienste und Characteristics steht in `docs/UMSETZUNGSPLAN.md` §20.2 und stammt aus Community-Quellen (`codingforfun/zeipy`, `maslovw/timeular-local`, `adn77/timeular`, `zntrio/timeular`, Blog von LeMaRiva), die sich teilweise **widersprechen** (Format des Beschleunigungssensors, Werte der Halterung, Dienst `c7e70030`). Einstellbare Werte (LED, Empfindlichkeit, Energiemodus) sind **nicht belegt**; ein Schreibzugriff auf unbekannte Characteristics findet nicht statt.
 
+## Würfel auslesen (AP-56): Stand der Prüfung
+
+Geprüft (mit einem Ersatz-Würfel im Speicher): dass nur lesbare Angaben gelesen werden, dass der Firmware-Update-Dienst und nicht lesbare Angaben nie angefasst werden, dass es auf der Verbindung **keine Schreibfunktion** gibt, die Deutung bekannter Werte, die Länge des Beschleunigungssensors, die Grenzen der Aufzeichnung (5–30 s, 0,2–2 s), Speichern, Löschen, Begrenzung auf 20 und die Sicherung. **Nicht geprüft:** das Auslesen an einem **echten Würfel** (welche Dienste er wirklich anbietet, ob das Lesen jeder Angabe gelingt), das tatsächliche Format der Beschleunigungs-Rohdaten und ob der Sensor überhaupt Bewegungsdaten liefert. Einstellbare Werte (LED, Empfindlichkeit, Energiemodus) sind **nicht umgesetzt**, weil keine Primärquelle vorliegt.
+
 ## Was **nicht** geprüft wurde (Grenzen)
 
 - **Keine echte BLE-Hardware:** Weder Scan noch Verbindung, Benachrichtigungen, Reconnect, Reichweite,

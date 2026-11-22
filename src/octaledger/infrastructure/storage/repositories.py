@@ -58,6 +58,9 @@ from octaledger.domain.models import (
     SessionSource,
     new_id,
 )
+from octaledger.domain.readout import KEEP_SNAPSHOTS, Snapshot
+from octaledger.domain.readout import from_json as readings_from_json
+from octaledger.domain.readout import to_json as readings_to_json
 from octaledger.domain.schedule import Absence, AbsenceKind, WorkSchedule
 from octaledger.domain.steps import ActionStep
 from octaledger.domain.tags import ProjectBilling, Tag
@@ -1829,6 +1832,77 @@ class BatteryRepository:
         return cursor.rowcount
 
 
+class SnapshotRepository:
+    """Stored read-outs of the cubes (see ``domain/readout.py``)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    @staticmethod
+    def _from_row(row: sqlite3.Row) -> Snapshot:
+        data = json.loads(row["payload"])
+        return Snapshot(
+            id=row["id"],
+            device_id=row["device_id"],
+            taken_at=from_db_time(row["taken_at"]),
+            kind=row["kind"],
+            readings=tuple(readings_from_json(data.get("readings", []))),
+            interval_ms=data.get("interval_ms"),
+        )
+
+    def add(self, snapshot: Snapshot) -> None:
+        """Store a snapshot and keep only the newest ``KEEP_SNAPSHOTS`` of its cube."""
+        payload = json.dumps(
+            {
+                "interval_ms": snapshot.interval_ms,
+                "readings": readings_to_json(snapshot.readings),
+            }
+        )
+        with _db_errors("write snapshot"):
+            self._c.execute(
+                "INSERT INTO device_snapshots (id, device_id, taken_at, kind, payload) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    snapshot.id,
+                    snapshot.device_id,
+                    to_db_time(snapshot.taken_at),
+                    snapshot.kind,
+                    payload,
+                ),
+            )
+            self._c.execute(
+                "DELETE FROM device_snapshots WHERE device_id = ? AND id NOT IN ("
+                "SELECT id FROM device_snapshots WHERE device_id = ? "
+                "ORDER BY taken_at DESC, id DESC LIMIT ?)",
+                (snapshot.device_id, snapshot.device_id, KEEP_SNAPSHOTS),
+            )
+
+    def list_for_device(self, device_id: str) -> list[Snapshot]:
+        """The snapshots of a cube, newest first."""
+        with _db_errors("list snapshots"):
+            rows = self._c.execute(
+                "SELECT * FROM device_snapshots WHERE device_id = ? "
+                "ORDER BY taken_at DESC, id DESC",
+                (device_id,),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
+
+    def get(self, snapshot_id: str) -> Snapshot | None:
+        """One snapshot or ``None``."""
+        with _db_errors("read snapshot"):
+            row = self._c.execute(
+                "SELECT * FROM device_snapshots WHERE id = ?", (snapshot_id,)
+            ).fetchone()
+        return None if row is None else self._from_row(row)
+
+    def delete(self, snapshot_id: str) -> bool:
+        """Delete a snapshot; ``False`` if it did not exist."""
+        with _db_errors("delete snapshot"):
+            cursor = self._c.execute("DELETE FROM device_snapshots WHERE id = ?", (snapshot_id,))
+        return cursor.rowcount == 1
+
+
 class ScheduleRepository:
     """The versioned weekly target (see :class:`WorkSchedule`)."""
 
@@ -2202,6 +2276,7 @@ SIMPLE_TABLES: Final[dict[str, tuple[str, ...]]] = {
         "condition",
     ),
     "battery_log": ("device_id", "at", "percent"),
+    "device_snapshots": ("id", "device_id", "taken_at", "kind", "payload"),
     "tags": ("id", "name", "color"),
     "session_tags": ("session_id", "tag_id"),
     "activity_tags": ("activity_id", "tag_id"),
@@ -2415,6 +2490,7 @@ class Repositories:
     absences: AbsenceRepository
     tags: TagRepository
     battery: BatteryRepository
+    snapshots: SnapshotRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -2441,6 +2517,7 @@ class Repositories:
             ("absences", AbsenceRepository(connection)),
             ("tags", TagRepository(connection)),
             ("battery", BatteryRepository(connection)),
+            ("snapshots", SnapshotRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

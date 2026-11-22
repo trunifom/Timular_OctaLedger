@@ -82,7 +82,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-52 | Batterie-Cockpit: Batterie jedes Würfels immer sichtbar (Text + Zahl), Verlauf gespeichert, Stufen-Warnungen, Schätzung der Restdauer; Meldefrequenz des Würfels nicht hardwarebestätigt | 2026-11-22 | 18:00 | b990032 |
 | AP-53 | Funktionsbereiche: Bereich (Zeit, Smarthome, Musik) als Pille mit Symbol und Text, Knopf „Bereich ändern“ im Banner, Bereichsfilter in der Seitenleiste (Würfel-Wähler und Menüpunkte), Umschalter mit Folgenhinweis | 2026-11-22 | 19:00 | 17cd679 |
 | AP-54 | Würfel-Inspektor: anklickbares Würfelbild (Komponente v2) plus Zahlenknöpfe, Seitenblatt in Klartext je Bereich (ganze Aktionskette), Neu programmieren, Seite leeren, Tabelle und Text-Export; Klick im echten Browser nicht geprüft | 2026-11-22 | 20:00 | 7ffb456 |
-| AP-55 | Mehrere Würfel parallel: ein Titel je Musik-Ziel mit Besitzer-Regel (Stopp nur durch den Besitzer, auch bei eingereihtem Stopp), „Wer steuert was?“, Konflikt-Hinweis bei widersprüchlichen Befehlen; gleichzeitige Zeit-Würfel bewusst nicht; Parallelität am Bluetooth-Adapter nicht geprüft | 2026-11-22 | 21:00 | _folgt_ |
+| AP-55 | Mehrere Würfel parallel: ein Titel je Musik-Ziel mit Besitzer-Regel (Stopp nur durch den Besitzer, auch bei eingereihtem Stopp), „Wer steuert was?“, Konflikt-Hinweis bei widersprüchlichen Befehlen; gleichzeitige Zeit-Würfel bewusst nicht; Parallelität am Bluetooth-Adapter nicht geprüft | 2026-11-22 | 21:00 | f6ec319 |
+| AP-56 | Würfel auslesen: Seite „Würfel-Datenblatt“ (alle lesbaren Angaben, nur lesen, Rohwert + Deutung nur wo bekannt, Update-Dienst nie), Aufzeichnung der Beschleunigungs-Rohdaten, Speicherung (20 je Würfel), Export JSON/CSV; Schreiben/Einstellen bewusst nicht; am echten Würfel nicht geprüft | 2026-11-22 | 22:00 | _folgt_ |
 
 ## Offen
 
