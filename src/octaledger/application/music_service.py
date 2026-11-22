@@ -32,6 +32,7 @@ from octaledger.application.integration_service import IntegrationService
 from octaledger.application.music_state import (
     PLAY_ACTIONS,
     STATE_LOST,
+    STATE_OWNER,
     STATE_SETTINGS,
     STATE_STOP,
     load_now,
@@ -229,6 +230,32 @@ class MusicService:
                         "alias": device.alias,
                         "playing": None if now is None else asdict(now),
                         "lost_since": repos.state.get(STATE_LOST + device.id),
+                    }
+                )
+            return result
+
+    def owners(self) -> list[dict[str, Any]]:
+        """Who controls what: for every target with music, the cube that started it (AP-55)."""
+        with self._storage.read() as repos:
+            result = []
+            for key, raw in sorted(repos.state.items().items()):
+                if not key.startswith(STATE_OWNER):
+                    continue
+                target = key[len(STATE_OWNER) :]
+                connection_id, _, entity = target.partition("|")
+                connection = repos.integrations.get(connection_id)
+                device_id = str(json.loads(raw)["device_id"])
+                device = repos.devices.get(device_id)
+                if connection is None or device is None:
+                    continue
+                data = json.loads(raw)
+                result.append(
+                    {
+                        "target": connection.name + (f" · {entity}" if entity else ""),
+                        "device_id": device_id,
+                        "alias": device.alias,
+                        "label": data.get("label", ""),
+                        "since": data.get("since"),
                     }
                 )
             return result

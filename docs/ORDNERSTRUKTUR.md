@@ -146,6 +146,7 @@ octaledger/
   src/octaledger/domain/battery.py
   src/octaledger/domain/break_rules.py
   src/octaledger/domain/conditions.py
+  src/octaledger/domain/conflict.py
   src/octaledger/domain/device_identity.py
   src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
@@ -195,6 +196,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0009_music_mode.sql
   src/octaledger/infrastructure/storage/migrations/0010_device_color.sql
   src/octaledger/infrastructure/storage/migrations/0011_battery_log.sql
+  src/octaledger/infrastructure/storage/migrations/0012_job_note.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -220,6 +222,7 @@ octaledger/
   tests/gui/test_gui_inspector.py
   tests/gui/test_gui_journal_statistics.py
   tests/gui/test_gui_live.py
+  tests/gui/test_gui_parallel.py
   tests/gui/test_gui_player.py
   tests/gui/test_gui_redesign.py
   tests/gui/test_gui_settings_areas.py
@@ -270,6 +273,7 @@ octaledger/
   tests/unit/test_logging.py
   tests/unit/test_media_player.py
   tests/unit/test_models.py
+  tests/unit/test_multi_cube.py
   tests/unit/test_music_mode.py
   tests/unit/test_orientation.py
   tests/unit/test_presets_placeholders.py

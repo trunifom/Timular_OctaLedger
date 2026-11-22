@@ -490,6 +490,15 @@ Die Seite **Würfel-Inspektor** (Gruppe *Würfel*) zeigt **im Detail, was auf je
 - **Alle Seiten auf einen Blick:** Tabelle der acht Seiten (bei Musik zusätzlich der **Halterung**). Unter *Als Text kopieren oder speichern* gibt es dieselben Angaben als Text und als Datei.
 - Die Auswahl der Seite wird je Würfel für diese Sitzung gemerkt. **Das anklickbare Bild ist nicht in jedem Browser geprüft;** die Zahlenknöpfe sind immer da.
 
+## 8d. Mehrere Würfel gleichzeitig
+
+Sie können **mehrere Würfel parallel** betreiben, programmieren und steuern. Damit sie sich nicht in die Quere kommen, gelten feste Regeln:
+
+- **Zeit:** Es gibt **einen** Würfel, der die Zeit erfasst (⭐). Weitere Würfel können im Bereich *Smarthome* oder *Musik* arbeiten. Mehrere Zeit-Würfel gleichzeitig sind **nicht vorgesehen**, weil es immer nur einen laufenden Eintrag gibt.
+- **Musik – ein Titel je Ziel:** Auf einem Ziel (Lokaler Player, ein Lautsprecher in Home Assistant, Ihr Spotify, der Browser-Player) läuft **immer nur ein Titel**. **Wer zuletzt startet, übernimmt.** Die Halterung eines anderen Würfels beendet diese Musik **nicht**: Nur der Würfel, der sie gestartet hat, kann sie stoppen. Zwei Lautsprecher sind zwei Ziele und stören sich nicht. Auf der **Übersicht** zeigt **„Wer steuert was?“**, welcher Würfel gerade welches Ziel besitzt.
+- **Smarthome – widersprüchliche Befehle:** Schicken zwei **verschiedene** Würfel innerhalb von **5 Sekunden verschiedene** Befehle an **dasselbe Gerät** (dieselbe Lampe, denselben Lautsprecher, dasselbe Thema), werden beide in der Reihenfolge gesendet, **der spätere gilt**, und der spätere Eintrag im Verlauf trägt den Hinweis **„Konflikt: …“**. Derselbe Befehl zweimal ist kein Konflikt. Eine Auswahl „ältere verwerfen“ gibt es **nicht**.
+- **Wichtig:** Ob Windows mit Ihrem Bluetooth-Adapter mehrere Würfel **gleichzeitig verbunden** hält, ist **nicht geprüft** und hängt vom Adapter ab.
+
 ## 9. Verbindungsverhalten im Alltag
 
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,

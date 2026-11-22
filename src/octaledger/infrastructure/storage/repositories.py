@@ -804,6 +804,7 @@ class JobRepository:
                 chain_id=row["chain_id"],
                 step=row["step"],
                 continue_on_error=bool(row["continue_on_error"]),
+                note=row["note"],
             ),
             "integration job",
             row["id"],
@@ -819,8 +820,9 @@ class JobRepository:
             cursor = self._c.execute(
                 "INSERT OR IGNORE INTO integration_jobs (id, idempotency_key, integration_id, "
                 "device_id, face, label, params, status, attempts, last_error, created_at, "
-                "expires_at, next_attempt_at, finished_at, chain_id, step, continue_on_error) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "expires_at, next_attempt_at, finished_at, chain_id, step, continue_on_error, "
+                "note) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     job.id,
                     job.idempotency_key,
@@ -839,9 +841,30 @@ class JobRepository:
                     job.chain_id,
                     job.step,
                     int(job.continue_on_error),
+                    job.note,
                 ),
             )
         return cursor.rowcount == 1
+
+    def set_note(self, job_id: str, note: str) -> None:
+        """Attach a note to a job (shown in the history)."""
+        with _db_errors("write job note"):
+            self._c.execute(
+                "UPDATE integration_jobs SET note = ? WHERE id = ?", (note[:500], job_id)
+            )
+
+    def recent_of_other_devices(
+        self, integration_id: str, device_id: str, since: datetime
+    ) -> list[IntegrationJob]:
+        """Jobs of **other** cubes for a connection created since ``since`` (not failed/expired)."""
+        with _db_errors("list recent jobs of other devices"):
+            rows = self._c.execute(
+                "SELECT * FROM integration_jobs WHERE integration_id = ? AND device_id IS NOT NULL "
+                "AND device_id != ? AND created_at >= ? AND status IN ('pending', 'done') "
+                "ORDER BY created_at DESC",
+                (integration_id, device_id, to_db_time(since)),
+            ).fetchall()
+        return [self._from_row(r) for r in rows]
 
     def get(self, job_id: str) -> IntegrationJob | None:
         """Return the job or ``None``."""

@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0011`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0012`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -167,6 +167,8 @@ Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stoppe
 
 ### Musik-Zustand in `app_state` (AP-48)
 
+**Besitzer eines Ziels (AP-55):** `music_owner:<Ziel>` (JSON: `device_id`, `label`, `since`) – welcher Würfel zuletzt gestartet hat, was auf diesem Ziel läuft. Das Ziel ist die Verbindung, bei Home Assistant zusätzlich das Mediengerät (`<Verbindung>|<entity_id>`). Gesetzt, wenn ein Wiedergabe-Auftrag **gesendet** wurde; gelöscht, wenn der Besitzer stoppt. `music_now:<Würfel>` enthält jetzt auch `target`.
+
 `music:<device_id>` (JSON: `base_action`, `stop_delay_ms`, `default_volume`) – Verhalten des Musik-Würfels; `music_now:<device_id>` (JSON: `face`, `label`, `integration_id`, `since`) – was **gerade spielt**, nur gesetzt, wenn ein Wiedergabe-Auftrag **wirklich gesendet** wurde, gelöscht nach einem Stopp/Pause-Auftrag; `music_stop:<device_id>:<integration_id>` (JSON `{stop, pause}`) – wie das Ziel zu stoppen ist (beim Speichern eines Titels vom Adapter berechnet); `music_lost:<device_id>` – Zeitpunkt eines Verbindungsabbruchs (für das Anhalten nach der Frist). Die Titel selbst liegen wie alle Seitenaktionen in `face_actions`/`face_action_steps`. Der Zustand gehört zu `app_state` und ist damit Teil der Sicherung.
 
 ### `face_action_steps` (0008)
@@ -232,6 +234,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
+| 0012 | `0012_job_note.sql` | Spalte `integration_jobs.note` (Text, leer erlaubt): Hinweis zu einem Auftrag, zum Beispiel ein **Konflikt** mit einem anderen Würfel oder „Ersetzt die Musik von …“ (AP-55); alte Aufträge haben keinen Hinweis |
 | 0011 | `0011_battery_log.sql` | Tabelle `battery_log` (`device_id`, `at`, `percent` 0–100, Schlüssel `(device_id, at)`, löscht mit dem Würfel): der Batterie-Verlauf (AP-52); ein Eintrag, wenn sich der Wert ändert, spätestens alle 6 Stunden; Aufbewahrung 400 Tage; Teil der Sicherung |
 | 0010 | `0010_device_color.sql` | Spalte `devices.color` (Text, leer = nicht gewählt): die Farbe eines Würfels, zusammen mit Nummer und Name seine Identität (AP-51); die Nummer wird nicht gespeichert, sondern aus der Reihenfolge der Anlage berechnet; ohne Farbe gilt die Palettenfarbe der Nummer; in der Sicherung als optionales Feld `color` je Gerät (ältere Dateien ohne das Feld bleiben lesbar) |
 | 0009 | `0009_music_mode.sql` | Spalte `devices.music`: Der Musik-Modus wird als Modus `control` plus Kennzeichen gespeichert (SQLite kann die Bedingung von `devices.mode` nur durch einen Tabellenneubau ändern, der alles Abhängige mitlöschen würde); die Anwendung bildet das Paar wieder auf `music` ab |

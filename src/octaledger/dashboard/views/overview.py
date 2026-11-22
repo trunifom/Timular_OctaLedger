@@ -206,6 +206,7 @@ def _live_status(client: ApiClient, tz: str) -> None:
             )
 
     _tracker_box(status)
+    _owners_box(client, tz)
     if st.button(
         "Neu laden",
         key="btn_reload",
@@ -214,6 +215,29 @@ def _live_status(client: ApiClient, tz: str) -> None:
         help="Aktualisiert die Anzeige sofort.",
     ):
         st.rerun(scope="app")
+
+
+def _owners_box(client: ApiClient, tz: str) -> None:
+    """ "Wer steuert was?": per music target the cube that started what plays (only if any)."""
+    try:
+        owners = client.music_owners()
+    except OctaLedgerError:
+        return  # music mode not available in this process: nothing to show
+    if not owners:
+        return
+    with st.container(border=True, key="owners_box"):
+        st.markdown("**Wer steuert was?**")
+        for owner in owners:
+            since = format_local(owner["since"], tz)[-5:] if owner.get("since") else ""
+            st.markdown(
+                f"{html.escape(owner['target'])}: {cube_html(owner)} spielt "
+                f"**{html.escape(owner['label'])}**" + (f" · seit {since}" if since else ""),
+                unsafe_allow_html=True,
+            )
+        st.caption(
+            "Auf einem Ziel läuft immer nur ein Titel: Wer zuletzt startet, übernimmt. Die "
+            "Halterung eines anderen Würfels beendet diese Musik nicht."
+        )
 
 
 def _tracker_box(status: dict[str, Any]) -> None:

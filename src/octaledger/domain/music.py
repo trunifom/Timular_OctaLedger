@@ -86,6 +86,9 @@ class NowPlaying:
     label: str
     integration_id: str
     since: str
+    #: The target (connection and, for Home Assistant, the media player); see
+    #: ``music_state.music_target``. Empty in states written before AP-55.
+    target: str = ""
 
 
 @dataclass(frozen=True, slots=True)

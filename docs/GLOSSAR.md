@@ -60,6 +60,10 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Besitzer (eines Ziels)** – der Würfel, der zuletzt gestartet hat, was auf einem Musik-Ziel läuft. Nur er kann es stoppen; ein anderer Würfel, der übernimmt, wird neuer Besitzer.
+
+**Konflikt** – zwei verschiedene Würfel schicken kurz nacheinander verschiedene Befehle an dasselbe Gerät. Beide werden gesendet (der spätere gilt) und der Verlauf nennt es.
+
 **Seitenblatt** – die Klartext-Beschreibung dessen, was auf einer Seite des Würfels eingestellt ist (Würfel-Inspektor).
 
 **Bereich** – das Einsatzgebiet eines Würfels: **Zeit** (Zeiterfassung), **Smarthome** (Steuerung) oder **Musik**; entspricht der Betriebsart. Wird immer mit Symbol und Text gezeigt. Der **Bereichsfilter** der Seitenleiste blendet Würfel und Menüpunkte anderer Bereiche aus.

@@ -621,6 +621,7 @@ def job_out(info: JobInfo) -> dict[str, Any]:
         "status": job.status.value,
         "attempts": job.attempts,
         "error": job.last_error,
+        "note": job.note,
         "created_at": iso(job.created_at),
         "finished_at": iso(job.finished_at),
     }

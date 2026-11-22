@@ -27,7 +27,8 @@ from typing import Any, Final
 from zoneinfo import ZoneInfo
 
 from octaledger.domain.conditions import holds
-from octaledger.domain.models import IntegrationJob, JobStatus
+from octaledger.domain.conflict import WINDOW, conflict_note, conflicts
+from octaledger.domain.models import DeviceMode, IntegrationJob, JobStatus
 from octaledger.domain.steps import ActionStep
 from octaledger.infrastructure.storage.repositories import Repositories
 
@@ -138,6 +139,33 @@ def _enqueue_step(
     )
 
 
+def _conflict_note(
+    repos: Repositories,
+    integration_id: str,
+    device_id: str | None,
+    face: int | None,
+    params: Mapping[str, Any],
+    now: datetime,
+) -> str | None:
+    """A note when another cube just sent a different command to the same object (else ``None``).
+
+    Music is handled by its owner rule instead (``music_state``), so jobs of music cubes and the
+    stop jobs (no face) are not compared.
+    """
+    if device_id is None or face is None:
+        return None
+    device = repos.devices.get(device_id)
+    if device is None or device.mode is DeviceMode.MUSIC:
+        return None
+    for other in repos.jobs.recent_of_other_devices(integration_id, device_id, now - WINDOW):
+        if other.device_id is not None and conflicts(params, other.params):
+            neighbour = repos.devices.get(other.device_id)
+            name = neighbour.alias if neighbour else "Ein anderer Würfel"
+            logger.info("Conflicting commands of two cubes for the same target")
+            return conflict_note(name, (now - other.created_at).total_seconds())
+    return None
+
+
 def enqueue_job(
     repos: Repositories,
     *,
@@ -163,6 +191,7 @@ def enqueue_job(
         return QueueResult.DISABLED
     delay = timedelta(milliseconds=delay_ms)
     dropped = repos.jobs.count_pending(integration.id) >= MAX_PENDING_JOBS
+    note = _conflict_note(repos, integration.id, device_id, face, params, now)
     job = IntegrationJob(
         idempotency_key=step_key(trigger_id, position),
         integration_id=integration.id,
@@ -179,6 +208,7 @@ def enqueue_job(
         chain_id=trigger_id,
         step=position,
         continue_on_error=continue_on_error,
+        note=note,
     )
     if not repos.jobs.enqueue(job):
         return QueueResult.DUPLICATE

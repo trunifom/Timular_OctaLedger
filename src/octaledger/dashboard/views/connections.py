@@ -417,7 +417,7 @@ def _history(client: ApiClient, tz: str) -> None:
             "Aktion": job["label"],
             "Seite": job["face"] if job["face"] is not None else "–",
             "Ergebnis": STATUS_TEXT.get(job["status"], job["status"]),
-            "Hinweis": job["error"] or "",
+            "Hinweis": " ".join(t for t in (job["error"], job.get("note")) if t),
         }
         for job in jobs
     ]

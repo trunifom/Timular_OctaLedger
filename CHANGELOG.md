@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Mehrere Würfel parallel, AP-55)
+- **Ein Titel je Musik-Ziel, Besitzer-Regel:** Wer zuletzt startet, übernimmt (die Musik des anderen ist ersetzt); **ein Stopp wirkt nur durch den Besitzer** – auch ein schon eingereihter Stopp eines anderen Würfels wird beim Senden verworfen. Ziel = Verbindung (bei Home Assistant mit Mediengerät). Übersicht „Wer steuert was?“ (`GET /music/owners`).
+- **Konflikte:** Verschiedene Befehle zweier Würfel an dasselbe Gerät innerhalb von 5 s werden in Eingangsreihenfolge gesendet und im Verlauf markiert (Migration 0012, `integration_jobs.note`); derselbe Befehl zweimal ist kein Konflikt.
+- Bewusst nicht gebaut: mehrere gleichzeitige Zeit-Würfel (es gibt einen laufenden Eintrag), „ältere Befehle verwerfen“.
+
 ### Hinzugefügt (Würfel-Inspektor, AP-54)
 - Neue Seite **Würfel-Inspektor**: anklickbares Würfelbild (Streamlit-Komponente v2, ohne Bauwerkzeug) **und** gleichwertige Zahlenknöpfe 1–8; **Seitenblatt** in Klartext je Bereich (Zeit: Tätigkeit, Projekt, Schlagworte, Notizvorlage; Smarthome: jeder Schritt der Kette mit Werten, Wartezeit, Fehlerverhalten, Bedingung; Musik: Titel, Ziel, Lautstärke, Halterung).
 - **Neu programmieren** (springt mit der Seite in den Editor), **Seite leeren**, Tabelle **Alle Seiten auf einen Blick**, Text-Export.

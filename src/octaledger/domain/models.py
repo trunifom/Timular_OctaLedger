@@ -642,10 +642,13 @@ class IntegrationJob:
     step: int = 0
     #: Whether the chain goes on if this step fails.
     continue_on_error: bool = False
+    #: Something worth knowing about this job (a conflict with another cube, a replaced title).
+    note: str | None = None
 
     def __post_init__(self) -> None:
         """Validate and normalise all fields."""
         object.__setattr__(self, "id", _check_id(self.id, "id"))
+        object.__setattr__(self, "note", _optional_text(self.note, "note", MAX_NOTE_LENGTH))
         object.__setattr__(
             self, "idempotency_key", _check_id(self.idempotency_key, "idempotency_key")
         )

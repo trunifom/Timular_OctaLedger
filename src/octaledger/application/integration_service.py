@@ -23,7 +23,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any, Final
 
-from octaledger.application.music_state import mark_sent
+from octaledger.application.music_state import mark_sent, music_target, owner_of
 from octaledger.application.outbox import (
     HISTORY_KEEP,
     MAX_ATTEMPTS,
@@ -39,12 +39,18 @@ from octaledger.core.errors import (
 )
 from octaledger.core.secrets import SecretStore
 from octaledger.domain.conditions import parse_condition
-from octaledger.domain.models import FaceAction, Integration, IntegrationJob, JobStatus
+from octaledger.domain.models import (
+    DeviceMode,
+    FaceAction,
+    Integration,
+    IntegrationJob,
+    JobStatus,
+)
 from octaledger.domain.placeholders import render as render_placeholders
 from octaledger.domain.steps import ActionStep, check_chain
 from octaledger.domain.time_rules import utc_now
 from octaledger.infrastructure.integrations.base import Adapter, AdapterSpec
-from octaledger.infrastructure.storage.repositories import Storage
+from octaledger.infrastructure.storage.repositories import Repositories, Storage
 
 logger = logging.getLogger(__name__)
 
@@ -439,6 +445,10 @@ class IntegrationService:
         attempts = job.attempts + 1
         with self._storage.read() as repos:
             integration = repos.integrations.get(job.integration_id)
+            foreign = self._foreign_stop(repos, job)
+        if foreign:
+            self._finish(job, "expired", attempts, foreign)
+            return
         if integration is None or not integration.enabled:
             self._finish(
                 job, "expired", attempts, "Die Verbindung ist ausgeschaltet oder gelöscht."
@@ -466,6 +476,25 @@ class IntegrationService:
         else:
             logger.info("Action %r of %s sent: %s", job.label, integration.name, message)
             self._finish(job, "done", attempts, None)
+
+    @staticmethod
+    def _foreign_stop(repos: Repositories, job: IntegrationJob) -> str | None:
+        """A stop of a music cube is not sent when another cube owns the target now.
+
+        Otherwise the holder of cube A would end the music that cube B started on the same
+        target in the meantime. Returns the reason (German) when the job must not be sent.
+        """
+        if job.device_id is None or job.face is not None:
+            return None
+        device = repos.devices.get(job.device_id)
+        if device is None or device.mode is not DeviceMode.MUSIC:
+            return None
+        owner = owner_of(repos, music_target(job.integration_id, job.params))
+        if owner is None or owner == job.device_id:
+            return None
+        other = repos.devices.get(owner)
+        name = other.alias if other else "einem anderen Würfel"
+        return f"Nicht gestoppt: die Musik gehört jetzt {name}."
 
     def _filled(self, adapter: Adapter, job: IntegrationJob) -> Mapping[str, Any]:
         """The job's parameters with the placeholders of the text fields replaced.
@@ -520,7 +549,7 @@ class IntegrationService:
             if status == "done":
                 repos.jobs.mark_done(job.id, now, attempts)
                 if job.device_id is not None:
-                    mark_sent(
+                    note = mark_sent(
                         repos,
                         job.device_id,
                         job.face,
@@ -529,6 +558,9 @@ class IntegrationService:
                         job.label,
                         now,
                     )
+                    if note:
+                        repos.jobs.set_note(job.id, note)
+                        logger.info("%s", note)
             elif status == "expired":
                 repos.jobs.mark_expired(job.id, now, attempts, error or EXPIRED_MESSAGE)
             else:

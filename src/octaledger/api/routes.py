@@ -494,6 +494,23 @@ def build_router(ctx: AppContext) -> APIRouter:
         """For every cube in music mode: what plays at the moment (``null`` = nothing)."""
         return {"devices": require_music().state()}
 
+    @router.get("/music/owners")
+    def music_owners() -> dict[str, Any]:
+        """Who controls what: per music target the cube that started what plays (AP-55)."""
+        identity = {i.device.id: i for i in ctx.devices.list_devices()}
+        owners = []
+        for owner in require_music().owners():
+            info = identity.get(owner["device_id"])
+            owners.append(
+                {
+                    **owner,
+                    "number": info.number if info else 0,
+                    "badge": badge(info.number) if info else "",
+                    "color": info.color if info else "",
+                }
+            )
+        return {"owners": owners}
+
     @router.get("/music/browser-state")
     def music_browser_state() -> dict[str, Any]:
         """What the page "Musik-Player" should play (wanted state of the browser player)."""

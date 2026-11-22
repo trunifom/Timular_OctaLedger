@@ -640,6 +640,12 @@ class ApiClient:
         devices: list[dict[str, Any]] = result["devices"]
         return devices
 
+    def music_owners(self) -> list[dict[str, Any]]:
+        """Who controls what: per music target the cube that started what plays."""
+        result: dict[str, Any] = self._get("/music/owners")
+        owners: list[dict[str, Any]] = result["owners"]
+        return owners
+
     def battery(self, device_id: str, days: int = 60) -> dict[str, Any]:
         """Battery summary and stored history of one cube."""
         result: dict[str, Any] = self._get(f"/devices/{device_id}/battery", days=days)
