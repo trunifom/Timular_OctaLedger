@@ -463,6 +463,8 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,
   Tracker schläft, Bluetooth kurz aus), versucht OctaLedger es selbstständig erneut – zuerst nach
   1 Sekunde, dann mit wachsenden Pausen (2, 4, 8 … höchstens 60 Sekunden), damit nichts blockiert.
+- **Der Würfel schläft:** Nach längerer Ruhe schaltet sich der Würfel von selbst ab und ist dann für Bluetooth unsichtbar („Gerät sendet gerade nicht“). OctaLedger versucht es weiter (höchstens alle 60 Sekunden); **drehen Sie den Würfel einmal oder drücken Sie seinen Knopf**, dann verbindet er sich beim nächsten Versuch. Das ist kein Fehler.
+- **„Drehen Sie ihn einmal“:** Ist der Würfel verbunden, liegt aber still, sendet er manchmal keine Lage. OctaLedger bleibt verbunden, fragt die Lage alle 3 Sekunden erneut ab und wird bereit, sobald Sie ihn einmal drehen.
 - **Zeit ohne Verbindung** wird nicht erfunden. Standardmäßig gilt eine **Frist von 5 Minuten**: Die Zeit läuft nach einem Verbindungsverlust
   weiter (als **unsicher** markiert), unter der Statusleiste steht, wann sie endet. **Kommt der Würfel in der Frist zurück**, läuft alles
   einfach weiter. **Kommt er nicht**, endet der Eintrag **genau am Moment des Verlusts**, und es erscheint auf jeder Seite eine Frage

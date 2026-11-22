@@ -700,7 +700,7 @@ connecting → discovering → subscribing → baseline → ready
 3. Optional und fehlertolerant: Batterie, Modell, Firmware lesen (`on_hardware_info`); Anfangswert
    lesen, falls lesbar (darf die erste Benachrichtigung duplizieren – wird toleriert).
 4. Werte laufen durch den `OrientationDebouncer` (AP-05); erst der erste Wert (Baseline) schaltet
-   auf `READY`. Kommt in `baseline_timeout` kein Wert, gilt der Zyklus als fehlgeschlagen.
+   auf `READY`. Kommt in `baseline_timeout` kein Wert, **bleibt die Verbindung bestehen** (kein Abbruch, kein falsches `DISCONNECT`): Der Status zeigt den Hinweis „Drehen Sie ihn einmal“, und der Anfangswert wird alle `BASELINE_REREAD_MS` (3 s) erneut gelesen, bis er eintrifft (Befund aus dem Protokoll vom 2026-11-22: ein ruhender Würfel sendet nach dem Abonnieren nichts).
 5. Verbindungsverlust nach erfolgter Verbindung → `DISCONNECT`-Ereignis; der Tracking-Service
    entscheidet (unsicher markieren / beenden). Danach Backoff und neuer Zyklus.
 

@@ -105,6 +105,8 @@ class SupervisorTuning:
 LIVE_HISTORY_SIZE = 30
 #: Presses of the same kind closer together than this are one press (contact bounce).
 BUTTON_DEBOUNCE_MS = 500
+#: While no first value is known, the orientation is read again this often (milliseconds).
+BASELINE_REREAD_MS = 3000
 #: How often the battery level is read again while connected (read only).
 BATTERY_REFRESH_MS = 10 * 60 * 1000
 
@@ -198,6 +200,7 @@ class DeviceWorker:
         self._had_connection = False  # a link was established at least once
         self._dropped = 0
         self._last_error: str | None = None
+        self._reread_due_ms = 0
         self._last_value: int | None = None
         self._last_event_at: datetime | None = None
         self._battery: int | None = None
@@ -427,18 +430,10 @@ class DeviceWorker:
 
     async def _pump(self, transport: DeviceTransport, caps: DeviceCapabilities) -> None:
         """Process values, ticks, loss and stop until the cycle ends."""
-        if caps.can_read_orientation:
-            try:  # the initial value may duplicate the first notification: that is tolerated
-                self._buffer_value(
-                    decode_orientation_payload(
-                        await transport.read(ORIENTATION_CHARACTERISTIC_UUID)
-                    )
-                )
-            except (BleConnectionError, ProtocolError) as exc:
-                logger.warning(
-                    "Initial orientation read failed, waiting for a notification: %s", exc
-                )
+        await self._read_initial(transport, caps)
         baseline_deadline = self._mono_ms() + int(self._tuning.baseline_timeout * 1000)
+        self._reread_due_ms = self._mono_ms() + BASELINE_REREAD_MS
+        hinted = False
         while True:
             await self._drain()
             if self._stop.is_set():
@@ -448,8 +443,9 @@ class DeviceWorker:
                 return
             if self._machine.state is S.BASELINE and self._debouncer.committed_value is not None:
                 self._machine.transition(S.READY)
+                self._last_error = None  # the "waiting for the first movement" hint is obsolete
                 logger.info("Device %s ready", self.device_id[:8])
-            timeout = self._next_timeout(baseline_deadline)
+            timeout = self._next_timeout(baseline_deadline, hinted)
             self._wake.clear()
             if self._values or self._lost or self._stop.is_set():
                 continue  # something arrived between draining and clearing the event
@@ -458,17 +454,44 @@ class DeviceWorker:
             except TimeoutError:
                 await self._emit_orientation(self._debouncer.tick(self._mono_ms()))
                 await self._refresh_battery(transport, caps)
-                if (
-                    self._machine.state is S.BASELINE
-                    and self._debouncer.committed_value is None
-                    and self._mono_ms() >= baseline_deadline
-                ):
-                    raise BleConnectionError(
-                        "No orientation value received after subscribing",
-                        user_message="Der Tracker hat keinen Anfangswert gesendet.",
-                    )
+                if self._machine.state is S.BASELINE and self._debouncer.committed_value is None:
+                    now = self._mono_ms()
+                    if now >= self._reread_due_ms:
+                        self._reread_due_ms = now + BASELINE_REREAD_MS
+                        await self._read_initial(transport, caps, quiet=True)
+                    if now >= baseline_deadline and not hinted:
+                        hinted = True
+                        # A resting cube may stay silent until it is moved. Dropping the link
+                        # now would only repeat the same wait (and record false disconnects),
+                        # so stay connected, say what to do and keep asking for the value.
+                        self._last_error = (
+                            "Der Würfel meldet noch keine Lage. Drehen Sie ihn einmal, dann "
+                            "geht es weiter."
+                        )
+                        logger.info(
+                            "No initial orientation yet; staying connected and waiting for the "
+                            "first movement"
+                        )
 
-    def _next_timeout(self, baseline_deadline: int) -> float | None:
+    async def _read_initial(
+        self, transport: DeviceTransport, caps: DeviceCapabilities, *, quiet: bool = False
+    ) -> None:
+        """Read the orientation once (if readable) and feed it like a notification.
+
+        The value may duplicate a notification: that is tolerated. A failure is logged (the
+        first time as a warning) and never ends the cycle; ``quiet`` repeats are debug only.
+        """
+        if not caps.can_read_orientation:
+            return
+        try:
+            self._buffer_value(
+                decode_orientation_payload(await transport.read(ORIENTATION_CHARACTERISTIC_UUID))
+            )
+        except (BleConnectionError, ProtocolError) as exc:
+            log = logger.debug if quiet else logger.warning
+            log("Orientation read failed, waiting for a notification: %s", exc)
+
+    def _next_timeout(self, baseline_deadline: int, hinted: bool) -> float | None:
         """Seconds until the next timer (debounce commit or baseline timeout) is due."""
         now = self._mono_ms()
         deadlines = []
@@ -476,7 +499,9 @@ class DeviceWorker:
         if pending is not None:
             deadlines.append(pending)
         if self._machine.state is S.BASELINE and self._debouncer.committed_value is None:
-            deadlines.append(baseline_deadline)
+            deadlines.append(self._reread_due_ms)
+            if not hinted:
+                deadlines.append(baseline_deadline)
         if self._battery_due_ms is not None:
             deadlines.append(self._battery_due_ms)
         if not deadlines:

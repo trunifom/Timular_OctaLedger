@@ -13,7 +13,7 @@ import pytest
 
 from octaledger.agent.supervisor import AgentSupervisor, DeviceWorker, SupervisorTuning
 from octaledger.application.tracking_service import TrackingService
-from octaledger.core.errors import StorageError, ValidationError
+from octaledger.core.errors import BleConnectionError, StorageError, ValidationError
 from octaledger.domain.models import Activity, Device, EventKind, Quality
 from octaledger.domain.state_machine import ConnectionState
 from octaledger.infrastructure.ble.fake import FakeTransport, FakeTransportFactory, default_services
@@ -262,7 +262,7 @@ def test_each_cycle_gets_new_connection_id_and_sequence_restarts(env: Env) -> No
     assert all(seq[0] == 0 or seq == sorted(seq) for seq in by_connection.values())
 
 
-def test_missing_initial_value_times_out_and_retries(env: Env) -> None:
+def test_silent_cube_stays_connected_and_waits_for_the_first_movement(env: Env) -> None:
     services = [
         GattService(
             ORIENTATION_SERVICE_UUID,
@@ -274,8 +274,46 @@ def test_missing_initial_value_times_out_and_retries(env: Env) -> None:
         fac = FakeTransportFactory(services=services)
         worker = env.worker(fac)
         task = asyncio.create_task(worker.run())
-        await wait_until(lambda: len(fac.created) >= 2, timeout=3)
-        assert "Anfangswert" in (worker.status().last_error or "")
+        await wait_until(lambda: "Drehen Sie ihn" in (worker.status().last_error or ""))
+        assert len(fac.created) == 1  # no reconnect loop, no false disconnect
+        assert worker.state is S.BASELINE
+        assert EventKind.DISCONNECT not in env.kinds()
+        fac.last.push(b"")  # the user turns the cube
+        await wait_until(lambda: worker.state is S.READY)
+        assert worker.status().last_error is None  # the hint is gone
+        await finish(worker, task)
+
+    run(scenario())
+
+
+def test_initial_value_is_read_again_while_waiting(
+    env: Env, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A read that failed once must not leave the cube waiting for a movement."""
+
+    monkeypatch.setattr("octaledger.agent.supervisor.BASELINE_REREAD_MS", 100)
+
+    class FlakyRead(FakeTransportFactory):
+        def create(self, address: str) -> Any:
+            transport = super().create(address)
+            real = transport.read
+            calls = {"n": 0}
+
+            async def read(uuid: str) -> bytes:
+                calls["n"] += 1
+                if calls["n"] == 1:
+                    raise BleConnectionError("simulated read failure")
+                return await real(uuid)
+
+            transport.read = read  # type: ignore[method-assign]
+            return transport
+
+    async def scenario() -> None:
+        fac = FlakyRead(values={ORIENT: bytes([5])})
+        worker = env.worker(fac)
+        task = asyncio.create_task(worker.run())
+        await wait_until(lambda: worker.state is S.READY, timeout=3)
+        assert worker.status().last_value == 5
         await finish(worker, task)
 
     run(scenario())

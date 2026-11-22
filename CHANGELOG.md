@@ -26,6 +26,7 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
 ### Geändert (Log-Auswertung vom 2026-11-22)
+- **Ruhender Würfel:** Sendet er nach dem Verbinden keinen Wert, bleibt OctaLedger verbunden, liest den Wert alle 3 s erneut und zeigt „Drehen Sie ihn einmal, dann geht es weiter.“ Vorher wurde alle 10 s neu verbunden (mit falschen Verbindungsabbrüchen im Verlauf).
 - Veraltetes `st.components.v1.html` durch `st.iframe` ersetzt (Musik-Player, Bericht-Vorschau): Streamlit meldete die Entfernung und schrieb sekündlich eine Warnung ins Protokoll.
 - Scheitert das Lesen des Anfangswerts eines Würfels, steht der Grund jetzt als Warnung im Protokoll (vorher nur im Debug-Pegel).
 
