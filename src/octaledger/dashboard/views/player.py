@@ -17,7 +17,6 @@ import re
 from typing import Any
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from octaledger.dashboard.ui import call, page_help
 from octaledger.dashboard_client.client import ApiClient
@@ -125,5 +124,7 @@ def _player(client: ApiClient) -> None:
         st.caption("Jetzt läuft der Titel, den der Würfel gewählt hat. Diese Seite offen lassen.")
     else:
         st.caption("Es spielt nichts. Drehen Sie den Würfel auf eine Seite mit einem Titel.")
-    components.html(player_document(state), height=HEIGHT)
+    # st.iframe replaces the deprecated st.components.v1.html; the page text is built only from
+    # validated ids (see player_document), because the frame runs with access to this app.
+    st.iframe(player_document(state), height=HEIGHT)
     st.caption("Nicht jedes Video lässt sich einbetten; Fehler zeigt der Player an.")

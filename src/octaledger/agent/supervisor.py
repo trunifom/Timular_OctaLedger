@@ -435,7 +435,9 @@ class DeviceWorker:
                     )
                 )
             except (BleConnectionError, ProtocolError) as exc:
-                logger.debug("Initial orientation read skipped: %s", exc)
+                logger.warning(
+                    "Initial orientation read failed, waiting for a notification: %s", exc
+                )
         baseline_deadline = self._mono_ms() + int(self._tuning.baseline_timeout * 1000)
         while True:
             await self._drain()

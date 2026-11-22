@@ -11,7 +11,6 @@ import base64
 from datetime import date, timedelta
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from octaledger.dashboard.ui import call
 from octaledger.dashboard_client.client import ApiClient
@@ -85,4 +84,4 @@ def render(client: ApiClient, tz: str) -> None:
         )
         st.caption('PDF braucht das Zusatzpaket „pdf“ (`pip install -e ".[pdf]"`).')
     st.markdown("**Vorschau**")
-    components.html(html_doc["content"], height=520, scrolling=True)
+    st.iframe(html_doc["content"], height=520)  # replaces the deprecated components.html

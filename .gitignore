@@ -24,3 +24,7 @@ runtime/
 htmlcov/
 .DS_Store
 Thumbs.db
+
+# Local diagnostic log excerpts (may contain device ids)
+/logs/
+/Logs/

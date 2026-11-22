@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Geändert (Log-Auswertung vom 2026-11-22)
+- Veraltetes `st.components.v1.html` durch `st.iframe` ersetzt (Musik-Player, Bericht-Vorschau): Streamlit meldete die Entfernung und schrieb sekündlich eine Warnung ins Protokoll.
+- Scheitert das Lesen des Anfangswerts eines Würfels, steht der Grund jetzt als Warnung im Protokoll (vorher nur im Debug-Pegel).
+
 ### Hinzugefügt (Player in der App, AP-50)
 - Neue Verbindungsart `browser` (Musik-Ziel ohne Netzwerkziel) und Seite **Musik-Player**: YouTube-/YouTube-Music-Titel im eingebetteten Player, nur bei geöffneter Seite, erst nach ausdrücklicher Zustimmung zum Laden von youtube.com; API `GET /music/browser-state`.
 - Korrektur: `spotify_play` zählt nun als Wiedergabe-Aktion („läuft gerade“).
