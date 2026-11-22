@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Würfel-Inspektor, AP-54)
+- Neue Seite **Würfel-Inspektor**: anklickbares Würfelbild (Streamlit-Komponente v2, ohne Bauwerkzeug) **und** gleichwertige Zahlenknöpfe 1–8; **Seitenblatt** in Klartext je Bereich (Zeit: Tätigkeit, Projekt, Schlagworte, Notizvorlage; Smarthome: jeder Schritt der Kette mit Werten, Wartezeit, Fehlerverhalten, Bedingung; Musik: Titel, Ziel, Lautstärke, Halterung).
+- **Neu programmieren** (springt mit der Seite in den Editor), **Seite leeren**, Tabelle **Alle Seiten auf einen Blick**, Text-Export.
+- Neue reine Bausteine `dashboard/face_sheet.py` und `cube.face_at`.
+
 ### Hinzugefügt (Funktionsbereiche, AP-53)
 - **Bereich** jedes Würfels (Zeit, Smarthome, Musik) als Pille mit Symbol und Text in Banner, Wähler und Karten; Knopf **Bereich ändern** im Banner; Umschalter mit Hinweis, dass Einstellungen anderer Bereiche erhalten bleiben.
 - **Bereichsfilter** in der Seitenleiste: filtert den Würfel-Wähler und blendet nur für andere Bereiche geltende Menüpunkte aus (`PageDef.areas`); die aktuelle Seite bleibt sichtbar.

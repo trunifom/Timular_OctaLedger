@@ -60,6 +60,8 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Seitenblatt** – die Klartext-Beschreibung dessen, was auf einer Seite des Würfels eingestellt ist (Würfel-Inspektor).
+
 **Bereich** – das Einsatzgebiet eines Würfels: **Zeit** (Zeiterfassung), **Smarthome** (Steuerung) oder **Musik**; entspricht der Betriebsart. Wird immer mit Symbol und Text gezeigt. Der **Bereichsfilter** der Seitenleiste blendet Würfel und Menüpunkte anderer Bereiche aus.
 
 **Batterie-Stufe** – gut (ab 40 %), bald tauschen (20–39 %), schwach (10–19 %), fast leer (unter 10 %); steht immer mit Zahl und Text da, nie nur als Farbe.

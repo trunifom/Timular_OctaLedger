@@ -480,6 +480,16 @@ Jeder Würfel hat **genau einen Bereich**, und der steht überall **als Symbol u
 - **Umschalten:** Auf der Seite *Seiten zuordnen* steht oben „Wofür benutzen Sie diesen Würfel?“. Auf jeder anderen Würfel-Seite führt der Knopf **Bereich ändern** im Banner dorthin. **Beim Umstellen geht nichts verloren:** Die Einstellungen der anderen Bereiche bleiben gespeichert und warten, bis Sie zurückschalten. Läuft gerade eine Zeit dieses Würfels, beenden Sie sie zuerst (Stopp).
 - **Bereichsfilter:** In der Seitenleiste wählen Sie unter **Bereich** *Alle Bereiche*, *Zeit*, *Smarthome* oder *Musik*. Dann zeigt der Würfel-Wähler nur Würfel dieses Bereichs, und Menüpunkte, die nur für andere Bereiche gelten, verschwinden (zum Beispiel *Zeitjournal* und *Statistik* bei Musik, *Musik-Player* bei Zeit). **Die Seite, auf der Sie gerade sind, bleibt immer sichtbar.** Gibt es keinen Würfel im gewählten Bereich, werden alle gezeigt.
 
+## 8c. Würfel-Inspektor: sehen, was auf jeder Seite eingestellt ist
+
+Die Seite **Würfel-Inspektor** (Gruppe *Würfel*) zeigt **im Detail, was auf jeder Seite des ausgewählten Würfels eingestellt ist**. Sie **ändert nichts**, solange Sie keinen Knopf drücken.
+
+- **Seite wählen:** Klicken Sie im **Würfelbild** auf eine Seite oder drücken Sie unter dem Bild die **Zahl 1 bis 8** (beides tut dasselbe; die Zahlen funktionieren auch mit der Tastatur). Die gewählte Seite hat im Bild einen farbigen Ring.
+- **Seitenblatt (rechts):** In Klartext, was beim Drehen auf diese Seite passiert. **Zeit:** Tätigkeit, Projekt, Schlagworte, Notizvorlage. **Smarthome:** die **ganze Kette**, jeder Schritt mit Verbindung, Aktion, Werten, Wartezeit, Verhalten bei Fehler und Bedingung (Uhrzeit, Wochentage); ausgeschaltete Schritte sind markiert. **Musik:** Titel, Ziel, Lautstärke; eine Seite ohne Titel ist eine **Stille-Seite** und beendet die Musik. Fehlt eine Verbindung inzwischen, steht das ausdrücklich da.
+- **Neu programmieren** öffnet *Seiten zuordnen* direkt mit dieser Seite. **Seite leeren** entfernt die Einstellung (Verbindungen und Tätigkeiten bleiben).
+- **Alle Seiten auf einen Blick:** Tabelle der acht Seiten (bei Musik zusätzlich der **Halterung**). Unter *Als Text kopieren oder speichern* gibt es dieselben Angaben als Text und als Datei.
+- Die Auswahl der Seite wird je Würfel für diese Sitzung gemerkt. **Das anklickbare Bild ist nicht in jedem Browser geprüft;** die Zahlenknöpfe sind immer da.
+
 ## 9. Verbindungsverhalten im Alltag
 
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,

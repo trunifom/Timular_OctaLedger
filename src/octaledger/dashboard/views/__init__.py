@@ -17,6 +17,7 @@ from octaledger.dashboard.views import (
     diagnostics,
     display,
     faces,
+    inspector,
     journal,
     live,
     overview,
@@ -85,6 +86,14 @@ _DEFINITIONS = (
         "Würfel",
         "Würfel hinzufügen, verbinden, Kopplung aufheben, entfernen und die acht Seiten zuordnen",
         devices.render,
+    ),
+    PageDef(
+        "inspector",
+        "Würfel-Inspektor",
+        "ads_click",
+        "Würfel",
+        "Seite im Würfelbild anklicken und im Detail sehen, was darauf eingestellt ist",
+        inspector.render,
     ),
     PageDef(
         "faces",

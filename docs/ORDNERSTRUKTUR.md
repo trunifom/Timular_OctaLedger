@@ -102,7 +102,9 @@ octaledger/
   src/octaledger/dashboard/attention.py
   src/octaledger/dashboard/battery.py
   src/octaledger/dashboard/cube.py
+  src/octaledger/dashboard/cube_picker.py
   src/octaledger/dashboard/docs_reader.py
+  src/octaledger/dashboard/face_sheet.py
   src/octaledger/dashboard/forms.py
   src/octaledger/dashboard/identity.py
   src/octaledger/dashboard/main.py
@@ -125,6 +127,7 @@ octaledger/
   src/octaledger/dashboard/views/faces.py
   src/octaledger/dashboard/views/faces_actions.py
   src/octaledger/dashboard/views/faces_music.py
+  src/octaledger/dashboard/views/inspector.py
   src/octaledger/dashboard/views/journal.py
   src/octaledger/dashboard/views/journal_ics.py
   src/octaledger/dashboard/views/live.py
@@ -214,6 +217,7 @@ octaledger/
   tests/gui/test_gui_devices_catalog.py
   tests/gui/test_gui_faces.py
   tests/gui/test_gui_identity.py
+  tests/gui/test_gui_inspector.py
   tests/gui/test_gui_journal_statistics.py
   tests/gui/test_gui_live.py
   tests/gui/test_gui_player.py
@@ -256,6 +260,7 @@ octaledger/
   tests/unit/test_documentation.py
   tests/unit/test_errors.py
   tests/unit/test_export_service.py
+  tests/unit/test_face_sheet.py
   tests/unit/test_fileio.py
   tests/unit/test_gui_documentation.py
   tests/unit/test_hue_extended.py

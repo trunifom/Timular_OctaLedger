@@ -234,7 +234,7 @@ def test_every_page_of_the_menu_renders(api_server: RunningApi) -> None:
     from octaledger.dashboard.views import PAGES
 
     at = open_app(api_server.client)
-    assert len(PAGES) == 14
+    assert len(PAGES) == 15
     for slug in PAGES:  # every page renders without an exception
         at.sidebar.button(key=f"nav_{slug}").click().run()
         assert not at.exception, slug

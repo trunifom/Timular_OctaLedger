@@ -32,6 +32,11 @@ _SIZE: Final = 340
 _CENTER: Final = _SIZE / 2
 _RADIUS: Final = 160.0
 _MAX_NAME: Final = 10
+#: Public geometry (the clickable picture needs it): side of the drawing, radius of the centre
+#: circle and of the faces.
+SIZE: Final = _SIZE
+INNER_RADIUS: Final = 24.0
+OUTER_RADIUS: Final = _RADIUS + 5.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,6 +74,20 @@ def _halo(text_color: str) -> str:
     """
     halo = _LIGHT_TEXT if text_color == _DARK_TEXT else _DARK_TEXT
     return f'paint-order="stroke" stroke="{halo}" stroke-width="3" stroke-linejoin="round"'
+
+
+def face_at(dx: float, dy: float) -> int | None:
+    """The face under a point, given relative to the centre of the drawing (``None`` = no face).
+
+    Face 1 is at the top, the faces follow clockwise, each is a wedge of 45 degrees. The centre
+    circle and everything outside the faces count as "no face". The click handler of
+    ``cube_picker.py`` uses the same formula in JavaScript.
+    """
+    distance = math.hypot(dx, dy)
+    if distance < INNER_RADIUS or distance > OUTER_RADIUS:
+        return None
+    degrees = math.degrees(math.atan2(dy, dx)) + 90 + 22.5
+    return int((degrees % 360) // 45) + 1
 
 
 def cube_svg(

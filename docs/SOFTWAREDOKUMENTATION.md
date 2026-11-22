@@ -1931,7 +1931,7 @@ Ergebnisse stehen als Regeln in den folgenden Entscheidungen.
 | 3. Darstellung | *Darstellung* (`display`) | Hell/Dunkel, Schriftgröße (wirkt sofort) |
 | 4. Komplexe Funktionen | *Smarthome & Verbindungen* (`connections`) | Home Assistant, Hue, MQTT, Webhook |
 
-Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 14 Seiten (mit „Musik-Player“, AP-50).
+Menügruppen (`nav.GROUPS`): Start · Alltag · Würfel · Einstellungen · System. Die Seitentitel entsprechen den Menütexten; 15 Seiten (mit „Musik-Player“, AP-50, und „Würfel-Inspektor“, AP-54).
 
 ### 33.2 Regeln aus der Recherche und ihre Umsetzung
 
@@ -1973,7 +1973,7 @@ ausgenommen. SQL steht nur in den Repositories (`SessionRepository.range_stats/d
 `tests/unit/test_data_service.py` (17): Übersicht, Vorschau, exklusives Ende, Sicherung vor dem Löschen und Wiederherstellung daraus, geänderte Zahl bricht ab, leerer Zeitraum, laufender
 Eintrag bleibt, Prüfspur, Würfel mit/ohne Daten, aktive Auswahl, Zurücksetzen mit/ohne Einstellungen, Kopplung aufheben. `tests/unit/test_api.py` (+6): Endpunkte der Datenverwaltung,
 Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/test_gui_data_cleanup.py` (8), `tests/gui/test_gui_settings_areas.py` (7), erweiterte
-`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (14 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
+`test_gui_connections.py`/`test_gui_devices_catalog.py`, Menü-Test (15 Seiten, fünf Gruppen), `tests/unit/test_gui_documentation.py` (Knöpfe mit Hilfetext).
 
 ## 34. Spotify-Adapter (`infrastructure.integrations.spotify`, AP-49)
 
@@ -2012,3 +2012,11 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Bereich = Betriebsart** des Würfels (`time`, `control`, `music`), in der Oberfläche als **Pille** (`area_pill`: Symbol + Text, Rahmen in der Bereichsfarbe über `.ol-area-<modus>` in `theme.py`; die Schrift bleibt die Textfarbe des Themas, damit der Kontrast stimmt).
 * **Filter:** `sidebar_area_filter` (Auswahl in `st.session_state["area_filter"]`, `all` oder ein Modus). `in_area`/`selected_cube` beschränken den Würfel-Wähler auf den Bereich und fallen auf **alle** Würfel zurück, wenn keiner passt. `PageDef.areas` (Standard: alle drei) steuert, welche Menüpunkte bei einem Filter bleiben (`journal`, `statistics`: Zeit; `player`: Musik; `connections`: Smarthome und Musik); die **aktuelle Seite bleibt immer sichtbar**.
 * **Banner:** `banner(..., change_area=True)` zeigt Würfel, Bereich und den Knopf **Bereich ändern** (führt zu *Seiten zuordnen*, wo der Umschalter und die Folgen-Erklärung stehen).
+
+
+## 39. Würfel-Inspektor (`dashboard.views.inspector`, `dashboard.face_sheet`, `dashboard.cube_picker`, AP-54)
+
+* **Seitenblatt (`face_sheet.py`, rein):** `time_sheet`, `control_sheet`, `music_sheet`, `holder_sheet` machen aus den Antworten der API (Würfel, Katalog, Ketten, Verbindungen, Beschreibungen der Verbindungsarten) einen `FaceSheet` mit Titel, Einzeiler (für die Tabelle) und Klartext-Zeilen; `step_lines` formuliert jeden Schritt in den **Worten der Verbindungsart** (Feldbezeichnungen aus der Beschreibung), `condition_text` die Bedingung; `overview_rows`/`export_text` liefern Tabelle und Text. Eine fehlende Verbindung wird benannt, nicht verschwiegen.
+* **Bild und Klick:** `cube.cube_svg(selected=…)` zeichnet den Ring; `cube.face_at(dx, dy)` ist die (getestete) Zuordnung Punkt → Seite (Seite 1 oben, im Uhrzeigersinn, Keile à 45°, Mittelkreis und Außenbereich zählen nicht). `cube_picker.py` bindet das SVG über `st.components.v2.component` ein; das JavaScript rechnet **mit derselben Formel** und meldet die Seite per `setTriggerValue`. Es gibt immer die gleichwertige **Zahlenknopfreihe**; fehlt die Komponente (ältere Streamlit-Version), zeigt die Seite das einfache Bild. Das HTML/JS ist fester Text des Moduls, dynamisch ist nur das mit escapten Namen erzeugte SVG.
+* **Seite:** `inspector.py`: gemeinsame Würfel-Auswahl (AP-51) mit Banner, gewählte Seite je Würfel in `st.session_state["inspector_face_<id>"]`, **Neu programmieren** setzt `faces.PENDING_KEY` und wechselt zu *Seiten zuordnen*, **Seite leeren** nutzt `clear_face` (Zeit) bzw. `clear_action` (Smarthome/Musik).
+* **Grenzen:** Das Klicken im Bild ist **nicht in einem echten Browser geprüft** (die Tests prüfen Formel, Zahlenknöpfe und Seiteninhalt).
