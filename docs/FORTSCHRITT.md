@@ -84,6 +84,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-54 | Würfel-Inspektor: anklickbares Würfelbild (Komponente v2) plus Zahlenknöpfe, Seitenblatt in Klartext je Bereich (ganze Aktionskette), Neu programmieren, Seite leeren, Tabelle und Text-Export; Klick im echten Browser nicht geprüft | 2026-11-22 | 20:00 | 7ffb456 |
 | AP-55 | Mehrere Würfel parallel: ein Titel je Musik-Ziel mit Besitzer-Regel (Stopp nur durch den Besitzer, auch bei eingereihtem Stopp), „Wer steuert was?“, Konflikt-Hinweis bei widersprüchlichen Befehlen; gleichzeitige Zeit-Würfel bewusst nicht; Parallelität am Bluetooth-Adapter nicht geprüft | 2026-11-22 | 21:00 | f6ec319 |
 | AP-56 | Würfel auslesen: Seite „Würfel-Datenblatt“ (alle lesbaren Angaben, nur lesen, Rohwert + Deutung nur wo bekannt, Update-Dienst nie), Aufzeichnung der Beschleunigungs-Rohdaten, Speicherung (20 je Würfel), Export JSON/CSV; Schreiben/Einstellen bewusst nicht; am echten Würfel nicht geprüft | 2026-11-22 | 22:00 | 59fefbb |
+| AP-57 | Sammelbearbeitung (Backend): `EntryService` (zuordnen, taggen, Notiz, Qualität, verschieben, löschen; alles oder nichts, Grund Pflicht, Prüfspur je Feld, Sicherung vor dem Löschen, laufende Einträge ausgelassen), API `/entries/edit`, `/entries/delete`, `/entries/history` | 2026-11-22 | 23:00 | (folgt) |
+| AP-58 | Seite „Einträge“: Suche und Filter (Zeitraum, Tätigkeit, Projekt, Gerät, Tags beliebig/alle/keiner, Qualität, Quelle, Dauer, Wochentag, Tageszeit), Suchprotokoll, Tabelle mit allen Werten und Mehrfachauswahl, Sammelaktionen, Änderungsprotokoll | 2026-11-22 | 23:30 | (folgt) |
 
 ## Offen
 

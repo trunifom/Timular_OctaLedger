@@ -17,6 +17,7 @@ from octaledger.dashboard.views import (
     devices,
     diagnostics,
     display,
+    entries,
     faces,
     inspector,
     journal,
@@ -69,6 +70,15 @@ _DEFINITIONS = (
         "Alltag",
         "Einträge ansehen, korrigieren, teilen, bestätigen, nachtragen",
         journal.render,
+        areas=frozenset({"time"}),
+    ),
+    PageDef(
+        "entries",
+        "Einträge",
+        "table_rows",
+        "Alltag",
+        "Einträge suchen, filtern, markieren und gesammelt zuordnen, taggen, verschieben, löschen",
+        entries.render,
         areas=frozenset({"time"}),
     ),
     PageDef(

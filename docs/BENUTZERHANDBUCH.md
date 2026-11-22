@@ -132,7 +132,7 @@ Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entsp
 | Gruppe | Einträge | Wofür |
 |---|---|---|
 | **Start** | Startseite | Was ist der Würfel? Geführte Einrichtung und dieses Handbuch zum Nachlesen |
-| **Alltag** | Übersicht · Würfel live · Zeitjournal · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
+| **Alltag** | Übersicht · Würfel live · Zeitjournal · Einträge · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
 | **Würfel** | Würfel verwalten · Seiten zuordnen | **alles rund um die Würfel**: hinzufügen, verbinden, Kopplung aufheben, entfernen; den Seiten Tätigkeiten oder Aktionen geben |
 | **Einstellungen** | App · Tätigkeiten & Projekte · Darstellung · Smarthome & Verbindungen | **je eine Seite pro Art von Einstellung** (siehe unten) |
 | **System** | Daten · Diagnose | Export, Sicherung, Import, Löschen; Fehlersuche |
@@ -318,6 +318,24 @@ Eine Aktion verfällt nach **30 Sekunden**: Ein Licht, das erst später schaltet
   der Zukunft liegen, und es darf keine Überschneidung mit vorhandenen Zeiten geben – sonst erscheint
   eine verständliche Meldung und nichts wird gespeichert.
 - Datum und Uhrzeit geben Sie immer in **Ihrer Zeitzone** ein (Einstellungen).
+
+### Bereich „Einträge“ (suchen, markieren, gesammelt bearbeiten)
+Die Seite ist für **viele Einträge auf einmal** gedacht; das einzelne Korrigieren geht weiterhin im Zeitjournal (und, bei genau einer Auswahl, auch hier).
+
+1. **Zeitraum und Suche:** Wählen Sie oben **Heute, Gestern, Letzte 7 Tage, Letzte 30 Tage, Dieses Jahr, Alles** oder einen **eigenen Zeitraum**. Das Feld **Suche** findet Einträge, in deren Notiz, Tätigkeit, Projekt, Gerät oder Tags **alle** eingetippten Wörter vorkommen (mit Enter bestätigen).
+2. **Filter:** Tätigkeit, Projekt (auch „kein Projekt“), Gerät (auch „von Hand“), **Tags** (mindestens einer, alle oder keiner), Qualität, Quelle; unter **Weitere Filter** Dauer von–bis, Wochentage und die Tageszeit des Beginns. **Filter zurücksetzen** räumt alles weg. Über der Tabelle steht in einer Zeile, **was gerade gefiltert ist** und wie viele Treffer es gibt.
+3. **Suchprotokoll:** Jede Suche mit Suchwort oder Filter wird festgehalten (die letzten 20, nur solange die App geöffnet ist). **Anwenden** stellt sie mit einem Klick wieder her.
+4. **Tabelle mit allen Werten:** Beginn, Ende, Dauer, Tätigkeit, Projekt, Tags, Gerät, Quelle, Qualität, Revision, Notiz, Betrag. Ein Klick auf die Spaltenüberschrift sortiert; die Lupe oben rechts in der Tabelle sucht darin; der Pfeil exportiert die Tabelle als CSV.
+5. **Auswählen:** Klicken Sie links auf Zeilen (Strg oder Umschalt für mehrere), oder stellen Sie **Bearbeiten wirkt auf … alle Treffer** ein. So markieren Sie auch **einen ganzen Bereich** (Zeitraum, eine Person, einen Tag): erst filtern, dann „alle Treffer“.
+6. **Bearbeiten** (vier Reiter; jede Aktion hat einen **Grund** als Pflichtangabe):
+   - **Zuordnen & Tags:** Tätigkeit und Projekt setzen (oder „kein Projekt“), Tags **hinzufügen, entfernen, ersetzen** oder **alle entfernen** (zurücksetzen).
+   - **Notiz & Qualität:** Notiz ersetzen, anhängen oder leeren; Zeit als bestätigt oder unsicher markieren.
+   - **Zeit verschieben:** Start und Ende um Minuten, Stunden oder Tage später oder früher (die Dauer bleibt). Entsteht eine Überschneidung, wird **nichts** verschoben.
+   - **Löschen:** Sie tippen zur Bestätigung die **Anzahl** ein. Vorher wird automatisch eine **Sicherung** angelegt (Wiederherstellen: Seite *Daten*).
+7. **Alles oder nichts:** Eine Aktion gilt für alle gewählten Einträge oder für keinen. Nach der Aktion steht oben, wie viele geändert wurden, wie viele die Werte schon hatten und wie viele **laufende** Einträge ausgelassen wurden (laufende werden nie verschoben oder gelöscht).
+8. **Änderungsprotokoll** (zweiter Reiter): jede Korrektur und jedes Löschen mit Zeit, **Vorher/Nachher**, Grund und Eintrag; durchsuchbar. Das Protokoll ist nur zum Lesen.
+
+Einen **einzelnen** Eintrag bearbeiten Sie genau (Beginn, Ende, Teilen), indem Sie genau eine Zeile wählen; es erscheint ein zusätzlicher Bereich.
 
 ### Bereich „Statistik“
 1. **Zeitraum** wählen (die Filter für Tätigkeit, Projekt und Gerät sind im eingeklappten Bereich **Filter**): *Tag*, *Woche* (Montag bis Sonntag) oder *Eigener Zeitraum*, dazu das Datum.

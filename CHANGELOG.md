@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Einträge verwalten, AP-57/58)
+- **Sammelbearbeitung** (`POST /entries/edit`, `/entries/delete`, `GET /entries/history`): Tätigkeit, Projekt, Tags, Notiz, Qualität und Zeit (verschieben) vieler Einträge in **einer** Transaktion (alles oder nichts), Grund Pflicht, jede Änderung in der Prüfspur; Löschen mit automatischer Sicherung; laufende Einträge bleiben unberührt.
+- Neue Seite **Einträge**: Suche (alle Wörter), Filter nach Zeitraum, Tätigkeit, Projekt, Gerät, Tags (beliebig/alle/keiner), Qualität, Quelle, Dauer, Wochentag und Tageszeit; **Suchprotokoll**; Tabelle mit allen Werten und Mehrfachauswahl (oder „alle Treffer“); Aktionen zuordnen, taggen, verschieben, Notiz/Qualität, löschen; **Änderungsprotokoll** mit Vorher/Nachher.
+
 ### Hinzugefügt (Würfel auslesen, AP-56)
 - Neue Seite **Würfel-Datenblatt**: liest alle lesbaren Angaben des verbundenen Würfels (nur lesen), zeigt Rohwert, Länge und – nur wo bekannt – die Bedeutung; unbekannte Angaben ohne erfundene Deutung, nicht lesbare werden nicht angefasst, der Firmware-Update-Dienst nie.
 - **Aufzeichnung** der Rohdaten des Beschleunigungssensors (5–30 s, nur auf Knopfdruck); Speicherung (Migration 0013, `device_snapshots`, 20 je Würfel, in der Sicherung), Export als JSON und CSV (Formeln entschärft); API `POST /devices/{id}/readout`, `GET /devices/{id}/snapshots`, `GET`/`DELETE /snapshots/{id}`.

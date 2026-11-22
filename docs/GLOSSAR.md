@@ -238,3 +238,9 @@ im Browser Anfragen an den eigenen Rechner stellen.
 **Zeitmodus** – Standard-Betriebsart eines Würfels: Seiten sind Tätigkeiten, Drehungen starten und beenden Sitzungen.
 
 **Zustandsautomat** – die Regeln, nach denen die Verbindung zu einem Würfel ihre Zustände wechselt (`idle … ready … reconnect_wait … stopped`), siehe [ARCHITEKTUR.md](ARCHITEKTUR.md) §6.
+
+**Sammelbearbeitung** – eine Änderung (zuordnen, taggen, verschieben, Notiz, Qualität, löschen), die für alle gewählten Einträge gilt oder für keinen; verlangt einen Grund und steht im Änderungsprotokoll.
+
+**Suchprotokoll** – die Liste der letzten Suchen und Filter auf der Seite *Einträge* (nur solange die App geöffnet ist); ein Klick stellt eine Suche wieder her.
+
+**Änderungsprotokoll** – die nur lesbare Liste aller Korrekturen und Löschungen von Einträgen mit Zeit, altem und neuem Wert und Grund.

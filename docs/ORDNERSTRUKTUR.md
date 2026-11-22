@@ -78,6 +78,7 @@ octaledger/
   src/octaledger/application/catalog_service.py
   src/octaledger/application/data_service.py
   src/octaledger/application/device_service.py
+  src/octaledger/application/entry_service.py
   src/octaledger/application/export_service.py
   src/octaledger/application/ics_import.py
   src/octaledger/application/integration_service.py
@@ -105,6 +106,7 @@ octaledger/
   src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/cube_picker.py
   src/octaledger/dashboard/docs_reader.py
+  src/octaledger/dashboard/entry_filter.py
   src/octaledger/dashboard/face_sheet.py
   src/octaledger/dashboard/forms.py
   src/octaledger/dashboard/identity.py
@@ -126,6 +128,9 @@ octaledger/
   src/octaledger/dashboard/views/devices.py
   src/octaledger/dashboard/views/diagnostics.py
   src/octaledger/dashboard/views/display.py
+  src/octaledger/dashboard/views/entries.py
+  src/octaledger/dashboard/views/entries_bulk.py
+  src/octaledger/dashboard/views/entries_history.py
   src/octaledger/dashboard/views/faces.py
   src/octaledger/dashboard/views/faces_actions.py
   src/octaledger/dashboard/views/faces_music.py
@@ -222,6 +227,7 @@ octaledger/
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_datasheet.py
   tests/gui/test_gui_devices_catalog.py
+  tests/gui/test_gui_entries.py
   tests/gui/test_gui_faces.py
   tests/gui/test_gui_identity.py
   tests/gui/test_gui_inspector.py
@@ -266,6 +272,8 @@ octaledger/
   tests/unit/test_dispatcher.py
   tests/unit/test_docs_reader.py
   tests/unit/test_documentation.py
+  tests/unit/test_entry_filter.py
+  tests/unit/test_entry_service.py
   tests/unit/test_errors.py
   tests/unit/test_export_service.py
   tests/unit/test_face_sheet.py

@@ -2039,3 +2039,22 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Speicher:** Migration 0013 (`device_snapshots`), in `SIMPLE_TABLES` (Sicherung).
 * **Oberfläche:** `datasheet.py`: Auslesen-Knopf (nur bei bereitem Würfel), Aufzeichnung (Dauer/Abstand), gespeicherte Auslesungen mit Tabelle, Export JSON/CSV (`safe_cell` entschärft Formeln, weil Texte vom Würfel stammen), Löschen.
 * **Grenzen:** Das Auslesen an einem echten Würfel ist **nicht geprüft** [HW]; einstellbare Werte sind nicht umgesetzt (keine Quelle).
+
+
+## 42. Sammelbearbeitung (`application.entry_service`, AP-57)
+
+* **`EntryService.apply(ids, BulkChange, reason)`:** eine Transaktion über alle gewählten Einträge (alles oder nichts). Geprüft werden vorab Tätigkeit, Projekt und Tags (Existenz). Je Eintrag wird nur geändert, was sich wirklich unterscheidet; das geschieht über `SessionRepository.correct` (also Revision +1 und **eine Zeile je geänderter Angabe** in `corrections`, Grund „Sammelbearbeitung: <Grund>“). Tags: hinzufügen, entfernen oder ersetzen; ein Eintrag mit schon passenden Tags zählt als *unverändert*.
+* **Verschieben:** Start und Ende um `shift_seconds` (höchstens ± 366 Tage); die Reihenfolge der Bearbeitung (bei „später“ der späteste zuerst, sonst der früheste) verhindert eine vorübergehende Überlappung gewählter Nachbarn. Landet ein Ende in der Zukunft, wird abgelehnt. **Laufende Einträge** werden nie verschoben (Zähler `skipped_running`).
+* **`delete`:** liest die Auswahl (unbekannte Kennung = `NotFoundError`), schreibt die **Sicherung** (`octaledger-pre-delete-<Zeit>.json`), löscht per `SessionRepository.delete_many` (parametrisiert, in Blöcken à 500, nur fertige Einträge, **ein** Audit-Eintrag mit Zahl und Grund). Besteht die Auswahl nur aus laufenden Einträgen, wird abgelehnt.
+* **`history`:** Korrekturen und Audit-Einträge der Entität „session(s)“, neueste zuerst, Tätigkeits-/Projektkennungen als Namen.
+* **Grenzen:** höchstens 10 000 Einträge je Aufruf; kein Rückgängig-Knopf (Rückweg: Sicherung auf der Seite *Daten*, alte Werte im Protokoll). Die Oberfläche folgt in AP-58.
+
+
+## 43. Seite „Einträge“ (`dashboard.entry_filter`, `dashboard.views.entries*`, AP-58)
+
+* **Filter (`entry_filter.py`, rein):** `EntryFilter` (Text, Listen, Tags mit Modus, Qualität, Quelle, Dauer, Wochentage, Beginn-Stunden), `matches`/`apply` (alle Wörter des Textes in Notiz, Tätigkeit, Projekt, Gerät, Tags; Wochentag und Stunde in der **Anzeige-Zeitzone**), `describe` (eine deutsche Zeile für Protokoll und Überschrift), `totals`, `selection_summary`. `NONE_ID` steht für „kein Projekt“/„von Hand“.
+* **Laden:** `entries.py` holt die Einträge des Zeitraums mit `GET /sessions` (ohne weitere Server-Filter) und filtert im Dashboard; alles liegt lokal und ist klein. Die Tabelle (`st.dataframe` mit `on_select`, Mehrfachauswahl, `column_config`: Datum, Zahl, Tag-Chips) zeigt höchstens 3000 Zeilen; „alle Treffer“ wirkt trotzdem auf alle.
+* **Suchprotokoll:** `FILTER_KEYS` sind die Widget-Schlüssel eines Filters; `_remember` legt einen geänderten, nicht leeren Filter (Fingerabdruck gegen Doppelte, höchstens 20) in `st.session_state`; `_apply_history` ist der Rückruf, der die Werte zurückschreibt (`_sanitize` entfernt vorher nicht mehr vorhandene Kennungen). Nichts wird gespeichert.
+* **Aktionen (`entries_bulk.py`):** vier kleine Formulare (Zuordnen & Tags, Notiz & Qualität, Verschieben, Löschen), je **ein** API-Aufruf (`bulk_edit`/`bulk_delete`); Ergebnis als `st.session_state["ent_flash"]` und Neuzeichnen. Bei genau einer Zeile zusätzlich die Formulare des Journals (`_correct_form`, `_split_form`).
+* **Protokoll (`entries_history.py`):** `history_rows` (rein) macht aus `GET /entries/history` die Tabelle (Zeiten lokal, Namen statt Kennungen).
+* **Grenzen:** Die Zeilenauswahl der Tabelle ist in der Testumgebung nicht ansteuerbar; getestet sind „alle Treffer“, die Filterfunktionen und die Aktionen. Das Auswählen per Klick in einem echten Browser ist nicht von einem Agenten geprüft. Das Suchprotokoll lebt nur in der Sitzung.
