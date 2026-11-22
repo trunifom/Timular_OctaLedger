@@ -319,6 +319,29 @@ def test_initial_value_is_read_again_while_waiting(
     run(scenario())
 
 
+def test_unknown_single_byte_values_are_stored_once_and_counted(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def scenario() -> None:
+        fac = factory(1)
+        worker, task = await start_ready(env, fac)
+        for _ in range(5):
+            fac.last.push(bytes([13]))  # seen on a real cube while it is rolled
+        fac.last.push(bytes([11]))
+        fac.last.push(bytes([1, 2]))  # not a single byte: a different protocol, always kept
+        fac.last.push(bytes([1, 2]))
+        await wait_until(lambda: env.kinds().count(EventKind.INVALID) >= 4)
+        await asyncio.sleep(0.2)
+        assert env.kinds().count(EventKind.INVALID) == 4  # 0x0D once, 0x0B once, 2 x two bytes
+        assert worker.state is S.READY  # nothing of this disturbs the cube
+        fac.last.drop_link()
+        await wait_until(lambda: "0x0D x5" in caplog.text)
+        await finish(worker, task)
+
+    with caplog.at_level("INFO", logger="octaledger.agent.supervisor"):
+        run(scenario())
+
+
 # ------------------------------------------------------------------------------ unsupported
 
 

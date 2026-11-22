@@ -15,6 +15,8 @@ eine einzige Stelle zum Anpassen). Jeder andere Wert (z. B. 9 oder 255) bleibt e
 echten Würfel auswerten kann. **Nicht hardwarebestätigt:** ob der eigene Würfel 0 oder 10
 meldet, ist zu prüfen (Ergebnis hier eintragen).
 
+**Beobachtung am echten Würfel (Protokoll vom 2026-11-22, ein Würfel, Windows):** Der Wert **0** kam als „neutral“ an und hat im Musik-Modus die Musik angehalten; **10 wurde nicht beobachtet**. Zusätzlich sendet der Würfel beim Rollen zwischen zwei Seiten gelegentlich die Einzelwerte **0x09, 0x0B und 0x0D** (insgesamt 54-mal in einer Sitzung, immer zwischen zwei Seitenwechseln). Ihre Bedeutung ist **unbekannt** (vermutlich Zwischenlagen); sie sind harmlos. Seit AP „Log-Auswertung“ wird je Verbindung **nur das erste Vorkommen jedes solchen Wertes** als `invalid`-Ereignis gespeichert, alle weiteren werden gezählt (Zusammenfassung im Protokoll beim Ende der Verbindung, z. B. `0x0D x11`). Pakete mit mehr oder weniger als einem Byte werden weiterhin jedes Mal gespeichert. Die Bestätigung von 0 stammt aus dem Protokoll; ob der Würfel dabei wirklich in der Halterung lag, hat noch niemand ausdrücklich bestätigt.
+
 **Verbinden:** Standardmäßig sucht der Agent den Würfel vor dem Verbinden kurz (bis 8 s,
 `[agent] scan_before_connect`, `scan_timeout_seconds` in `settings.toml`), weil Windows ein
 gerade nicht werbendes Gerät sonst oft mit „Device … was not found“ ablehnt. Wirbt der Würfel

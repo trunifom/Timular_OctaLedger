@@ -193,6 +193,7 @@ class DeviceWorker:
         self._loop: asyncio.AbstractEventLoop | None = None  # set when run() starts
         self._lost = False
         self._pending_invalid: list[str] = []
+        self._unknown_counts: dict[int, int] = {}
         self._pending_buttons: list[tuple[str, int]] = []
         self._last_button_ms: dict[str, int] = {}
         self._battery_due_ms: int | None = None
@@ -268,9 +269,29 @@ class DeviceWorker:
         try:
             value = decode_orientation_payload(payload)
         except ProtocolError as exc:
-            self._record_invalid(str(exc))
+            self._note_unknown_value(payload, str(exc))
             return
         self._buffer_value(value)
+
+    def _note_unknown_value(self, payload: bytes, detail: str) -> None:
+        """Count a value outside the known set; keep a diagnostic event only for the first one.
+
+        A real cube sends a few extra one-byte values (seen: 0x09, 0x0B, 0x0D) while it is
+        rolled between faces. They are harmless and frequent, so storing every one would only
+        fill the history. The first of each kind is kept for analysis, the rest is counted
+        (summary in the log when the connection ends). Anything that is not a single byte is
+        still recorded every time because it points to a different protocol.
+        """
+        if len(payload) != 1:
+            self._record_invalid(detail)
+            return
+        value = payload[0]
+        count = self._unknown_counts.get(value, 0) + 1
+        self._unknown_counts[value] = count
+        if count == 1:
+            self._record_invalid(detail)
+        else:
+            logger.debug("Unknown orientation value 0x%02X (%d times)", value, count)
 
     def _on_button(self, payload: bytes) -> None:
         """Bleak callback: decode a button press; repeats within 500 ms are ignored."""
@@ -406,6 +427,7 @@ class DeviceWorker:
             capabilities = discover_capabilities(await transport.discover())
             self._machine.transition(S.SUBSCRIBING)
             self._debouncer.reset()
+            self._unknown_counts = {}
             await transport.start_notify(ORIENTATION_CHARACTERISTIC_UUID, self._on_notification)
             await self._subscribe_button(transport, capabilities)
             self._machine.transition(S.BASELINE)
@@ -425,6 +447,12 @@ class DeviceWorker:
             )
             logger.warning("Connection cycle failed: %s", exc)
         finally:
+            if self._unknown_counts:
+                summary = ", ".join(
+                    f"0x{value:02X} x{count}"
+                    for value, count in sorted(self._unknown_counts.items())
+                )
+                logger.info("Unknown orientation values seen on this connection: %s", summary)
             await self._close(transport, connected_once)
         return False
 
