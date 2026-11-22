@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Diagramme, AP-59)
+- Neue Seite **Diagramme** mit 17 interaktiven Plotly-Diagrammen in fünf Gruppen (Verlauf, Anteile, Muster, Dauer, Zeitstrahl): gestapelte Balken je Tag/Woche/Monat, Trend mit Durchschnitt, aufsummierte Linien, Arbeitsbeginn/-ende, Ring, Sonnenstrahl, Treemap, Fluss, Zeit je Tag, zwei Wärmekarten, Wochentagsvergleich, Matrix, Histogramm, Boxplot, Streudiagramm, Zeitstrahl.
+- Zoomen, Schwebetext, Legende, Bereichsregler; **Klick auf ein Element** listet die Einträge dahinter; zu jedem Diagramm die Zahlen als Tabelle und CSV; Kennzahlen; dieselbe Filterleiste wie *Einträge* (eigenständig).
+
 ### Hinzugefügt (Einträge verwalten, AP-57/58)
 - **Sammelbearbeitung** (`POST /entries/edit`, `/entries/delete`, `GET /entries/history`): Tätigkeit, Projekt, Tags, Notiz, Qualität und Zeit (verschieben) vieler Einträge in **einer** Transaktion (alles oder nichts), Grund Pflicht, jede Änderung in der Prüfspur; Löschen mit automatischer Sicherung; laufende Einträge bleiben unberührt.
 - Neue Seite **Einträge**: Suche (alle Wörter), Filter nach Zeitraum, Tätigkeit, Projekt, Gerät, Tags (beliebig/alle/keiner), Qualität, Quelle, Dauer, Wochentag und Tageszeit; **Suchprotokoll**; Tabelle mit allen Werten und Mehrfachauswahl (oder „alle Treffer“); Aktionen zuordnen, taggen, verschieben, Notiz/Qualität, löschen; **Änderungsprotokoll** mit Vorher/Nachher.

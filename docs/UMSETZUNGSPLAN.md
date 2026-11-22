@@ -793,3 +793,5 @@ AP-51 → AP-52 → AP-53 → AP-54 → AP-55 → AP-56. AP-51 (Identität/Auswa
 * Ehrlich: die Auswertung beruht auf den **Geräte-Einträgen** (Überlappungen werden hier nicht herausgerechnet; die Statistik-Seite bleibt für die „persönliche Arbeitszeit“ maßgeblich); die Diagramme weisen darauf hin.
 
 **Reihenfolge:** AP-57 → AP-58 → AP-59. **Abnahme A-42:** Mehrere Einträge lassen sich auswählen und gemeinsam zuordnen, taggen, verschieben und löschen (alles oder nichts, mit Grund, Sicherung und Protokoll). **A-43:** Suche und Filter grenzen Einträge nach allen genannten Angaben ein; das Suchprotokoll wendet frühere Filter wieder an. **A-44:** Jedes Diagramm hat eine Tabelle zu den Daten, ein Klick auf ein Element filtert die Einträge.
+
+**Stand:** AP-57, AP-58 und AP-59 sind umgesetzt (siehe `docs/FORTSCHRITT.md`). Die Diagramm-Galerie umfasst 17 Diagramme in fünf Gruppen; Klick-zu-Einträge gibt es bei elf davon. Am echten Browser noch zu prüfen: Klick auf Diagramm-Elemente, Darstellung der Wärmekarten in Dunkel, Geschwindigkeit bei sehr vielen Einträgen.

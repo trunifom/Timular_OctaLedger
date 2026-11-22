@@ -244,3 +244,7 @@ im Browser Anfragen an den eigenen Rechner stellen.
 **Suchprotokoll** – die Liste der letzten Suchen und Filter auf der Seite *Einträge* (nur solange die App geöffnet ist); ein Klick stellt eine Suche wieder her.
 
 **Änderungsprotokoll** – die nur lesbare Liste aller Korrekturen und Löschungen von Einträgen mit Zeit, altem und neuem Wert und Grund.
+
+**Diagrammgruppe** – eine der fünf Rubriken der Seite *Diagramme* (Verlauf, Anteile, Muster, Dauer, Zeitstrahl); es wird immer nur eine Gruppe gezeichnet.
+
+**Einträge hinter dem Klick** – die Liste unter einem Diagramm, die genau die Einträge zeigt, die zum angeklickten Balken, Stück oder Feld gehören.

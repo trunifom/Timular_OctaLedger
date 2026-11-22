@@ -12,7 +12,7 @@ The *search log* keeps the last filters of the session (one click applies one ag
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta
+from datetime import datetime
 from typing import Any, Final
 from zoneinfo import ZoneInfo
 
@@ -20,43 +20,18 @@ import pandas as pd
 import streamlit as st
 
 from octaledger.dashboard import entry_filter as ef
-from octaledger.dashboard.ui import call, format_hm, from_local, page_help
+from octaledger.dashboard import filter_bar as fb
+from octaledger.dashboard.ui import call, format_hm, page_help
 from octaledger.dashboard.views.entries_bulk import render as render_bulk
 from octaledger.dashboard.views.entries_history import render as render_history
 from octaledger.dashboard_client.client import ApiClient
 
+PREFIX: Final = "ent"
 HISTORY_KEY: Final = "ent_history"
 LAST_KEY: Final = "ent_last_fingerprint"
 MAX_HISTORY: Final = 20
 MAX_ROWS_SHOWN: Final = 3000
-PERIODS: Final = {
-    "today": "Heute",
-    "yesterday": "Gestern",
-    "week": "Letzte 7 Tage",
-    "month": "Letzte 30 Tage",
-    "year": "Dieses Jahr",
-    "all": "Alles",
-    "custom": "Eigener Zeitraum",
-}
-#: The widget keys that make up a filter (what the search log stores and restores).
-FILTER_KEYS: Final = (
-    "ent_period",
-    "ent_from",
-    "ent_to",
-    "ent_text",
-    "ent_act",
-    "ent_proj",
-    "ent_dev",
-    "ent_tags",
-    "ent_tagmode",
-    "ent_qual",
-    "ent_src",
-    "ent_min",
-    "ent_max",
-    "ent_days",
-    "ent_hours",
-)
-_EPOCH: Final = date(2000, 1, 1)
+FILTER_KEYS: Final = fb.filter_keys(PREFIX)
 
 
 def render(client: ApiClient, tz: str) -> None:
@@ -97,202 +72,12 @@ def render(client: ApiClient, tz: str) -> None:
 # ------------------------------------------------------------------------------- filter
 
 
-def _window(period: str, tz: str) -> tuple[datetime, datetime]:
-    """The UTC window of a quick period (the user's calendar days)."""
-    today = datetime.now(ZoneInfo(tz)).date()
-    first, last = {
-        "today": (today, today),
-        "yesterday": (today - timedelta(days=1), today - timedelta(days=1)),
-        "week": (today - timedelta(days=6), today),
-        "month": (today - timedelta(days=29), today),
-        "year": (date(today.year, 1, 1), today),
-        "all": (_EPOCH, today),
-    }[period]
-    return from_local(first, time(0, 0), tz), from_local(last + timedelta(days=1), time(0, 0), tz)
-
-
-def _sanitize(valid: dict[str, set[str]]) -> None:
-    """Drop remembered choices that no longer exist (renamed, deleted) before the widgets."""
-    for key, ids in valid.items():
-        current = st.session_state.get(key)
-        if isinstance(current, list):
-            st.session_state[key] = [c for c in current if c in ids]
-
-
 def _apply_history(index: int) -> None:
     """Callback of a search-log button: put the stored filter back into the widgets."""
     saved = st.session_state.get(HISTORY_KEY, [])
     if 0 <= index < len(saved):
         for key, value in saved[index]["state"].items():
             st.session_state[key] = value
-
-
-def _clear_filters() -> None:
-    """Callback of the reset button."""
-    for key in FILTER_KEYS:
-        st.session_state.pop(key, None)
-
-
-def _filter_widgets(
-    activities: list[dict[str, Any]],
-    projects: list[dict[str, Any]],
-    devices: list[dict[str, Any]],
-    tags: list[dict[str, Any]],
-) -> ef.EntryFilter:
-    """The filter bar; returns the filter the widgets describe."""
-    act_names = {a["id"]: a["name"] for a in activities}
-    proj_names = {p["id"]: p["name"] for p in projects} | {ef.NONE_ID: "– kein Projekt –"}
-    dev_names = {d["id"]: d["alias"] for d in devices} | {ef.NONE_ID: "von Hand"}
-    st.text_input(
-        "Suche",
-        key="ent_text",
-        placeholder="z. B. Müller Planung",
-        max_chars=200,
-        help="Findet Einträge, in deren Notiz, Tätigkeit, Projekt, Gerät oder Tags **alle** "
-        "eingetippten Wörter vorkommen (Groß-/Kleinschreibung egal). Mit Enter bestätigen.",
-    )
-    a_col, p_col, d_col = st.columns(3)
-    activity_ids = a_col.multiselect(
-        "Tätigkeit",
-        list(act_names),
-        key="ent_act",
-        format_func=act_names.__getitem__,
-        placeholder="Alle",
-        help="Nur Einträge dieser Tätigkeiten. Leer = alle.",
-    )
-    project_ids = p_col.multiselect(
-        "Projekt",
-        list(proj_names),
-        key="ent_proj",
-        format_func=proj_names.__getitem__,
-        placeholder="Alle",
-        help="Nur Einträge dieser Projekte (auch „kein Projekt“). Leer = alle.",
-    )
-    device_ids = d_col.multiselect(
-        "Gerät",
-        list(dev_names),
-        key="ent_dev",
-        format_func=dev_names.__getitem__,
-        placeholder="Alle",
-        help="Nur Einträge dieser Würfel (oder von Hand erfasste). Leer = alle.",
-    )
-    t_col, m_col, q_col, s_col = st.columns([3, 2, 2, 2])
-    chosen_tags = t_col.multiselect(
-        "Tags",
-        [t["name"] for t in tags],
-        key="ent_tags",
-        placeholder="Alle",
-        help="Nach Tags filtern, z. B. eine Person oder ein Vorgang. Leer = alle.",
-    )
-    tag_mode = m_col.selectbox(
-        "Eintrag hat …",
-        list(ef.TAG_MODES),
-        key="ent_tagmode",
-        format_func=ef.TAG_MODES.__getitem__,
-        help="Wie die gewählten Tags geprüft werden: mindestens einer, alle oder keiner.",
-    )
-    qualities = q_col.multiselect(
-        "Qualität",
-        list(ef.QUALITY_TEXT),
-        key="ent_qual",
-        format_func=ef.QUALITY_TEXT.__getitem__,
-        placeholder="Alle",
-        help="„unsicher“ sind Zeiten, die Sie noch nicht bestätigt haben.",
-    )
-    sources = s_col.multiselect(
-        "Quelle",
-        list(ef.SOURCE_TEXT),
-        key="ent_src",
-        format_func=ef.SOURCE_TEXT.__getitem__,
-        placeholder="Alle",
-        help="Vom Würfel erfasst oder von Hand nachgetragen.",
-    )
-    with st.expander("Weitere Filter: Dauer, Wochentag, Tageszeit", key="ent_more"):
-        lo, hi, days_col = st.columns([1, 1, 2])
-        min_minutes = lo.number_input(
-            "Mindestens (Minuten)",
-            0,
-            100000,
-            0,
-            key="ent_min",
-            help="Nur Einträge, die mindestens so lange dauern. 0 = keine Grenze.",
-        )
-        max_minutes = hi.number_input(
-            "Höchstens (Minuten)",
-            0,
-            100000,
-            0,
-            key="ent_max",
-            help="Nur Einträge, die höchstens so lange dauern. 0 = keine Grenze.",
-        )
-        weekdays = days_col.multiselect(
-            "Wochentage",
-            list(range(7)),
-            key="ent_days",
-            format_func=lambda d: ef.WEEKDAYS[d],
-            placeholder="Alle",
-            help="Nur Einträge, die an diesen Wochentagen beginnen (Ihre Zeitzone).",
-        )
-        hour_from, hour_to = st.slider(
-            "Beginn zwischen … und … Uhr",
-            0,
-            24,
-            (0, 24),
-            key="ent_hours",
-            help="Nur Einträge, die in diesem Zeitfenster des Tages beginnen (Ihre Zeitzone).",
-        )
-    return ef.EntryFilter(
-        text=st.session_state.get("ent_text", ""),
-        activity_ids=tuple(activity_ids),
-        project_ids=tuple(project_ids),
-        device_ids=tuple(device_ids),
-        tags=tuple(chosen_tags),
-        tag_mode=tag_mode,
-        qualities=tuple(qualities),
-        sources=tuple(sources),
-        min_minutes=int(min_minutes) or None,
-        max_minutes=int(max_minutes) or None,
-        weekdays=tuple(weekdays),
-        hour_from=hour_from,
-        hour_to=hour_to,
-    )
-
-
-def _period_widgets(tz: str) -> tuple[datetime, datetime, str]:
-    """The period chooser; returns the UTC window and its German name."""
-    period = st.radio(
-        "Zeitraum",
-        list(PERIODS),
-        key="ent_period",
-        index=2,
-        horizontal=True,
-        format_func=PERIODS.__getitem__,
-        help="Welche Tage geladen werden. „Alles“ lädt jeden gespeicherten Eintrag.",
-    )
-    if period != "custom":
-        start, end = _window(period, tz)
-        return start, end, PERIODS[period]
-    today = datetime.now(ZoneInfo(tz)).date()
-    first, second = st.columns(2)
-    day_a = first.date_input(
-        "Von",
-        today - timedelta(days=6),
-        key="ent_from",
-        format="DD.MM.YYYY",
-        help="Erster Tag (Ihre Zeitzone).",
-    )
-    day_b = second.date_input(
-        "Bis (einschließlich)",
-        today,
-        key="ent_to",
-        format="DD.MM.YYYY",
-        help="Letzter Tag, einschließlich.",
-    )
-    if day_b < day_a:
-        day_a, day_b = day_b, day_a
-    start = from_local(day_a, time(0, 0), tz)
-    end = from_local(day_b + timedelta(days=1), time(0, 0), tz)
-    return start, end, f"{day_a:%d.%m.%Y} – {day_b:%d.%m.%Y}"
 
 
 def _remember(flt: ef.EntryFilter, label: str, names: dict[str, str], hits: int) -> None:
@@ -350,7 +135,7 @@ def _search_log() -> None:
 # -------------------------------------------------------------------------------- table
 
 
-def _frame(entries: list[dict[str, Any]], tz: str) -> pd.DataFrame:
+def entry_frame(entries: list[dict[str, Any]], tz: str) -> pd.DataFrame:
     """The table with all values; times are naive local times so sorting works."""
     zone = ZoneInfo(tz)
 
@@ -387,7 +172,7 @@ def _table(entries: list[dict[str, Any]], tz: str) -> list[int]:
     """Show the table; returns the row numbers the user marked."""
     shown = entries[:MAX_ROWS_SHOWN]
     event = st.dataframe(
-        _frame(shown, tz),
+        entry_frame(shown, tz),
         hide_index=True,
         width="stretch",
         key="ent_table",
@@ -426,20 +211,22 @@ def _entries(
     tags: list[dict[str, Any]],
 ) -> None:
     """Filter bar, table, selection and actions."""
-    _sanitize(
+    fb.sanitize(
+        PREFIX,
         {
-            "ent_act": {a["id"] for a in activities},
-            "ent_proj": {p["id"] for p in projects} | {ef.NONE_ID},
-            "ent_dev": {d["id"] for d in devices} | {ef.NONE_ID},
-            "ent_tags": {t["name"] for t in tags},
-        }
+            "act": {a["id"] for a in activities},
+            "proj": {p["id"] for p in projects} | {ef.NONE_ID},
+            "dev": {d["id"] for d in devices} | {ef.NONE_ID},
+            "tags": {t["name"] for t in tags},
+        },
     )
-    start, end, label = _period_widgets(tz)
-    flt = _filter_widgets(activities, projects, devices, tags)
+    start, end, label = fb.period_widgets(PREFIX, tz)
+    flt = fb.filter_widgets(PREFIX, activities, projects, devices, tags)
     st.button(
         "Filter zurücksetzen",
         key="ent_reset",
-        on_click=_clear_filters,
+        on_click=fb.clear_filters,
+        args=(PREFIX,),
         icon=":material/filter_alt_off:",
         help="Entfernt Suchwort und alle Filter; der Zeitraum geht auf „Letzte 7 Tage“.",
     )

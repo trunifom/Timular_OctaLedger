@@ -11,6 +11,7 @@ from __future__ import annotations
 from octaledger.dashboard.nav import PageDef
 from octaledger.dashboard.views import (
     catalog,
+    charts,
     connections,
     data,
     datasheet,
@@ -79,6 +80,15 @@ _DEFINITIONS = (
         "Alltag",
         "Einträge suchen, filtern, markieren und gesammelt zuordnen, taggen, verschieben, löschen",
         entries.render,
+        areas=frozenset({"time"}),
+    ),
+    PageDef(
+        "charts",
+        "Diagramme",
+        "monitoring",
+        "Alltag",
+        "Viele interaktive Diagramme Ihrer Zeiten: Verlauf, Anteile, Muster, Dauer, Zeitstrahl",
+        charts.render,
         areas=frozenset({"time"}),
     ),
     PageDef(

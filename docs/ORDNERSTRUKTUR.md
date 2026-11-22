@@ -103,11 +103,13 @@ octaledger/
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/attention.py
   src/octaledger/dashboard/battery.py
+  src/octaledger/dashboard/charts.py
   src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/cube_picker.py
   src/octaledger/dashboard/docs_reader.py
   src/octaledger/dashboard/entry_filter.py
   src/octaledger/dashboard/face_sheet.py
+  src/octaledger/dashboard/filter_bar.py
   src/octaledger/dashboard/forms.py
   src/octaledger/dashboard/identity.py
   src/octaledger/dashboard/main.py
@@ -121,6 +123,7 @@ octaledger/
   src/octaledger/dashboard/views/__init__.py
   src/octaledger/dashboard/views/catalog.py
   src/octaledger/dashboard/views/catalog_extras.py
+  src/octaledger/dashboard/views/charts.py
   src/octaledger/dashboard/views/connections.py
   src/octaledger/dashboard/views/data.py
   src/octaledger/dashboard/views/data_cleanup.py
@@ -220,6 +223,7 @@ octaledger/
   tests/gui/test_gui_areas.py
   tests/gui/test_gui_attention.py
   tests/gui/test_gui_battery.py
+  tests/gui/test_gui_charts.py
   tests/gui/test_gui_connections.py
   tests/gui/test_gui_control.py
   tests/gui/test_gui_core.py
@@ -261,6 +265,7 @@ octaledger/
   tests/unit/test_ble_bleak_layer.py
   tests/unit/test_ble_protocol_and_fake.py
   tests/unit/test_button_and_battery.py
+  tests/unit/test_charts.py
   tests/unit/test_cli.py
   tests/unit/test_control_mode.py
   tests/unit/test_cube.py

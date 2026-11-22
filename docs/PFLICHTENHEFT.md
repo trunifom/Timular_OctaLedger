@@ -283,7 +283,7 @@ Dritte Betriebsart je Würfel neben *Zeit* und *Steuerung*: **Jede Seite hat ein
 | F-72 | Kann | **Einstellbare Werte** (Beschleunigungs-Genauigkeit, Energiemodus, LED) **nur**, wenn aus Primärquelle belegt, mit doppelter Bestätigung und Rückweg; Stand der Recherche: **nicht belegt** | 56 | Kopplungsverlust, fehlende Quelle |
 
 
-### 12.8 Einträge verwalten und Diagramme (geplant/umgesetzt je nach AP)
+### 12.8 Einträge verwalten und Diagramme (umgesetzt in AP-57 bis AP-59)
 
 | Nr. | Prio | Anforderung | AP | Risiko |
 |---|---|---|---|---|

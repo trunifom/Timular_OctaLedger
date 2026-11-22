@@ -132,7 +132,7 @@ Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entsp
 | Gruppe | Einträge | Wofür |
 |---|---|---|
 | **Start** | Startseite | Was ist der Würfel? Geführte Einrichtung und dieses Handbuch zum Nachlesen |
-| **Alltag** | Übersicht · Würfel live · Zeitjournal · Einträge · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
+| **Alltag** | Übersicht · Würfel live · Zeitjournal · Einträge · Diagramme · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
 | **Würfel** | Würfel verwalten · Seiten zuordnen | **alles rund um die Würfel**: hinzufügen, verbinden, Kopplung aufheben, entfernen; den Seiten Tätigkeiten oder Aktionen geben |
 | **Einstellungen** | App · Tätigkeiten & Projekte · Darstellung · Smarthome & Verbindungen | **je eine Seite pro Art von Einstellung** (siehe unten) |
 | **System** | Daten · Diagnose | Export, Sicherung, Import, Löschen; Fehlersuche |
@@ -336,6 +336,23 @@ Die Seite ist für **viele Einträge auf einmal** gedacht; das einzelne Korrigie
 8. **Änderungsprotokoll** (zweiter Reiter): jede Korrektur und jedes Löschen mit Zeit, **Vorher/Nachher**, Grund und Eintrag; durchsuchbar. Das Protokoll ist nur zum Lesen.
 
 Einen **einzelnen** Eintrag bearbeiten Sie genau (Beginn, Ende, Teilen), indem Sie genau eine Zeile wählen; es erscheint ein zusätzlicher Bereich.
+
+### Bereich „Diagramme“ (viele interaktive Grafiken)
+Die Seite zeigt Ihre Zeiten als **viele verschiedene Diagramme**. Sie wählen oben **Zeitraum und Filter** (dieselben wie auf der Seite *Einträge*, aber eigenständig: ein Filter hier ändert nicht den Filter dort), darüber stehen fünf **Kennzahlen** (Einträge, Gesamtzeit, Tage mit Einträgen, Durchschnitt je Tag, längster Eintrag). Dann wählen Sie eine **Gruppe**:
+
+| Gruppe | Diagramme | Beantwortet |
+|---|---|---|
+| **Verlauf** | Stunden je Tag/Woche/Monat (gestapelt nach Tätigkeit, Projekt oder Gerät) · Tagesstunden mit gleitendem Durchschnitt · aufsummierte Stunden · Arbeitsbeginn und -ende je Tag | Wie entwickelt sich meine Zeit? |
+| **Anteile** | Ring · Sonnenstrahl (Tätigkeit → Projekt) · Treemap · Fluss (Tätigkeit → Projekt) · Zeit je Tag (Tag = Person/Vorgang) | Wohin fließt die Zeit? |
+| **Muster** | Wärmekarte Wochentag × Uhrzeit · Kalender-Wärmekarte · Wochentage im Vergleich · Matrix Projekt × Tätigkeit | Wann und an welchen Tagen arbeite ich? |
+| **Dauer** | Histogramm · Boxplot · Streudiagramm (Beginn × Dauer) | Wie lang sind meine Einträge, gibt es Ausreißer? |
+| **Zeitstrahl** | jeder Eintrag als Balken auf der Zeitachse (Gantt-Stil) | Was lief wann? |
+
+**Bedienung:** Mit der Maus über ein Element fahren zeigt die genauen Werte. Ziehen im Bild **zoomt** (Doppelklick setzt zurück), ein Klick auf einen Legendeneintrag blendet ihn aus oder ein, der **Regler** unter einigen Diagrammen wählt einen Zeitabschnitt. Das Kamera-Symbol oben rechts speichert das Bild. Über vielen Diagrammen wählen Sie, **wonach aufgeteilt** wird (Tätigkeit, Projekt, Gerät) oder wie grob (Tag, Woche, Monat).
+
+**Klick auf ein Element** (Balkenabschnitt, Kreisstück, Feld der Wärmekarte, Punkt, Balken des Zeitstrahls): Unter dem Diagramm stehen dann die **Einträge dahinter** mit ihrer Summe. **Zahlen zu diesem Diagramm** öffnet die Tabelle hinter jedem Diagramm; **Als CSV speichern** exportiert sie.
+
+**Gut zu wissen:** Die Diagramme zählen die Würfel-Einträge so, wie sie gespeichert sind (*Gerätezeit*). Überlappen sich zwei Tracker, wird das hier nicht herausgerechnet; die *persönliche Arbeitszeit* ohne Doppelzählung zeigt die Seite **Statistik**. Ein Eintrag über Mitternacht wird dort aufgeteilt, wo die Minuten wirklich lagen. Bei sehr vielen Daten (Zeitstrahl: neueste 1500 Einträge) weist die Seite darauf hin.
 
 ### Bereich „Statistik“
 1. **Zeitraum** wählen (die Filter für Tätigkeit, Projekt und Gerät sind im eingeklappten Bereich **Filter**): *Tag*, *Woche* (Montag bis Sonntag) oder *Eigener Zeitraum*, dazu das Datum.
