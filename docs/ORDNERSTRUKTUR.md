@@ -203,6 +203,7 @@ octaledger/
   tests/fake_adapter.py
   tests/fixtures/.gitkeep
   tests/gui/__init__.py
+  tests/gui/test_gui_areas.py
   tests/gui/test_gui_attention.py
   tests/gui/test_gui_battery.py
   tests/gui/test_gui_connections.py

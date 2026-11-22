@@ -228,6 +228,10 @@ html, body, .stApp, .stApp button, .stApp input, .stApp textarea, .stApp select 
   margin-right: 0.4em; vertical-align: baseline; }}
 .ol-ok {{ color: {p.success}; }} .ol-warn {{ color: {p.warning}; }} .ol-bad {{ color: {p.danger}; }}
 .ol-muted {{ color: {p.muted}; }}
+.ol-area {{ display: inline-block; padding: 0 0.6em; border-radius: 1em; font-weight: 600;
+  border: 2px solid {p.border}; white-space: nowrap; }}
+.ol-area-time {{ border-color: #2F6FA3; }} .ol-area-control {{ border-color: #B35C00; }}
+.ol-area-music {{ border-color: #7B3294; }}
 </style>"""
 
 

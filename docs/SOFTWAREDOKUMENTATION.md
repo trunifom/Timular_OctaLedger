@@ -2005,3 +2005,10 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Speicher:** Migration 0011 (`battery_log`), `BatteryRepository`, Teil von `SIMPLE_TABLES` (Sicherung).
 * **API/Oberfläche:** `battery` in `GET /status`, `GET /devices/{id}/battery`; `dashboard/battery.py` (`battery_html`, Warntext, Verlauf mit `st.line_chart`) in Statusleiste, Übersicht und Würfel-Verwaltung.
 * **Grenzen:** Die Prozentwerte sind die des Würfels; wie oft und wie genau er sie meldet, ist unbekannt [HW].
+
+
+## 38. Funktionsbereiche (`dashboard.identity`, `dashboard.nav`, AP-53)
+
+* **Bereich = Betriebsart** des Würfels (`time`, `control`, `music`), in der Oberfläche als **Pille** (`area_pill`: Symbol + Text, Rahmen in der Bereichsfarbe über `.ol-area-<modus>` in `theme.py`; die Schrift bleibt die Textfarbe des Themas, damit der Kontrast stimmt).
+* **Filter:** `sidebar_area_filter` (Auswahl in `st.session_state["area_filter"]`, `all` oder ein Modus). `in_area`/`selected_cube` beschränken den Würfel-Wähler auf den Bereich und fallen auf **alle** Würfel zurück, wenn keiner passt. `PageDef.areas` (Standard: alle drei) steuert, welche Menüpunkte bei einem Filter bleiben (`journal`, `statistics`: Zeit; `player`: Musik; `connections`: Smarthome und Musik); die **aktuelle Seite bleibt immer sichtbar**.
+* **Banner:** `banner(..., change_area=True)` zeigt Würfel, Bereich und den Knopf **Bereich ändern** (führt zu *Seiten zuordnen*, wo der Umschalter und die Folgen-Erklärung stehen).

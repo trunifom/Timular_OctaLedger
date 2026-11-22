@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Funktionsbereiche, AP-53)
+- **Bereich** jedes Würfels (Zeit, Smarthome, Musik) als Pille mit Symbol und Text in Banner, Wähler und Karten; Knopf **Bereich ändern** im Banner; Umschalter mit Hinweis, dass Einstellungen anderer Bereiche erhalten bleiben.
+- **Bereichsfilter** in der Seitenleiste: filtert den Würfel-Wähler und blendet nur für andere Bereiche geltende Menüpunkte aus (`PageDef.areas`); die aktuelle Seite bleibt sichtbar.
+
 ### Hinzugefügt (Batterie-Cockpit, AP-52)
 - **Batterie immer sichtbar:** eine Zeile je Würfel unter der Statusleiste (Balken, Prozent, Stufe als Text, bei fehlender Verbindung der zuletzt gemessene Wert), Warnung auf jeder Seite bei *schwach* und *fast leer*; Karten in der Übersicht.
 - **Verlauf gespeichert** (Migration 0011, `battery_log`; Änderung oder alle 6 Stunden, 400 Tage, in der Sicherung), Kurve und **ehrlich gekennzeichnete Schätzung** der Restdauer; `GET /devices/{id}/battery`, `battery` in `GET /status`.

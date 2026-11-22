@@ -467,6 +467,19 @@ Jeder Würfel hat **Namen, Nummer und Farbe**, zum Beispiel „● ② Regenboge
 - **⭐ erfasst die Zeit** ist etwas anderes: Es ist der Würfel, der die **Zeiterfassung** steuert (ein einziger). Der ausgewählte Würfel ist dagegen nur der, den die Oberfläche gerade zeigt.
 - Die **Übersicht** zeigt alle Würfel mit Nummer, Bereich (Zeit, Smarthome oder Musik) und Verbindung.
 
+## 8b. Die drei Bereiche: Zeit, Smarthome, Musik
+
+Jeder Würfel hat **genau einen Bereich**, und der steht überall **als Symbol und Text** neben seinem Namen (zum Beispiel „🎵 Musik“):
+
+| Bereich | Wofür | Eine Drehung … |
+|---|---|---|
+| ⏱ **Zeit** | Zeiterfassung | startet die Tätigkeit der Seite |
+| 🎛 **Smarthome** | Lampen, Szenen, Nachrichten | löst die Aktion (oder Aktionskette) der Seite aus |
+| 🎵 **Musik** | Titel pro Seite | spielt den Titel der Seite; die Halterung beendet die Musik |
+
+- **Umschalten:** Auf der Seite *Seiten zuordnen* steht oben „Wofür benutzen Sie diesen Würfel?“. Auf jeder anderen Würfel-Seite führt der Knopf **Bereich ändern** im Banner dorthin. **Beim Umstellen geht nichts verloren:** Die Einstellungen der anderen Bereiche bleiben gespeichert und warten, bis Sie zurückschalten. Läuft gerade eine Zeit dieses Würfels, beenden Sie sie zuerst (Stopp).
+- **Bereichsfilter:** In der Seitenleiste wählen Sie unter **Bereich** *Alle Bereiche*, *Zeit*, *Smarthome* oder *Musik*. Dann zeigt der Würfel-Wähler nur Würfel dieses Bereichs, und Menüpunkte, die nur für andere Bereiche gelten, verschwinden (zum Beispiel *Zeitjournal* und *Statistik* bei Musik, *Musik-Player* bei Zeit). **Die Seite, auf der Sie gerade sind, bleibt immer sichtbar.** Gibt es keinen Würfel im gewählten Bereich, werden alle gezeigt.
+
 ## 9. Verbindungsverhalten im Alltag
 
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,

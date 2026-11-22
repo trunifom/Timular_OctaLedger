@@ -26,6 +26,8 @@ from octaledger.dashboard_client.client import ApiClient
 #: Group headings in menu order.
 GROUPS: tuple[str, ...] = ("Start", "Alltag", "Würfel", "Einstellungen", "System")
 DEFAULT_PAGE = "start"
+#: The three functional areas of a cube (its mode): time recording, smart home, music.
+ALL_AREAS: frozenset[str] = frozenset({"time", "control", "music"})
 NAV_STATE_KEY = "nav"
 
 
@@ -39,6 +41,8 @@ class PageDef:
     group: str
     description: str  # tooltip of the menu entry
     render: Callable[[ApiClient, str], None]
+    #: The areas this page is about; the sidebar's area filter hides pages that do not apply.
+    areas: frozenset[str] = ALL_AREAS
 
     @property
     def label(self) -> str:

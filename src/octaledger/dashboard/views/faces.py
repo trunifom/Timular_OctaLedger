@@ -43,6 +43,14 @@ def is_new(choice: dict[str, Any] | None) -> bool:
     return choice is not None and choice["id"] is None
 
 
+MODE_EXPLANATION = {
+    "time": "Dieser Würfel **erfasst Zeit**: Jede Seite ist eine Tätigkeit, eine Drehung "
+    "startet sie.",
+    "control": "Dieser Würfel **steuert**: Eine Drehung löst die Aktion der Seite aus und erfasst "
+    "keine Zeit.",
+    "music": "Dieser Würfel **spielt Musik**: Jede Seite hat einen Titel, die **Halterung** (keine "
+    "Seite oben) beendet die Musik. Er erfasst keine Zeit.",
+}
 MODE_LABELS = {"time": "⏱ Zeit erfassen", "control": "🎛 Dinge steuern", "music": "🎵 Musik"}
 
 
@@ -114,7 +122,7 @@ def render(client: ApiClient, tz: str) -> None:
         )
         return
     device = selected_cube(devices) or devices[0]
-    banner(device, key="faces_banner")
+    banner(device, key="faces_banner", change_area=False)
     key = target_key(device["id"])
     # A widget key must not change after its widget exists in this run, so callers leave the
     # wished face in PENDING_KEY and it is applied here, before the face picker is created.
@@ -188,16 +196,12 @@ def _mode_switch(client: ApiClient, device: dict[str, Any]) -> None:
     if failure:
         st.error(failure[0], icon="🚫")
         st.caption(f"Fehlercode: {failure[1]}")
-    if device["mode"] == "control":
-        st.caption(
-            "Dieser Würfel **steuert**: Eine Drehung löst die Aktion der Seite aus und erfasst "
-            "keine Zeit."
-        )
-    if device["mode"] == "music":
-        st.caption(
-            "Dieser Würfel **spielt Musik**: Jede Seite hat einen Titel, die **Halterung** (keine "
-            "Seite oben) beendet die Musik. Er erfasst keine Zeit."
-        )
+    st.caption(MODE_EXPLANATION[device["mode"]])
+    st.caption(
+        "Beim Umstellen bleiben die Einstellungen der anderen Bereiche **gespeichert**: Sie "
+        "gehen nicht verloren, sondern warten, bis Sie zurückschalten. Läuft gerade eine Zeit "
+        "dieses Würfels, beenden Sie sie zuerst."
+    )
 
 
 def _connection_hint(client: ApiClient, device: dict[str, Any]) -> None:

@@ -58,6 +58,7 @@ _DEFINITIONS = (
         "Alltag",
         "Der eingebaute Player für YouTube und YouTube Music (läuft nur bei geöffneter Seite)",
         player.render,
+        areas=frozenset({"music"}),
     ),
     PageDef(
         "journal",
@@ -66,6 +67,7 @@ _DEFINITIONS = (
         "Alltag",
         "Einträge ansehen, korrigieren, teilen, bestätigen, nachtragen",
         journal.render,
+        areas=frozenset({"time"}),
     ),
     PageDef(
         "statistics",
@@ -74,6 +76,7 @@ _DEFINITIONS = (
         "Alltag",
         "Auswertung nach Tag, Woche oder Zeitraum mit Diagrammen",
         statistics.render,
+        areas=frozenset({"time"}),
     ),
     PageDef(
         "devices",
@@ -122,6 +125,7 @@ _DEFINITIONS = (
         "Einstellungen",
         "Home Assistant, Philips Hue, MQTT und Web-Adressen anbinden (Steuerungsmodus)",
         connections.render,
+        areas=frozenset({"control", "music"}),
     ),
     PageDef(
         "data",
