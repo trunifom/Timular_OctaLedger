@@ -34,7 +34,7 @@
 | `icalendar` | Kalender-Import (Extra `ics`) | BSD-2-Clause | – |
 | `recurring-ical-events` | Terminserien im Fenster (Extra `ics`) | **LGPL-3.0-or-later** | nur optional und dynamisch geladen |
 | `zeroconf` | Bridge-Suche im Heimnetz per mDNS (Extra `discovery`) | LGPL-2.1-or-later (Paket-Metadaten der Version 0.154.0) | nur optional und dynamisch geladen; manche Router blockieren Multicast, dann die Adresse von Hand eintragen |
-| `miniaudio` | lokaler Player (Extra `audio`) | MIT (Paket-Metadaten der Version 1.73) | MP3, FLAC, WAV, Vorbis; **kein AAC** (viele Internetradios nutzen AAC); Streams werden von OctaLedger selbst geöffnet und der Engine als Bytes übergeben; ein Wiedergabetest mit echter Hardware steht aus |
+| `miniaudio` | lokaler Player (Extra `audio`) | MIT (Paket-Metadaten der Version 1.73) | MP3, FLAC, WAV, Vorbis; alles andere nur über das optionale **FFmpeg** (AAC/M4A, WMA, Opus, Video-Ton; FFmpeg ist ein eigenes Programm mit eigener Lizenz, OctaLedger bündelt es nicht und startet es nur als Kindprozess); Streams werden von OctaLedger selbst geöffnet und der Engine als Bytes übergeben; ein Wiedergabetest mit echter Hardware steht aus |
 | `winotify` | Windows-Hinweise (Extra `toast`) | MIT (belegt) | ohne eigene AppUserModelID erscheint ggf. ein Interpreter-Name als Absender [U] |
 
 ## Pausenregeln (nur Orientierung)

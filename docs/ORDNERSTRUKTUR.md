@@ -86,6 +86,7 @@ octaledger/
   src/octaledger/application/music_state.py
   src/octaledger/application/notifier.py
   src/octaledger/application/outbox.py
+  src/octaledger/application/player_service.py
   src/octaledger/application/readout_service.py
   src/octaledger/application/report_render.py
   src/octaledger/application/reporting_service.py
@@ -143,6 +144,7 @@ octaledger/
   src/octaledger/dashboard/views/live.py
   src/octaledger/dashboard/views/overview.py
   src/octaledger/dashboard/views/player.py
+  src/octaledger/dashboard/views/player_now.py
   src/octaledger/dashboard/views/settings.py
   src/octaledger/dashboard/views/start.py
   src/octaledger/dashboard/views/statistics.py
@@ -159,11 +161,13 @@ octaledger/
   src/octaledger/domain/conflict.py
   src/octaledger/domain/device_identity.py
   src/octaledger/domain/link_loss.py
+  src/octaledger/domain/media_formats.py
   src/octaledger/domain/models.py
   src/octaledger/domain/music.py
   src/octaledger/domain/music_source.py
   src/octaledger/domain/orientation.py
   src/octaledger/domain/placeholders.py
+  src/octaledger/domain/playlist.py
   src/octaledger/domain/readout.py
   src/octaledger/domain/schedule.py
   src/octaledger/domain/state_machine.py
@@ -174,6 +178,8 @@ octaledger/
   src/octaledger/infrastructure/__init__.py
   src/octaledger/infrastructure/audio/__init__.py
   src/octaledger/infrastructure/audio/engine.py
+  src/octaledger/infrastructure/audio/ffmpeg.py
+  src/octaledger/infrastructure/audio/paths.py
   src/octaledger/infrastructure/audio/worker.py
   src/octaledger/infrastructure/ble/__init__.py
   src/octaledger/infrastructure/ble/client.py
@@ -212,6 +218,7 @@ octaledger/
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
+  src/octaledger/infrastructure/system/file_dialog.py
   src/octaledger/infrastructure/system/holidays_provider.py
   src/octaledger/infrastructure/system/idle.py
   src/octaledger/infrastructure/system/toast.py
@@ -237,6 +244,7 @@ octaledger/
   tests/gui/test_gui_inspector.py
   tests/gui/test_gui_journal_statistics.py
   tests/gui/test_gui_live.py
+  tests/gui/test_gui_music_local.py
   tests/gui/test_gui_parallel.py
   tests/gui/test_gui_player.py
   tests/gui/test_gui_redesign.py
@@ -289,12 +297,14 @@ octaledger/
   tests/unit/test_integration_service.py
   tests/unit/test_integrations_storage.py
   tests/unit/test_link_loss.py
+  tests/unit/test_local_player.py
   tests/unit/test_logging.py
   tests/unit/test_media_player.py
   tests/unit/test_models.py
   tests/unit/test_multi_cube.py
   tests/unit/test_music_mode.py
   tests/unit/test_orientation.py
+  tests/unit/test_player_service.py
   tests/unit/test_presets_placeholders.py
   tests/unit/test_readout.py
   tests/unit/test_report_and_ics.py

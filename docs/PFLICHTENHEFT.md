@@ -294,3 +294,15 @@ Dritte Betriebsart je Würfel neben *Zeit* und *Steuerung*: **Jede Seite hat ein
 | F-77 | Muss | **Tabelle mit allen Werten**, sortierbar, Mehrfachauswahl, Zusammenfassung der Auswahl | 58 | – |
 | F-78 | Muss | **Änderungsprotokoll** (Korrekturen und Löschungen mit altem/neuem Wert, Grund, Zeit) einsehbar und filterbar | 57, 58 | – |
 | F-79 | Muss | **Viele interaktive Diagramme** (Balken, Kreis, Sonnenstrahl, Treemap, Wärmekarten, Zeitstrahl, Linien, Histogramm, Boxplot, Streudiagramm), jedes mit Datentabelle; Klick filtert die Einträge | 59 | – |
+
+
+### 12.9 Musik-Player (umgesetzt in AP-61 bis AP-63)
+
+| Nr. | Prio | Anforderung | AP | Risiko |
+|---|---|---|---|---|
+| F-80 | Muss | **Lokal abspielen:** eine Datei, einen **Ordner/Album** oder eine **Playlist-Datei** von diesem Computer; Pfad **tippen oder im Windows-Fenster wählen**; Netzwerk- und Gerätepfade abgelehnt | 61, 62 | [HW] |
+| F-81 | Muss | **Wiederholen:** einmal, alles oder **ein Titel endlos**; **zufällige Reihenfolge**; Weiter, Zurück, Pause, Fortsetzen, Springen, Stopp **jederzeit in der App** | 61, 62 | – |
+| F-82 | Muss | **Formate:** MP3, FLAC, WAV, OGG eingebaut; mit FFmpeg AAC/M4A, WMA, Opus, AIFF … und der **Ton von Videodateien** | 61 | [HW] |
+| F-83 | Muss | **Vom Würfel:** jede Seite spielt einen Link, Stream oder Pfad mit Wiederholen/Zufall; ein Endlos-Titel endet durch Stopp in der App oder Bewegung des Würfels; **Halterung: beenden, pausieren oder weiterlaufen** | 61, 63 | – |
+| F-84 | Muss | **Seite Musik-Player:** „Jetzt läuft“ (Titel, Position, Wiederholen, Lautstärke, Fehler), „Alles stoppen“, Quellen **Dieser PC**, **YouTube/YouTube Music**, **Spotify** | 62 | – |
+| F-85 | Soll | **YouTube:** Wiederholen/Zufall, verständliche Fehler mit „Auf YouTube öffnen“, optional mit dem eigenen YouTube-Konto; **keine** Entfernung von Werbung, **kein** Herunterladen | 63 | [HW] |

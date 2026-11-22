@@ -25,6 +25,12 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Musik-Player, AP-61 bis AP-63)
+- **Lokaler Player:** Dateien, ganze **Ordner/Alben** und **.m3u-Playlists** (Pfad tippen oder im Windows-Fenster wählen), **einmal / alles wiederholen / ein Titel endlos**, **zufällige Reihenfolge**, Weiter, Zurück, Pause, Springen, Stopp jederzeit; defekte Titel werden übersprungen und genannt. Mit **FFmpeg** (optional) auch AAC/M4A, WMA, Opus, AIFF … und der Ton von Videodateien.
+- **Seite „Musik-Player“** neu: „Jetzt läuft“ mit Steuerung, **Alles stoppen**, Reiter *Dieser PC*, *YouTube & YouTube Music*, *Spotify*; API `/player/*` und `/system/pick-path`.
+- **Würfelseiten:** Pfad/Ordner mit Wiederholen und Zufall, YouTube mit Wiederholen/Zufall; Halterung **weiterlaufen lassen**.
+- **YouTube:** Wiederholen/Zufall, Fehlertexte mit „Auf YouTube öffnen“, optional mit dem eigenen YouTube-Konto. Werbung wird **nicht** entfernt, nichts heruntergeladen.
+
 ### Geändert (Qualitätsdurchgang, AP-60)
 - Strengere Lint-Regeln (B, UP, BLE, T20, C4, PIE, SIM, S, RUF100) mit begründeten Ausnahmen; alle Funde behoben, `datetime.UTC` überall.
 - Nicht abgefangene Ausnahmen (Hauptthread und Threads) landen mit Traceback im Log; das Dashboard zeigt bei einem Seitenfehler eine ruhige Meldung mit Fehlercode statt eines Stacktraces, API-Fehler im Dashboard werden mit Code protokolliert.

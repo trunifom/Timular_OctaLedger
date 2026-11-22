@@ -88,6 +88,9 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-58 | Seite „Einträge“: Suche und Filter (Zeitraum, Tätigkeit, Projekt, Gerät, Tags beliebig/alle/keiner, Qualität, Quelle, Dauer, Wochentag, Tageszeit), Suchprotokoll, Tabelle mit allen Werten und Mehrfachauswahl, Sammelaktionen, Änderungsprotokoll | 2026-11-22 | 23:30 | ec9ed60 |
 | AP-59 | Seite „Diagramme“: 17 interaktive Diagramme in fünf Gruppen (Verlauf, Anteile, Muster, Dauer, Zeitstrahl), Kennzahlen, gemeinsame Filterleiste mit „Einträge“, Klick auf ein Element listet die Einträge dahinter, Zahlen und CSV je Diagramm; im echten Browser nicht geprüft | 2026-11-22 | 23:59 | 9d1f743 |
 | AP-60 | Qualitätsdurchgang: strengere Lint-Regeln (alle Funde behoben), Log für nicht abgefangene Ausnahmen (Hauptthread und Threads), Dashboard fängt Seitenfehler ohne Stacktrace und protokolliert API-Fehler mit Code, Menügruppe „Zeiten“, toter Code entfernt, Wortwahl „Eintrag“, veraltete Doku-Zahlen korrigiert | 2026-11-22 | 22:30 | 6b6c872 |
+| AP-61 | Lokaler Player: Ordner/Alben/Playlists/Dateien (Pfad frei, Netzwerkpfade abgelehnt), Warteschlange mit einmal/alles/ein Titel endlos und Zufall, Weiter/Zurück/Pause/Springen, FFmpeg optional für weitere Formate und Video-Ton, Halterung „weiterlaufen“; echte Wiedergabe und FFmpeg nicht geprüft | 2026-11-22 | 23:10 | (folgt) |
+| AP-62 | Seite „Musik-Player“ neu: „Jetzt läuft“ mit Steuerung und „Alles stoppen“, Reiter Dieser PC (mit Windows-Auswahlfenster) / YouTube & YouTube Music / Spotify, API `/player/*` | 2026-11-22 | 23:20 | (folgt) |
+| AP-63 | Würfelseiten und YouTube: Pfad mit Wiederholen/Zufall und Auswahlfenster im Titel-Editor, YouTube mit Wiederholen/Zufall, Fehlertexten, optional Konto; Werbung wird nicht entfernt | 2026-11-22 | 23:30 | (folgt) |
 
 ## Offen
 

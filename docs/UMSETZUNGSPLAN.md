@@ -800,3 +800,26 @@ AP-51 → AP-52 → AP-53 → AP-54 → AP-55 → AP-56. AP-51 (Identität/Auswa
 ## 22. AP-60 Qualitätsdurchgang
 
 Befund (Werkzeuge: erweiterte Ruff-Regeln, mypy strict, Suche nach nicht referenziertem Code, Durchsicht von Logging und Fehlerbehandlung): Der Code ist im Kern sauber (jedes breite `except` begründet, einheitliche API-Fehler, Logs ohne Geheimnisse). Lücken waren: nicht abgefangene Fehler im Dashboard (Traceback sichtbar) und in Threads (nur Konsole), Dashboard-Fehler ohne Logeintrag, zu schmale Lint-Regeln (28 veraltete `noqa`, 17 alte `timezone.utc`), toter Code, ein überladenes Menü „Alltag“, veraltete Zahlen in README/GUI-Konzept, „Sitzung“ statt „Eintrag“ in Meldungen. Umsetzung und Entscheidungen: `docs/SOFTWAREDOKUMENTATION.md` §45.
+
+
+## 23. Musik-Player: lokal, YouTube, YouTube Music, Spotify (AP-61 bis AP-63)
+
+**Wunsch:** ein umfassender Player, der lokale Musik, YouTube, YouTube Music und Spotify abspielt und steuert; lokal Datei, Ordner oder Album, einmal oder endlos, jederzeit stoppbar (App oder Würfelbewegung); viele Formate; schön, intuitiv, fehlerfrei; YouTube möglichst ohne Einschränkungen und Werbung.
+
+**Entscheidungen**
+* **Eine Wiedergabe-Logik für Würfel und App:** `PlayerService` und der Musik-Modus nutzen dieselben Adapter; die Seite startet nur „ohne Würfel“.
+* **Warteschlange im Audio-Worker** (`domain/playlist.py`, rein): Reihenfolge, Zufall, Wiederholen (einmal/alles/ein Titel); das Ende eines Titels meldet die Engine, ein Titel einer ersetzten Wiedergabe wird erkannt und ignoriert; defekte Titel werden übersprungen und genannt.
+* **FFmpeg optional** als Kindprozess (Liste statt Shell, Pfad geprüft, Web-Streams werden von OctaLedger selbst geöffnet und hineingepumpt, nie als Adresse übergeben).
+* **Freie lokale Pfade** (statt nur freigegebener Ordner): absolut, lokales Laufwerk, keine Netzwerk-/Gerätepfade, abspielbare Endungen, Tiefe und Anzahl begrenzt; die Freigabe-Ordner der Verbindung funktionieren unverändert.
+* **Auswahlfenster** in einem Kindprozess (`tkinter`), nie im Agenten; Abbruch und Fehler führen zum Tippen des Pfads.
+* **Halterung „weiterlaufen“:** Musik läuft in der Halterung (und bei Verbindungsverlust) weiter; nur App oder Stille-Seite beenden sie. „Bewegung stoppt“ ist die Regel: jede andere Seite ersetzt, eine Seite ohne Titel beendet.
+* **YouTube:** Wiederholen/Zufall (Einzelvideo über `loop`+`playlist`, Playlists über die API-Befehle), Fehlercodes in Klartext mit „Auf YouTube öffnen“, optional youtube.com statt youtube-nocookie.com für ein angemeldetes Konto. **Werbung entfernen und Herunterladen** sind ausdrücklich **nicht** Teil: sie verstoßen gegen die Nutzungsbedingungen.
+
+### 23.1 AP-61 lokale Engine
+`media_formats`, `playlist`, `audio/paths`, `audio/ffmpeg`, Engine (Pause, Ende-Meldung, PCM), Worker (Warteschlange, Status), Adapter (`play_path`, `pause`, `resume`, `next`, `previous`, Steuerung, `status`), Quelle `local:`, Halterung `continue`.
+### 23.2 AP-62 Seite „Musik-Player“
+`PlayerService`, API `/player/*`, `/system/pick-path`, Seite mit „Jetzt läuft“, drei Quellen-Reitern, „Alles stoppen“.
+### 23.3 AP-63 Würfelseiten und YouTube
+Pfad/Wiederholen/Zufall im Titel-Editor mit Auswahlfenster, Halterungs-Verhalten, YouTube-Optionen und Fehlertexte.
+
+**Abnahme A-45:** Eine Datei, ein Ordner und eine Playlist spielen einmal, in Endlosschleife und zufällig; Weiter/Zurück/Pause/Stopp wirken sofort. **A-46:** Ein Würfel startet einen Ordner als Endlosschleife; sie endet durch „Alles stoppen“ oder durch eine andere Seite. **A-47 [HW]:** Echte Wiedergabe von MP3/FLAC/WAV/OGG und (mit FFmpeg) M4A/MP4 an Ihrem Gerät; YouTube-Player im Browser; Auswahlfenster.

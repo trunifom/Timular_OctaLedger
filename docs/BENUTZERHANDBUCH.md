@@ -909,7 +909,7 @@ ein Licht schaltet. Mit zwei Würfeln kann einer Zeit erfassen und der andere st
 | **Philips Hue** | Lampen, Räume, Szenen direkt über die Bridge | Ohne Cloud. Einmaliges Koppeln: Knopf an der Bridge drücken, dann in OctaLedger auf *Koppeln* klicken. In der Hue-App ist **nichts** freizuschalten. Meldung „Zeitüberschreitung“: IP-Adresse prüfen (Probe: `http://<IP>/api/config` im Browser). |
 | **Hue: Helligkeit, Übergang, Szenen-Modus** | Lampen und Räume: ein/aus/umschalten, Helligkeit, Farbtemperatur und (erweitert) ein **Übergang** in Millisekunden; Szenen: „wie gespeichert“, „dynamisch“ oder „statisch“ mit eigener Helligkeit | **Bridge suchen:** beim Anlegen der Verbindung hilft *Im Heimnetz suchen* (braucht `pip install -e ".[discovery]"`) oder *Im Internet nachschlagen* (sendet **auf Ihren Klick** eine Anfrage an den Dienst von Philips). Die Anfragen an die Bridge halten einen Mindestabstand ein; antwortet sie „überlastet“ (429), wird später erneut versucht. **Noch nicht an einer echten Bridge geprüft.** |
 | **Musik über Home Assistant** | Internetradio oder Stream auf Sonos, Cast, AirPlay und Displays, die Home Assistant kennt | Aktionen *Musik abspielen*, *Wiedergabe pausieren/beenden*, *Lautstärke setzen* (Gerät über *Entdecken* wählen). Bis zu den Sprechern ist es Sache von Home Assistant; **nicht mit echten Geräten geprüft**. Spielen Sie nur Inhalte ab, deren Nutzung Ihnen erlaubt ist. |
-| **Lokaler Player (dieser PC)** | Internetradio-Streams und Musikdateien direkt am PC | Braucht `pip install -e ".[audio]"` (MP3, FLAC, WAV, OGG, **kein AAC**). Aktionen *Stream abspielen*, *Datei abspielen* (nur aus freigegebenen Ordnern), *Stoppen*, *Lautstärke*. Adressen im Heimnetz nur mit „LAN-Adressen erlauben“; Adressen dieses Computers nie. Es wird nichts gespeichert. **Echte Wiedergabe ist noch nicht an Ihrem Gerät geprüft.** |
+| **Lokaler Player (dieser PC)** | Internetradio-Streams, Dateien, ganze Ordner (Alben) und Playlists direkt am PC | Braucht `pip install -e ".[audio]"` (MP3, FLAC, WAV, OGG); mit **FFmpeg** auch AAC/M4A, WMA, Opus, MP4, MKV, WebM … (siehe Abschnitt „Musik-Player“). Aktionen *Stream abspielen*, *Datei abspielen* (nur aus freigegebenen Ordnern), *Stoppen*, *Lautstärke*. Adressen im Heimnetz nur mit „LAN-Adressen erlauben“; Adressen dieses Computers nie. Es wird nichts gespeichert. **Echte Wiedergabe ist noch nicht an Ihrem Gerät geprüft.** |
 | **Testverbindung (Probelauf)** | zum Üben ohne Geräte | Nichts wird gesendet; jede Aktion wird bestätigt. Fehler lassen sich simulieren (Wiederholen, Fehlermeldung ausprobieren). |
 | **MQTT** | Nachrichten an einen Broker (Mosquitto, Zigbee2MQTT, Tasmota, ESPHome, Node-RED) | Thema und Inhalt, z. B. `zigbee2mqtt/schreibtischlampe/set` mit `{"state": "ON"}`. |
 | **Webhook** | beliebige Web-Adresse (Node-RED, ESPHome, eigene Skripte, IFTTT-ähnliche Dienste) | Die Notlösung für alles andere mit einfacher Web-Schnittstelle. |
@@ -981,3 +981,27 @@ Ein Würfel kann **Musik steuern** (*Seiten zuordnen* → „Wofür benutzen Sie
 | „Zu spät: Die Aktion wurde nicht mehr rechtzeitig gesendet“ | Das Ziel war zu lange nicht erreichbar; drehen Sie den Würfel erneut. |
 | „Auf diesem Würfel läuft gerade eine Zeit“ | Zeit stoppen (Stopp), dann auf *Dinge steuern* umstellen. |
 | Seite tut nichts | Hat die Seite eine Aktion? Ist die Verbindung eingeschaltet? Der Verlauf unter *Smarthome & Verbindungen* zeigt, was passiert ist. |
+
+
+## 8f. Musik-Player: lokal, YouTube, YouTube Music und Spotify
+
+Die Seite **Musik-Player** (Gruppe *Alltag*) ist die Zentrale für Musik. Sie spielen dort **direkt** etwas ab und steuern es – auch das, was ein Würfel gestartet hat.
+
+**Jetzt läuft (oben, aktualisiert sich jede Sekunde)**
+- Titel, **Titel 3 von 12**, Wiederholen, zufällige Reihenfolge, Lautstärke und – falls etwas schiefging – der Hinweis in Klartext (ein nicht abspielbarer Titel wird übersprungen und genannt).
+- **Zurück · Pause/Fortsetzen · Weiter · Stopp** und **Alles stoppen** (alle Player auf einmal, auch wenn der Würfel noch auf einer Seite liegt).
+- **Wiederholen:** *Einmal* (die Liste läuft einmal durch), *Alles* (von vorn), *Ein Titel* (ein Titel läuft **endlos**, bis Sie stoppen). **Zufällig** mischt die Reihenfolge, **Lautstärke** gilt nur für den Player, nicht für Windows.
+- **Liste:** zeigt die Titel in Abspielreihenfolge; mit *Springen zu* spielen Sie einen bestimmten Titel.
+
+**Abspielen (drei Reiter)**
+- **Dieser PC:** eine **Datei**, ein **Ordner** (alle Titel darin, auch in Unterordnern, in Dateinamen-Reihenfolge, z. B. ein Album), eine **Playlist-Datei** (.m3u/.m3u8) oder die Adresse eines **Radio-Streams**. Den Pfad **tippen** (auch mit Leerzeichen; Anführungszeichen aus „Als Pfad kopieren“ sind in Ordnung) oder mit **Datei wählen …** / **Ordner wählen …** im **Windows-Auswahlfenster** aussuchen. Netzwerkpfade (`\\Server\…`) sind aus Sicherheitsgründen nicht erlaubt.
+- **YouTube & YouTube Music:** Link einfügen (Video oder Playlist), Wiederholen/Zufall/Lautstärke wählen, *Abspielen*. Der Titel läuft im **Player unten auf der Seite**, **nur solange die Seite offen ist**; vorher müssen Sie die Verbindung zu youtube.com **erlauben** (Datenschutz). Lässt sich ein Video nicht einbetten, steht der Grund im Player, und **Auf YouTube öffnen** spielt es auf youtube.com.
+- **Spotify:** Link einfügen; braucht die Verbindung *Spotify* (Seite *Smarthome & Verbindungen*) und ein aktives Spotify-Gerät.
+
+**Welche Formate?** Eingebaut: **MP3, FLAC, WAV, OGG**. Mit **FFmpeg** (einmal installieren: `winget install ffmpeg`; OctaLedger findet es selbst) zusätzlich **AAC/M4A, WMA, Opus, AIFF** und weitere Audioformate sowie der **Ton von Videodateien** (MP4, MKV, WebM, MOV, AVI …); das Bild wird nicht gezeigt. Das Seitenfeld zeigt immer, was gerade abspielbar ist.
+
+**Vom Würfel aus** (*Seiten zuordnen* → Musik-Modus): Jede Seite bekommt einen **Link, eine Stream-Adresse oder einen Pfad** (auch hier mit **Datei wählen …** / **Ordner wählen …**), dazu **Wiederholen** (einmal / alles / ein Titel endlos) und **zufällig**. Ein Titel in Endlosschleife läuft, bis Sie **die App stoppen** oder den Würfel **bewegen**: Eine andere Seite ersetzt ihn, eine Seite ohne Titel beendet ihn, und – je nach Einstellung – auch die Halterung. Unter *Verhalten dieses Würfels* wählen Sie für die **Halterung**: *Musik ganz beenden*, *pausieren* oder **weiterlaufen lassen** (dann beendet nur die App oder eine Stille-Seite die Musik).
+
+**Ehrlich zu YouTube:** Werbung, Altersbeschränkungen und „nicht einbettbar“ bestimmt YouTube. OctaLedger **entfernt keine Werbung und lädt keine Videos herunter** (das verbieten die Nutzungsbedingungen). Der Schalter **Mit meinem YouTube-Konto abspielen** nutzt youtube.com statt youtube-nocookie.com, damit ein im selben Browser angemeldetes Konto (z. B. Premium) erkannt wird; ob das die Werbung abschaltet, bestimmt YouTube und ist nicht geprüft. Google setzt dabei Cookies; die Voreinstellung ist aus.
+
+**Wenn es nicht klappt:** *Das Format wird nicht unterstützt* → FFmpeg installieren oder die Datei umwandeln. *Den Pfad gibt es nicht* → Pfad prüfen (Laufwerk vorhanden?). *Der Auswahldialog ist nicht verfügbar* → Pfad tippen. *Es ist nichts zu hören* → Lautstärke prüfen, die richtige Ausgabe in Windows wählen; echte Wiedergabe ist noch nicht an Ihrem Gerät geprüft.

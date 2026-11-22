@@ -248,3 +248,9 @@ im Browser Anfragen an den eigenen Rechner stellen.
 **Diagrammgruppe** – eine der fünf Rubriken der Seite *Diagramme* (Verlauf, Anteile, Muster, Dauer, Zeitstrahl); es wird immer nur eine Gruppe gezeichnet.
 
 **Einträge hinter dem Klick** – die Liste unter einem Diagramm, die genau die Einträge zeigt, die zum angeklickten Balken, Stück oder Feld gehören.
+
+**Warteschlange (Player)** – die Liste der Titel, die der lokale Player nacheinander spielt (ein Ordner, ein Album, eine Playlist); mit Wiederholen (einmal, alles, ein Titel endlos) und optional zufälliger Reihenfolge.
+
+**FFmpeg** – ein freies Programm, das zusätzliche Audio- und Videoformate entschlüsselt; OctaLedger nutzt es, wenn es installiert ist, um AAC/M4A, WMA, Opus und den Ton von Videodateien abzuspielen.
+
+**Halterung: weiterlaufen** – Einstellung eines Musik-Würfels: Die Musik läuft weiter, wenn der Würfel in der Halterung steht; nur die App oder eine Seite ohne Titel beendet sie.

@@ -16,6 +16,7 @@ from typing import Any
 
 import streamlit as st
 
+from octaledger.core.errors import OctaLedgerError
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import call
 from octaledger.dashboard_client.client import ApiClient
@@ -24,7 +25,52 @@ FLASH_KEY = "faces_flash"
 HOLDER_ACTIONS = {
     "stop": "Musik ganz beenden (Voreinstellung)",
     "pause": "Musik pausieren (wenn das Ziel es kann)",
+    "continue": "Musik weiterlaufen lassen (nur die App oder eine Stille-Seite beendet sie)",
 }
+REPEAT_CHOICES = {"off": "Einmal", "all": "Alles wiederholen", "one": "Ein Titel endlos"}
+
+
+def _pick(client: ApiClient, kind: str, key: str) -> None:
+    """Callback: show the Windows dialog and put the chosen path into the link field."""
+    try:
+        chosen = client.pick_path(kind)
+    except OctaLedgerError as exc:
+        st.session_state[f"{key}_error"] = exc.user_message
+        return
+    if chosen:
+        st.session_state[key] = chosen
+
+
+def _play_options(
+    prefix: str, recognised: dict[str, Any] | None, target: dict[str, Any]
+) -> dict[str, str]:
+    """Repeat and shuffle for sources the target can repeat (local paths, YouTube)."""
+    if not recognised or recognised["kind"] not in ("local", "youtube"):
+        return {}
+    if recognised["kind"] == "local" and target["kind"] != "player":
+        st.warning(
+            "Dateien und Ordner dieses Computers spielt nur der **Lokale Player**. Wählen Sie ihn "
+            "oben als Ziel.",
+            icon=":material/warning:",
+        )
+        return {}
+    repeat = st.segmented_control(
+        "Wiederholen",
+        list(REPEAT_CHOICES),
+        default="off",
+        required=True,
+        key=f"{prefix}_repeat",
+        format_func=REPEAT_CHOICES.__getitem__,
+        help="Einmal: die Liste läuft einmal durch. Alles: sie beginnt von vorn. Ein Titel: ein "
+        "Titel läuft endlos – bis Sie den Würfel bewegen oder in der App stoppen (bei einer "
+        "YouTube-Playlist wird immer die ganze Playlist wiederholt).",
+    )
+    shuffle = st.toggle(
+        "Zufällige Reihenfolge",
+        key=f"{prefix}_shuffle",
+        help="Mischt die Titel eines Ordners oder einer Playlist.",
+    )
+    return {"repeat": str(repeat), "shuffle": "true" if shuffle else "false"}
 
 
 def render_music_editor(client: ApiClient, device: dict[str, Any], face: int) -> None:
@@ -72,19 +118,43 @@ def render_music_editor(client: ApiClient, device: dict[str, Any], face: int) ->
         "über Home Assistant.",
     )
     link = st.text_input(
-        "Link oder Stream-Adresse",
+        "Link, Stream-Adresse oder Pfad",
         key=f"{prefix}_link",
         max_chars=2000,
-        placeholder="https://open.spotify.com/playlist/… oder https://radio.example/live.mp3",
-        help="Fügen Sie einen Spotify-, YouTube- oder YouTube-Music-Link oder die Adresse eines "
-        "Internetradio-Streams ein. Was erkannt wird, steht darunter.",
+        placeholder="https://open.spotify.com/playlist/… · https://radio.example/live.mp3 · "
+        "C:/Musik/Album",
+        help="Fügen Sie einen Spotify-, YouTube- oder YouTube-Music-Link, die Adresse eines "
+        "Internetradio-Streams oder den Pfad einer Datei, eines Ordners (Albums) oder einer "
+        ".m3u-Playlist auf diesem Computer ein. Was erkannt wird, steht darunter.",
     ).strip()
+    pick_file, pick_folder, _ = st.columns([1, 1, 2])
+    pick_file.button(
+        "Datei wählen …",
+        key=f"{prefix}_pick_file",
+        icon=":material/audio_file:",
+        width="stretch",
+        on_click=_pick,
+        args=(client, "file", f"{prefix}_link"),
+        help="Wählt eine Musik- oder Videodatei von diesem Computer im Windows-Fenster.",
+    )
+    pick_folder.button(
+        "Ordner wählen …",
+        key=f"{prefix}_pick_folder",
+        icon=":material/folder_open:",
+        width="stretch",
+        on_click=_pick,
+        args=(client, "folder", f"{prefix}_link"),
+        help="Wählt einen ganzen Ordner oder ein Album von diesem Computer.",
+    )
+    picked_error = st.session_state.pop(f"{prefix}_link_error", None)
+    if picked_error:
+        st.error(picked_error, icon=":material/error:")
     recognised = None
     if link:
         ok, recognised = call(client.parse_music, link)
         if ok and recognised:
             st.success(f"Erkannt: {recognised['description']} (`{recognised['uri']}`)")
-    options: dict[str, str] = {}
+    options: dict[str, str] = _play_options(prefix, recognised, target)
     if target["kind"] == "homeassistant":
         options["entity_id"] = _media_player(client, prefix, target)
     volume = st.slider(
@@ -174,7 +244,8 @@ def _settings(client: ApiClient, device: dict[str, Any]) -> None:
     with st.expander("Verhalten dieses Würfels (Halterung)", key=f"music_settings_{did}"):
         st.caption(
             "In der **Halterung** (der Würfel steht auf keiner Seite) hält die Musik an. Hier "
-            "legen Sie fest, ob sie ganz endet oder nur pausiert und ob es kurz dauern darf."
+            "legen Sie fest, ob sie ganz endet, pausiert oder **weiterläuft** (dann beendet nur "
+            "die App oder eine Stille-Seite sie) und ob es kurz dauern darf."
         )
         action = st.selectbox(
             "In der Halterung",
@@ -183,7 +254,8 @@ def _settings(client: ApiClient, device: dict[str, Any]) -> None:
             format_func=HOLDER_ACTIONS.__getitem__,
             key=f"music_base_{did}",
             help="Was passiert, wenn der Würfel in der Halterung steht. Voreinstellung: beenden. "
-            "Der lokale Player kennt keine Pause und beendet immer.",
+            "Der lokale Player kennt keine Pause und beendet dann. „Weiterlaufen“ eignet sich für "
+            "Endlosschleifen, die Sie in der App stoppen.",
         )
         delay = st.number_input(
             "Wartezeit vor dem Anhalten (Sekunden)",
