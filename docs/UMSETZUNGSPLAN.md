@@ -795,3 +795,8 @@ AP-51 → AP-52 → AP-53 → AP-54 → AP-55 → AP-56. AP-51 (Identität/Auswa
 **Reihenfolge:** AP-57 → AP-58 → AP-59. **Abnahme A-42:** Mehrere Einträge lassen sich auswählen und gemeinsam zuordnen, taggen, verschieben und löschen (alles oder nichts, mit Grund, Sicherung und Protokoll). **A-43:** Suche und Filter grenzen Einträge nach allen genannten Angaben ein; das Suchprotokoll wendet frühere Filter wieder an. **A-44:** Jedes Diagramm hat eine Tabelle zu den Daten, ein Klick auf ein Element filtert die Einträge.
 
 **Stand:** AP-57, AP-58 und AP-59 sind umgesetzt (siehe `docs/FORTSCHRITT.md`). Die Diagramm-Galerie umfasst 17 Diagramme in fünf Gruppen; Klick-zu-Einträge gibt es bei elf davon. Am echten Browser noch zu prüfen: Klick auf Diagramm-Elemente, Darstellung der Wärmekarten in Dunkel, Geschwindigkeit bei sehr vielen Einträgen.
+
+
+## 22. AP-60 Qualitätsdurchgang
+
+Befund (Werkzeuge: erweiterte Ruff-Regeln, mypy strict, Suche nach nicht referenziertem Code, Durchsicht von Logging und Fehlerbehandlung): Der Code ist im Kern sauber (jedes breite `except` begründet, einheitliche API-Fehler, Logs ohne Geheimnisse). Lücken waren: nicht abgefangene Fehler im Dashboard (Traceback sichtbar) und in Threads (nur Konsole), Dashboard-Fehler ohne Logeintrag, zu schmale Lint-Regeln (28 veraltete `noqa`, 17 alte `timezone.utc`), toter Code, ein überladenes Menü „Alltag“, veraltete Zahlen in README/GUI-Konzept, „Sitzung“ statt „Eintrag“ in Meldungen. Umsetzung und Entscheidungen: `docs/SOFTWAREDOKUMENTATION.md` §45.

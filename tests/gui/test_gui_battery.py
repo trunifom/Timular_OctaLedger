@@ -1,6 +1,6 @@
 """GUI tests for AP-52: every cube's battery is always visible, with text; weak ones warn."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from streamlit.testing.v1 import AppTest
 
@@ -14,7 +14,7 @@ def markdown_text(at: AppTest) -> str:
 
 def log_battery(api: RunningApi, device_id: str, *values: int) -> None:
     """Store readings, the newest one a minute ago (older ones step back by a day)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with api.storage.transaction() as repos:
         for index, value in enumerate(reversed(values)):
             repos.battery.add(device_id, now - timedelta(minutes=1, days=index), value)

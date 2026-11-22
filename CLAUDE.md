@@ -39,7 +39,8 @@ Streamlit-Dashboard. Unabhängig von Timeular/EARLY.
 
 ## 3. Code-Richtlinien
 
-- Python ≥ 3.12, src-Layout, `mypy --strict`, `ruff` (E, F, I), Zeilenlänge 100.
+- Python ≥ 3.12, src-Layout, `mypy --strict`, `ruff` (E, F, I, B, UP, BLE, T20, C4, PIE, SIM, S, RUF100;
+  Ausnahmen stehen in `pyproject.toml`, jedes `noqa` braucht eine Begründung), Zeilenlänge 100.
 - **Code, Bezeichner, Kommentare, Docstrings, Logmeldungen: Englisch.**
   Benutzerdokumentation und GUI-Texte: Deutsch.
 - **Kommentare umfassend und detailliert:** jedes Modul mit Modul-Docstring (Zweck,
@@ -126,6 +127,8 @@ Namens-/Markenprüfung, privater Sicherheits-Meldeweg, F-20 (Integrationen, „K
   Begriff „Eintrag“ statt „Sitzung"; Schrift/Farben nur über `dashboard/theme.py`, keine externen CDNs.
 - Streamlit: `width="stretch"` statt `use_container_width`; Benutzertexte in `unsafe_allow_html`-Blöcken
   mit `html.escape`; Widget-`key=` eindeutig vergeben (Tests nutzen sie); `help=` an jedem Feld.
+- Seitenfehler im Dashboard fängt `main.run` (Meldung mit Code, Traceback nur im Log); nicht abgefangene
+  Ausnahmen aller Threads landen über `install_exception_hooks` im Log.
 - Fehler an Systemgrenzen in `OctaLedgerError`-Unterklassen übersetzen; neue Fehlerklasse = neuer stabiler
   Code + Doku + HTTP-Status in `api/app.py`.
 - Tests neuer Seiten: Fixture `api_server` aus `tests/conftest.py` + `AppTest`; Beispieldaten nicht in der

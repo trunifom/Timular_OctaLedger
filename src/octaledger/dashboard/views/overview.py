@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import html
 from collections import Counter
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -77,7 +77,7 @@ def _first_steps(client: ApiClient) -> None:
     try:
         activities = client.list_items("activities")
         devices = client.devices()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         entries = client.journal(now - timedelta(days=365), now + timedelta(days=1))
     except OctaLedgerError:
         return  # the checklist is a convenience; real errors are shown by the page itself
@@ -276,7 +276,7 @@ def _quick_start(client: ApiClient, activities: list[dict[str, Any]]) -> None:
     if not activities:
         st.info("Legen Sie zuerst im Bereich **Tätigkeiten & Projekte** eine Tätigkeit an.")
         return
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     _, entries = call(client.journal, now - timedelta(days=30), now + timedelta(days=1))
     usage = Counter(e["activity_id"] for e in (entries or []))
     ranked = sorted(activities, key=lambda a: (-usage[a["id"]], a["name"].lower()))[:QUICK_TILES]

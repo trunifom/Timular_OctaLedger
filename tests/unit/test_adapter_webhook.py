@@ -5,6 +5,7 @@ import socket
 import threading
 import time
 from collections.abc import Iterator
+from datetime import UTC
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -58,7 +59,7 @@ class Target:
                 self.end_headers()
                 self.wfile.write(b"ok")
 
-            do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = _handle  # noqa: N815
+            do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = _handle
 
             def log_message(self, *_args: object) -> None:
                 return
@@ -303,7 +304,7 @@ def test_the_webhook_adapter_ships_with_the_program() -> None:
 def test_a_queued_action_reaches_the_target_through_the_service(
     target: Target, tmp_path: Path
 ) -> None:
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     database = Database(tmp_path / "t.sqlite3", backup_dir=tmp_path / "bk")
     database.initialize()
@@ -314,7 +315,7 @@ def test_a_queued_action_reaches_the_target_through_the_service(
     connection = service.create(
         "webhook", "Node-RED", {"base_url": target.url, "auth_value": "Bearer token-1"}
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     job = IntegrationJob(
         "evt-1",
         connection.integration.id,

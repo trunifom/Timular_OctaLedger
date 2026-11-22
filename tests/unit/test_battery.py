@@ -1,7 +1,7 @@
 """Battery stages, history, estimate, service and API (AP-52)."""
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -20,7 +20,7 @@ from octaledger.domain.battery import (
 from octaledger.domain.models import Device
 from tests.unit.test_api import Env, FakeAgent
 
-UTC = timezone.utc
+UTC = UTC
 T0 = datetime(2026, 3, 1, 8, 0, tzinfo=UTC)
 
 
@@ -74,7 +74,7 @@ def series(
     start: int, per_day: float, days: int, step_hours: int = 12
 ) -> list[tuple[datetime, int]]:
     points = []
-    for i in range(0, days * 24 // step_hours + 1):
+    for i in range(days * 24 // step_hours + 1):
         at = T0 + timedelta(hours=i * step_hours)
         points.append((at, round(start - per_day * (i * step_hours / 24))))
     return points
@@ -100,7 +100,7 @@ def test_a_battery_replacement_restarts_the_estimate() -> None:
     just_replaced = old + [(old[-1][0] + timedelta(hours=12), 100)]
     assert estimate_days_left(just_replaced, just_replaced[-1][0]) is None  # nothing since yet
     start = old[-1][0] + timedelta(hours=12)
-    new = [(start + timedelta(hours=12 * i), round(100 - 1.0 * i / 2)) for i in range(0, 21)]
+    new = [(start + timedelta(hours=12 * i), round(100 - 1.0 * i / 2)) for i in range(21)]
     days = estimate_days_left(old + new, new[-1][0])
     assert days is not None and 80 <= days <= 100  # judged by the new battery only
 

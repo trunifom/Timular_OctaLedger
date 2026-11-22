@@ -28,12 +28,14 @@ from __future__ import annotations
 import logging
 import logging.handlers
 import re
+import sys
 import threading
 import time
 from collections import deque
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from types import TracebackType
 from typing import Any, Final
 
 from octaledger.core.errors import ConfigurationError
@@ -223,6 +225,42 @@ def _own(handler: logging.Handler) -> logging.Handler:
     return handler
 
 
+def _log_uncaught(
+    exc_type: type[BaseException], exc: BaseException, tb: TracebackType | None
+) -> None:
+    """``sys.excepthook``: write an uncaught exception to the log, then to stderr as before."""
+    if not issubclass(exc_type, KeyboardInterrupt):
+        logging.getLogger(f"{ROOT_LOGGER_NAME}.unhandled").critical(
+            "Uncaught exception, the process ends", exc_info=(exc_type, exc, tb)
+        )
+    sys.__excepthook__(exc_type, exc, tb)
+
+
+def _log_uncaught_thread(args: threading.ExceptHookArgs) -> None:
+    """``threading.excepthook``: a thread that dies from a bug leaves a trace in the log."""
+    if args.exc_type is SystemExit or args.exc_value is None:
+        return
+    name = args.thread.name if args.thread is not None else "unknown"
+    logging.getLogger(f"{ROOT_LOGGER_NAME}.unhandled").error(
+        "Uncaught exception in thread %s",
+        name,
+        exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+    )
+
+
+def install_exception_hooks() -> None:
+    """Route uncaught exceptions of the main thread and of other threads into the log.
+
+    Without this, a bug that kills the BLE loop, the dispatcher or the API thread would only
+    appear on a console nobody watches. Safe to call repeatedly (it only installs once) and
+    only replaces the *default* hooks, never one installed by someone else.
+    """
+    if sys.excepthook is sys.__excepthook__:
+        sys.excepthook = _log_uncaught
+    if threading.excepthook is threading.__excepthook__:
+        threading.excepthook = _log_uncaught_thread
+
+
 def configure_logging(
     *,
     level: str | int = "INFO",
@@ -292,6 +330,7 @@ def configure_logging(
         logger.warning(
             "File logging disabled, cannot use log directory %s: %s", log_dir, file_error
         )
+    install_exception_hooks()
     logger.debug(
         "Logging configured (level=%s, file=%s)",
         logging.getLevelName(numeric_level),

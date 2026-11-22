@@ -470,7 +470,7 @@ class IntegrationService:
         except IntegrationError as exc:
             logger.warning("Action %r of %s failed: %s", job.label, integration.name, exc)
             self._finish(job, "failed", attempts, exc.user_message)
-        except Exception:  # noqa: BLE001 - the dispatcher must survive any adapter bug
+        except Exception:
             logger.exception("Adapter %s crashed on action %r", integration.kind, job.label)
             self._finish(job, "failed", attempts, "Unerwarteter Fehler in der Verbindung.")
         else:

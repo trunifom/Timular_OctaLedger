@@ -34,7 +34,7 @@ from octaledger.dashboard.identity import (
 from octaledger.dashboard.nav import DEFAULT_PAGE, GROUPS, NAV_STATE_KEY, go
 from octaledger.dashboard.shell import status_bar
 from octaledger.dashboard.theme import apply_native_theme, css
-from octaledger.dashboard.ui import display_settings, page_help, show_error
+from octaledger.dashboard.ui import display_settings, page_help, show_error, show_unexpected
 from octaledger.dashboard.views import PAGES
 from octaledger.dashboard_client.client import ApiClient
 
@@ -247,4 +247,8 @@ def run() -> None:
     status_bar(client)
     attention_panel(client, display["timezone"])
     renderer: Any = PAGES[page].render
-    renderer(client, display["timezone"])
+    try:
+        renderer(client, display["timezone"])
+    except Exception as exc:  # noqa: BLE001 - a bug on one page must not blank the whole app
+        # Streamlit's own control flow (rerun, stop) derives from BaseException and passes.
+        show_unexpected(exc, page)

@@ -1,5 +1,6 @@
 """GUI tests for AP-58: search, filter, search log and bulk actions on the page Einträge."""
 
+from datetime import UTC
 from typing import Any
 
 from streamlit.testing.v1 import AppTest
@@ -21,9 +22,9 @@ def captions(at: AppTest) -> str:
 
 
 def journal(api: RunningApi) -> list[dict[str, Any]]:
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return api.client.journal(now - timedelta(days=3), now + timedelta(days=1))
 
 

@@ -2,7 +2,7 @@
 
 import csv
 import io
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -18,7 +18,7 @@ from octaledger.domain.tags import ProjectBilling, Tag, amount_cents, budget_fra
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
-UTC = timezone.utc
+UTC = UTC
 T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 H = timedelta(hours=1)
 

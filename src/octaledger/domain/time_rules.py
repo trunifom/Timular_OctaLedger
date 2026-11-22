@@ -7,7 +7,7 @@ the user's display timezone happens only at the presentation edge.
 """
 
 from collections.abc import Iterable
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from octaledger.core.errors import ValidationError
@@ -15,7 +15,7 @@ from octaledger.core.errors import ValidationError
 
 def utc_now() -> datetime:
     """Return the current time as a timezone-aware UTC datetime."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def ensure_utc(value: datetime, *, name: str = "datetime") -> datetime:
@@ -39,7 +39,7 @@ def ensure_utc(value: datetime, *, name: str = "datetime") -> datetime:
             user_message="Zeitangaben benötigen eine Zeitzone.",
             details={"field": name},
         )
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def interval_duration(start: datetime, end: datetime) -> timedelta:
@@ -58,7 +58,7 @@ def interval_duration(start: datetime, end: datetime) -> timedelta:
     """
     if start.utcoffset() is None or end.utcoffset() is None:
         raise ValidationError("Timezone-aware datetimes are required")
-    duration = end.astimezone(timezone.utc) - start.astimezone(timezone.utc)
+    duration = end.astimezone(UTC) - start.astimezone(UTC)
     if duration < timedelta(0):
         raise ValidationError("End must not precede start")
     return duration
@@ -96,7 +96,7 @@ def _local_midnight_utc(day: date, tz: ZoneInfo) -> datetime:
     If midnight does not exist (a DST gap at midnight), the instant maps to the first
     valid moment after the gap, which is the correct start of that day.
     """
-    return datetime.combine(day, time.min, tzinfo=tz).astimezone(timezone.utc)
+    return datetime.combine(day, time.min, tzinfo=tz).astimezone(UTC)
 
 
 def local_day_bounds(day: date, tz: ZoneInfo) -> Interval:

@@ -1,6 +1,6 @@
 """GUI tests for the journal and statistics pages (AppTest against the real API server)."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -12,7 +12,7 @@ from tests.gui.test_gui_devices_catalog import all_help, open_page
 
 JOURNAL = "journal"
 STATS = "statistics"
-UTC = timezone.utc
+UTC = UTC
 
 
 def today_at(hour: int, minute: int = 0) -> datetime:

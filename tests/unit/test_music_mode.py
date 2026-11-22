@@ -1,6 +1,6 @@
 """The music mode: link recognition, rules, queuing, state and the watchdog (AP-48)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +27,7 @@ from octaledger.infrastructure.integrations.player import PlayerAdapter
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
-UTC = timezone.utc
+UTC = UTC
 T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 PUBLIC = "93.184.216.34"
 

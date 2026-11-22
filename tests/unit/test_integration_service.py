@@ -1,6 +1,6 @@
 """Tests for the integration service: connections, face actions, trying things out, sending."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,7 @@ from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from tests.fake_adapter import FakeAdapter
 
-T0 = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 
 
 class Clock:

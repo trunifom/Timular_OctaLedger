@@ -91,6 +91,6 @@ def test_the_colour_survives_a_backup_and_old_backups_still_load(env: Env) -> No
     data = json.loads(text)
     assert data["data"]["devices"][0]["color"] == "#112233"
     del data["data"]["devices"][0]["color"]  # a file written before AP-51
-    data["checksum"] = env.context.exports._checksum(data["data"])  # noqa: SLF001
+    data["checksum"] = env.context.exports._checksum(data["data"])
     env.context.exports.restore_backup_text(json.dumps(data))
     assert env.context.devices.list_devices()[0].color == PALETTE[0][0]  # default of number 1

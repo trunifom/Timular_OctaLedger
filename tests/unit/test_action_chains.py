@@ -1,7 +1,7 @@
 """Action chains: steps, delays, conditions, cancelling, failure follow-up, migration (AP-44)."""
 
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -32,7 +32,7 @@ from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from tests.fake_adapter import FakeAdapter
 
-UTC = timezone.utc
+UTC = UTC
 ZRH = ZoneInfo("Europe/Zurich")
 T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)  # Monday 09:00 in Zurich
 

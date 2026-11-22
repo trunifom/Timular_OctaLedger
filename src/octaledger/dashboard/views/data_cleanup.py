@@ -30,7 +30,6 @@ DELETE_ALL_TEXT = "ALLE LÖSCHEN"
 RESET_TEXT = "ALLES LÖSCHEN"
 ASK_KEY = "cleanup_ask"
 RESULT_KEY = "cleanup_result"
-RESET_ASK_KEY = "cleanup_reset_ask"
 
 OVERVIEW_LABELS = {
     "sessions": "Einträge (gespeichert)",

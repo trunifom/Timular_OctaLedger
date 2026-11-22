@@ -1,7 +1,7 @@
 """Printable report (HTML/PDF) and the calendar import (AP-42)."""
 
 import base64
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -34,7 +34,7 @@ from octaledger.domain.time_rules import local_day_bounds
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
-UTC = timezone.utc
+UTC = UTC
 TZ = ZoneInfo("Europe/Zurich")
 needs_ics = pytest.mark.skipif(not ics_available(), reason="optional ics packages not installed")
 needs_pdf = pytest.mark.skipif(not pdf_available(), reason="optional pdf package not installed")

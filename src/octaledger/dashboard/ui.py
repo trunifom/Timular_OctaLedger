@@ -11,8 +11,9 @@ Rules for every page (``CLAUDE.md`` section 6)
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from typing import Any, TypeVar
 from zoneinfo import ZoneInfo
 
@@ -23,6 +24,8 @@ from octaledger.core.settings import DisplaySettings
 from octaledger.domain.state_machine import ConnectionState
 
 T = TypeVar("T")
+
+logger = logging.getLogger(__name__)
 
 #: German labels for the connection states shown to users.
 STATE_LABELS: dict[str, str] = {
@@ -51,7 +54,7 @@ STATE_LEVEL: dict[str, str] = {
 def from_local(day: date, clock: time, tz_name: str) -> datetime:
     """Combine a date and time entered in the display timezone into an aware UTC datetime."""
     return datetime.combine(day, clock.replace(tzinfo=None), tzinfo=ZoneInfo(tz_name)).astimezone(
-        timezone.utc
+        UTC
     )
 
 
@@ -104,6 +107,26 @@ def show_error(error: OctaLedgerError) -> None:
                 st.json(error.details)
 
 
+def show_unexpected(exc: Exception, where: str) -> None:
+    """Report a bug (an exception nobody planned for) without a stack trace on the page.
+
+    The traceback goes to the log file; the user gets a calm message, the generic error code
+    and the way to the log. The page stays usable (menu, other pages).
+
+    Args:
+        exc: The exception.
+        where: Name of the page or area, for the log line.
+    """
+    logger.error("Unexpected error on page %s", where, exc_info=exc)
+    st.error(
+        "Auf dieser Seite ist ein unerwarteter Fehler aufgetreten. Ihre Daten sind nicht "
+        "betroffen. Bitte laden Sie die Seite neu; hilft das nicht, finden Sie Einzelheiten im "
+        "Protokoll (Seite „Diagnose“).",
+        icon="🚫",
+    )
+    st.caption(f"Fehlercode: {OctaLedgerError.code}")
+
+
 def call(function: Callable[..., T], *args: Any, **kwargs: Any) -> tuple[bool, T | None]:
     """Run an API call; on failure show the error and return ``(False, None)``.
 
@@ -112,6 +135,11 @@ def call(function: Callable[..., T], *args: Any, **kwargs: Any) -> tuple[bool, T
     try:
         return True, function(*args, **kwargs)
     except OctaLedgerError as exc:
+        # The user sees the message and the code; the log gets the same code with the technical
+        # text, so a support request can be matched to a log line.
+        logger.warning(
+            "API call %s failed: %s %s", getattr(function, "__name__", "?"), exc.error_code, exc
+        )
         show_error(exc)
         if isinstance(exc, ApiUnavailableError):
             st.info("Starten Sie den Agenten und klicken Sie dann auf „Neu laden“.")
@@ -121,12 +149,6 @@ def call(function: Callable[..., T], *args: Any, **kwargs: Any) -> tuple[bool, T
 def page_help(title: str, text: str) -> None:
     """The "ℹ️ So funktioniert diese Seite" explanation every page starts with."""
     with st.expander(f"ℹ️ {title}"):
-        st.markdown(text)
-
-
-def help_popover(text: str, *, key: str) -> None:
-    """A small "ℹ️" button that opens an explanation next to a function."""
-    with st.popover("ℹ️", help="Erklärung anzeigen", key=key):
         st.markdown(text)
 
 

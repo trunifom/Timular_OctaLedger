@@ -25,6 +25,12 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Geändert (Qualitätsdurchgang, AP-60)
+- Strengere Lint-Regeln (B, UP, BLE, T20, C4, PIE, SIM, S, RUF100) mit begründeten Ausnahmen; alle Funde behoben, `datetime.UTC` überall.
+- Nicht abgefangene Ausnahmen (Hauptthread und Threads) landen mit Traceback im Log; das Dashboard zeigt bei einem Seitenfehler eine ruhige Meldung mit Fehlercode statt eines Stacktraces, API-Fehler im Dashboard werden mit Code protokolliert.
+- Menü: neue Gruppe **Zeiten** (Zeitjournal, Einträge, Diagramme, Statistik); **Alltag** enthält Übersicht, Würfel live, Musik-Player.
+- Ungenutzten Code entfernt; „Eintrag“ statt „Sitzung“ in Meldungen; README/Handbuch/GUI-Konzept auf den Stand gebracht.
+
 ### Hinzugefügt (Diagramme, AP-59)
 - Neue Seite **Diagramme** mit 17 interaktiven Plotly-Diagrammen in fünf Gruppen (Verlauf, Anteile, Muster, Dauer, Zeitstrahl): gestapelte Balken je Tag/Woche/Monat, Trend mit Durchschnitt, aufsummierte Linien, Arbeitsbeginn/-ende, Ring, Sonnenstrahl, Treemap, Fluss, Zeit je Tag, zwei Wärmekarten, Wochentagsvergleich, Matrix, Histogramm, Boxplot, Streudiagramm, Zeitstrahl.
 - Zoomen, Schwebetext, Legende, Bereichsregler; **Klick auf ein Element** listet die Einträge dahinter; zu jedem Diagramm die Zahlen als Tabelle und CSV; Kennzahlen; dieselbe Filterleiste wie *Einträge* (eigenständig).

@@ -20,7 +20,7 @@ import importlib.util
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from octaledger.application.tracking_service import FUTURE_TOLERANCE
@@ -117,7 +117,7 @@ def parse_ics(
     try:
         calendar = icalendar.Calendar.from_ical(data)
         occurrences = recurring_ical_events.of(calendar).between(start, end)
-    except Exception as exc:  # noqa: BLE001 - any parser failure is a bad file, not a crash
+    except Exception as exc:
         raise ImportDataError(
             f"Cannot read the calendar file: {type(exc).__name__}",
             user_message="Die Datei ist keine lesbare Kalenderdatei (.ics).",
@@ -158,7 +158,7 @@ def parse_ics(
         if finish - begin > timedelta(hours=MAX_EVENT_HOURS):
             skip("länger als 24 Stunden")
             continue
-        found.append((begin.astimezone(timezone.utc), finish.astimezone(timezone.utc), title))
+        found.append((begin.astimezone(UTC), finish.astimezone(UTC), title))
     return sorted(found), skipped
 
 

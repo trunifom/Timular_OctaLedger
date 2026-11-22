@@ -5,7 +5,7 @@ mocked unit tests cannot: that ``requests`` (with its real ``Host`` header), the
 authentication and the services work together end to end.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -19,7 +19,7 @@ from octaledger.dashboard_client.client import ApiClient
 from tests.conftest import RunningApi, free_port
 
 TOKEN = "i" * 43  # same value as tests.conftest.API_TOKEN
-NOW = datetime.now(timezone.utc).replace(microsecond=0)
+NOW = datetime.now(UTC).replace(microsecond=0)
 
 
 def test_full_workflow_over_real_http(api_server: RunningApi) -> None:

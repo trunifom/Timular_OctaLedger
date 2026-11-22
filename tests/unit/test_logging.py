@@ -274,3 +274,51 @@ def test_module_exposes_expected_public_names() -> None:
     # Guards against accidental removal of the public API used by other layers.
     for name in ("configure_logging", "log_step", "redact", "register_secret"):
         assert hasattr(ol_logging, name)
+
+
+# ------------------------------------------------------------------ uncaught exceptions
+
+
+def test_an_uncaught_exception_of_the_main_thread_is_logged_critical(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_logging(console=False)
+    monkeypatch.setattr(ol_logging.sys, "__excepthook__", lambda *_a: None)  # no stderr noise
+    try:
+        raise RuntimeError("boom")
+    except RuntimeError as exc:
+        ol_logging._log_uncaught(RuntimeError, exc, exc.__traceback__)
+    lines = [x for x in recent_log_lines() if "Uncaught exception, the process ends" in x]
+    assert lines and "RuntimeError: boom" in "\n".join(lines)
+
+
+def test_ctrl_c_is_not_reported_as_a_crash(monkeypatch: pytest.MonkeyPatch) -> None:
+    configure_logging(console=False)
+    monkeypatch.setattr(ol_logging.sys, "__excepthook__", lambda *_a: None)
+    ol_logging._log_uncaught(KeyboardInterrupt, KeyboardInterrupt(), None)
+    assert not [x for x in recent_log_lines() if "Uncaught exception" in x]
+
+
+def test_a_dying_thread_leaves_a_trace_with_its_name() -> None:
+    configure_logging(console=False)
+    error = ValueError("thread bug")
+    args = ol_logging.threading.ExceptHookArgs(
+        (ValueError, error, error.__traceback__, ol_logging.threading.Thread(name="ble-loop"))
+    )
+    ol_logging._log_uncaught_thread(args)
+    lines = [x for x in recent_log_lines() if "Uncaught exception in thread ble-loop" in x]
+    assert lines and "ValueError: thread bug" in "\n".join(lines)
+    exit_args = ol_logging.threading.ExceptHookArgs((SystemExit, SystemExit(), None, None))
+    ol_logging._log_uncaught_thread(exit_args)  # a normal exit is not an error
+
+
+def test_the_hooks_only_replace_the_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    def other(*_args: object) -> None:
+        return None
+
+    monkeypatch.setattr(ol_logging.sys, "excepthook", other)
+    ol_logging.install_exception_hooks()
+    assert ol_logging.sys.excepthook is other  # someone else's hook stays
+    monkeypatch.setattr(ol_logging.sys, "excepthook", ol_logging.sys.__excepthook__)
+    ol_logging.install_exception_hooks()
+    assert ol_logging.sys.excepthook is ol_logging._log_uncaught

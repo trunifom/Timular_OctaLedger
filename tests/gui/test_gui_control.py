@@ -1,6 +1,6 @@
 """GUI tests for control mode: the mode switch, actions per face, live view, devices, start page."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -25,7 +25,7 @@ def agent(api_server: RunningApi) -> FakeAgent:
 
 
 def adapter_of(api: RunningApi) -> FakeAdapter:
-    found = api.context.integrations._adapters["fake"]  # type: ignore[union-attr]  # noqa: SLF001
+    found = api.context.integrations._adapters["fake"]  # type: ignore[union-attr]
     assert isinstance(found, FakeAdapter)
     return found
 
@@ -67,7 +67,7 @@ def test_a_running_time_entry_refuses_the_switch_and_the_switch_snaps_back(
     activity = api_server.client.create_item("activities", "Meeting")
     api_server.client.assign_face(device["id"], 1, activity["id"], None)
     api_server.context.tracking.record_event(
-        RawEvent(device["id"], EventKind.FACE_CHANGE, 1, "c1", datetime.now(timezone.utc), 1)
+        RawEvent(device["id"], EventKind.FACE_CHANGE, 1, "c1", datetime.now(UTC), 1)
     )
     assert api_server.client.status()["tracking"]["running"] is not None
     at = open_page(api_server, FACES)
@@ -236,7 +236,7 @@ def test_the_live_view_lists_the_last_sent_actions(
     at = open_page(api_server, LIVE)
     assert any("Noch wurde keine Aktion gesendet" in c.value for c in at.caption)
     api_server.context.tracking.record_event(
-        RawEvent(did, EventKind.FACE_CHANGE, 7, "c1", datetime.now(timezone.utc), 3)
+        RawEvent(did, EventKind.FACE_CHANGE, 7, "c1", datetime.now(UTC), 3)
     )
     api_server.context.integrations.process_due()  # type: ignore[union-attr]
     at = open_page(api_server, LIVE)

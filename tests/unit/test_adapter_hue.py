@@ -9,7 +9,7 @@ import json
 import socket
 import threading
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -123,7 +123,7 @@ class FakeBridge:
                             return self._answer(200, {"errors": outer.errors, "data": []})
                 return self._answer(404, {"errors": [{"description": "not found"}]})
 
-            do_GET = do_POST = do_PUT = _handle  # noqa: N815
+            do_GET = do_POST = do_PUT = _handle
 
             def log_message(self, *_args: object) -> None:
                 return
@@ -496,7 +496,7 @@ def test_pairing_and_switching_through_the_service(bridge: FakeBridge, tmp_path:
         integration_id,
         "Schreibtisch",
         {"action": "light", "light_id": LAMP, "state": "off"},
-        expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
+        expires_at=datetime.now(UTC) + timedelta(seconds=30),
     )
     with storage.transaction() as repos:
         repos.jobs.enqueue(job)

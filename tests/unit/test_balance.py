@@ -1,7 +1,7 @@
 """Target working time, balance, absences and break hints (AP-40)."""
 
 from dataclasses import replace
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -31,7 +31,7 @@ from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from octaledger.infrastructure.system.holidays_provider import holiday_dates, holidays_available
 
-UTC = timezone.utc
+UTC = UTC
 TZ = ZoneInfo("Europe/Zurich")
 FULL = WorkSchedule(date(2026, 1, 1), (480, 480, 480, 480, 480, 0, 0))  # Mon-Fri 8 h
 MON = date(2026, 1, 5)

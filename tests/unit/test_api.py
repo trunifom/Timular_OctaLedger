@@ -1,6 +1,6 @@
 """Tests for the HTTP API: auth, host/origin guard, error mapping and every endpoint group."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +27,7 @@ TOKEN = "t" * 43
 BASE = f"http://127.0.0.1:{PORT}"
 V1 = "/api/v1"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
-NOW = datetime.now(timezone.utc).replace(microsecond=0)
+NOW = datetime.now(UTC).replace(microsecond=0)
 
 
 class Env:

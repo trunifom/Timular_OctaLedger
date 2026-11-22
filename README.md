@@ -123,13 +123,14 @@ Eigene Anbindung nötig? Ein neuer **Adapter** ist eine Datei und eine Zeile: [A
 
 ## Die Oberfläche
 
-Das Dashboard (Streamlit) hat **13 Seiten in 5 Gruppen**. Jede **Art von Einstellung hat ihre eigene Seite**:
+Das Dashboard (Streamlit) hat **18 Seiten in 6 Gruppen**. Jede **Art von Einstellung hat ihre eigene Seite**:
 
 | Gruppe | Seiten |
 |---|---|
 | **Start** | Startseite (Erklärung, geführte Einrichtung, Handbuch) |
-| **Alltag** | Übersicht, Würfel live, Zeitjournal, Statistik |
-| **Würfel** | Würfel verwalten (hinzufügen, verbinden, Kopplung aufheben, entfernen), Seiten zuordnen |
+| **Alltag** | Übersicht, Würfel live, Musik-Player |
+| **Zeiten** | Zeitjournal, **Einträge** (suchen, filtern, gesammelt bearbeiten), **Diagramme** (17 interaktive Grafiken), Statistik |
+| **Würfel** | Würfel verwalten (hinzufügen, verbinden, Kopplung aufheben, entfernen), Würfel-Inspektor, Würfel-Datenblatt, Seiten zuordnen |
 | **Einstellungen** | **App** (Zeiterfassung), Tätigkeiten & Projekte, **Darstellung** (Hell/Dunkel, Schrift), **Smarthome & Verbindungen** |
 | **System** | Daten (Export, Sicherung, Import, gezieltes Löschen, Zurücksetzen), Diagnose |
 

@@ -2,7 +2,7 @@
 
 import dataclasses
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -31,7 +31,7 @@ from octaledger.infrastructure.storage.repositories import (
     to_db_time,
 )
 
-T0 = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 H = timedelta(hours=1)
 
 
@@ -57,7 +57,7 @@ def seeded(storage: Storage) -> dict[str, str]:
 
 
 def test_time_codec_roundtrip_and_fixed_width() -> None:
-    value = datetime(2026, 1, 5, 8, 0, 0, 123, tzinfo=timezone.utc)
+    value = datetime(2026, 1, 5, 8, 0, 0, 123, tzinfo=UTC)
     text = to_db_time(value)
     assert text == "2026-01-05T08:00:00.000123Z"
     assert from_db_time(text) == value

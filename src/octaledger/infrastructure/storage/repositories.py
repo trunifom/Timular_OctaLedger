@@ -28,7 +28,7 @@ import sqlite3
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any, Final, TypeVar
 
 from octaledger.core.errors import (
@@ -98,7 +98,7 @@ def from_db_time(text: str) -> datetime:
         DataIntegrityError: If the text is not in the expected format.
     """
     try:
-        return datetime.strptime(text, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+        return datetime.strptime(text, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=UTC)
     except (ValueError, TypeError) as exc:
         raise DataIntegrityError(
             f"Invalid timestamp in database: {text!r}", details={"value": str(text)}
@@ -1515,8 +1515,8 @@ class SessionRepository:
         where, params = self._range_clause(start, end)
         with _db_errors("count sessions in range"):
             row = self._c.execute(
-                "SELECT COUNT(*) AS n, COALESCE(SUM(note IS NOT NULL AND note <> ''), 0) AS notes, "
-                f"MIN(started_at) AS first, MAX(started_at) AS last FROM sessions WHERE {where}",  # noqa: S608
+                "SELECT COUNT(*) AS n, COALESCE(SUM(note IS NOT NULL AND note <> ''), 0) AS notes, "  # noqa: S608 - fixed fragments, values bound
+                f"MIN(started_at) AS first, MAX(started_at) AS last FROM sessions WHERE {where}",
                 params,
             ).fetchone()
             running = self._c.execute(

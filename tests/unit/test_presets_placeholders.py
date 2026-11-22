@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,7 @@ from octaledger.infrastructure.integrations.registry import default_adapters
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
-T0 = datetime(2026, 1, 5, 8, 0, 3, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, 3, tzinfo=UTC)
 VALUES = {"device": "Büro", "face": 3, "label": "Fokus", "time": "2026-01-05T08:00:03Z"}
 
 

@@ -1,13 +1,13 @@
 """The pure search and filter rules of the entry list (AP-58)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from octaledger.dashboard import entry_filter as ef
 from octaledger.dashboard.views.entries_history import history_rows
 
-UTC = timezone.utc
+UTC = UTC
 ZURICH = ZoneInfo("Europe/Zurich")
 MONDAY = datetime(2026, 3, 2, 8, 30, tzinfo=UTC)  # a Monday, 09:30 in Zurich
 

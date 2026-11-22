@@ -4,8 +4,11 @@ Menu structure (research: ``docs/GUI_KONZEPT.md``): eight destinations are fine 
 **grouped** by the user's task, most frequent first, configuration and technology last:
 
 * **Start** - Startseite: what the cube is, guided setup, the manual (every new session opens here)
-* **Alltag** - Übersicht, Würfel live, Zeitjournal, Statistik (the daily work, one click away)
-* **Würfel** - Würfel verwalten, Seiten zuordnen (everything about the cubes themselves)
+* **Alltag** - Übersicht, Würfel live, Musik-Player (what happens right now)
+* **Zeiten** - Zeitjournal, Einträge, Diagramme, Statistik (look at, correct and evaluate the
+  recorded times)
+* **Würfel** - Würfel verwalten, Inspektor, Datenblatt, Seiten zuordnen (everything about the
+  cubes themselves)
 * **Einstellungen** - App, Tätigkeiten & Projekte, Darstellung, Smarthome & Verbindungen
   (one page per *kind* of setting, so nobody has to hunt)
 * **System** - Daten (export, backup, import, deleting), Diagnose (troubleshooting)
@@ -24,7 +27,7 @@ import streamlit as st
 from octaledger.dashboard_client.client import ApiClient
 
 #: Group headings in menu order.
-GROUPS: tuple[str, ...] = ("Start", "Alltag", "Würfel", "Einstellungen", "System")
+GROUPS: tuple[str, ...] = ("Start", "Alltag", "Zeiten", "Würfel", "Einstellungen", "System")
 DEFAULT_PAGE = "start"
 #: The three functional areas of a cube (its mode): time recording, smart home, music.
 ALL_AREAS: frozenset[str] = frozenset({"time", "control", "music"})

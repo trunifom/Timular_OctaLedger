@@ -11,7 +11,7 @@ CONNECTIONS = "connections"
 
 
 def adapter_of(api: RunningApi) -> FakeAdapter:
-    adapter = api.context.integrations._adapters["fake"]  # type: ignore[union-attr]  # noqa: SLF001
+    adapter = api.context.integrations._adapters["fake"]  # type: ignore[union-attr]
     assert isinstance(adapter, FakeAdapter)
     return adapter
 

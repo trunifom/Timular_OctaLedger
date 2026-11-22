@@ -1,6 +1,6 @@
 """GUI tests for the devices page (registration, scan, calibration) and the management page."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -205,7 +205,7 @@ def test_a_cube_with_data_is_removed_only_when_its_data_may_go(api_server: Runni
     client = api_server.client
     device = client.register_device("Mit Daten")
     activity = client.create_item("activities", "Meeting")
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    now = datetime.now(UTC).replace(microsecond=0)
     with api_server.storage.transaction() as repos:
         repos.sessions.add(
             Session(

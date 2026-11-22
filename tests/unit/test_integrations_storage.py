@@ -3,7 +3,7 @@
 import dataclasses
 import json
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +24,7 @@ from octaledger.domain.models import (
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
-T0 = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 MIN = timedelta(minutes=1)
 
 

@@ -42,8 +42,8 @@ from octaledger.core.logging import register_secret
 
 logger = logging.getLogger(__name__)
 
-TOKEN_FILE_NAME: Final = "api_token"
-ENV_TOKEN: Final = "OCTALEDGER_API_TOKEN"
+TOKEN_FILE_NAME: Final = "api_token"  # noqa: S105 - a file name, not a secret
+ENV_TOKEN: Final = "OCTALEDGER_API_TOKEN"  # noqa: S105 - an environment variable name
 #: Minimum accepted token length (a generated token has 43 characters / 256 bit).
 MIN_TOKEN_LENGTH: Final = 32
 MAX_TOKEN_LENGTH: Final = 256

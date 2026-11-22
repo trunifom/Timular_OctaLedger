@@ -1,6 +1,6 @@
 """GUI tests for the attention panel (connection loss with a grace period, gap question)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from octaledger.domain.models import Device, EventKind, RawEvent
 from tests.conftest import RunningApi
@@ -15,7 +15,7 @@ def lose_link(api: RunningApi, *, ended: bool) -> str:
         repos.mappings.assign(device.id, 1, activity)
     tracking = api.context.tracking
     tracking.set_active_device(device.id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     lost = now - timedelta(minutes=60 if ended else 1)
     for kind, value, at in (
         (EventKind.FACE_CHANGE, 1, lost - timedelta(minutes=30)),
@@ -37,7 +37,7 @@ def lose_link(api: RunningApi, *, ended: bool) -> str:
 
 
 def entries(api: RunningApi) -> list[dict]:  # type: ignore[type-arg]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return api.client.journal(now - timedelta(days=2), now + timedelta(days=1))
 
 
@@ -146,7 +146,7 @@ def test_a_battery_reminder_can_be_acknowledged(api_server: RunningApi) -> None:
         repos.attention.add(
             AttentionItem(
                 kind=AttentionKind.REMINDER,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
                 payload={"reason": "battery", "alias": "Büro", "percent": 12},
             )
         )
@@ -175,7 +175,7 @@ def test_the_working_day_settings_are_off_by_default_and_save(api_server: Runnin
 def test_idle_and_auto_stop_questions_have_their_answers(api_server: RunningApi) -> None:
     from octaledger.domain.attention import AttentionItem, AttentionKind
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with api_server.storage.transaction() as repos:
         repos.attention.add(
             AttentionItem(
@@ -294,7 +294,7 @@ def test_the_journal_offers_tag_filter_and_entry_tags(api_server: RunningApi) ->
     client = api_server.client
     activity = client.create_item("activities", "Code")["id"]
     tag = client.create_tag("Fokus")
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    now = datetime.now(UTC).replace(microsecond=0)
     start = now - timedelta(hours=3)
     session = client.add_session(activity, start, start + timedelta(hours=1))
     at = open_page(api_server, "journal")
@@ -312,7 +312,7 @@ def test_budget_reminder_text(api_server: RunningApi) -> None:
         repos.attention.add(
             AttentionItem(
                 kind=AttentionKind.REMINDER,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
                 payload={
                     "reason": "budget",
                     "project": "Alpha",

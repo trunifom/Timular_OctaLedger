@@ -1,6 +1,6 @@
 """The chart builders: every chart builds, numbers add up, clicks map back to entries (AP-59)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pandas as pd
@@ -8,7 +8,7 @@ import pytest
 
 from octaledger.dashboard import charts as ch
 
-UTC = timezone.utc
+UTC = UTC
 NOW = datetime(2026, 3, 20, 12, 0, tzinfo=UTC)
 TZ = "Europe/Zurich"  # UTC+1 in March before the DST change: 08:00 UTC is 09:00 local
 

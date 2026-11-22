@@ -1,13 +1,13 @@
 """Bulk editing and deleting of entries and the change history (AP-57)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from octaledger.core.errors import ConflictError, NotFoundError, ValidationError
 from tests.conftest import RunningApi
 
-BASE = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(days=5)
+BASE = datetime.now(UTC).replace(minute=0, second=0, microsecond=0) - timedelta(days=5)
 
 
 def hours(start: float, end: float) -> tuple[datetime, datetime]:

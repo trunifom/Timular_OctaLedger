@@ -71,23 +71,23 @@ class FakeSpotify:
                     }
                 )
 
-            def do_POST(self) -> None:  # noqa: N802
+            def do_POST(self) -> None:
                 self._record(self._read())
                 status, payload = outer.token_answer
                 self._answer(status, payload)
 
-            def do_PUT(self) -> None:  # noqa: N802
+            def do_PUT(self) -> None:
                 self._record(self._read())
                 if outer.player_status == 429:
                     self._answer(429, headers={"Retry-After": "3"})
                 else:
                     self._answer(outer.player_status)
 
-            def do_GET(self) -> None:  # noqa: N802
+            def do_GET(self) -> None:
                 self._record(b"")
                 self._answer(200, {"display_name": "Tester"})
 
-            def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+            def log_message(self, format: str, *args: Any) -> None:
                 pass
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
@@ -263,7 +263,7 @@ def test_pairing_stores_the_refresh_token(fake: FakeSpotify) -> None:
     def visit(query: dict[str, list[str]]) -> None:
         seen.update(query)
         redirect = query["redirect_uri"][0]
-        urllib.request.urlopen(  # noqa: S310 - loopback address of the test
+        urllib.request.urlopen(
             f"{redirect}?code=the-code&state={query['state'][0]}", timeout=5
         ).read()
 
@@ -287,7 +287,7 @@ def test_a_wrong_state_does_not_complete_the_pairing(fake: FakeSpotify) -> None:
     def visit(query: dict[str, list[str]]) -> None:
         redirect = query["redirect_uri"][0]
         try:
-            urllib.request.urlopen(f"{redirect}?code=evil&state=wrong", timeout=5)  # noqa: S310
+            urllib.request.urlopen(f"{redirect}?code=evil&state=wrong", timeout=5)
         except urllib.error.HTTPError as exc:
             answers.append(exc.code)
 
@@ -303,7 +303,7 @@ def test_declined_authorisation(fake: FakeSpotify) -> None:
 
     def visit(query: dict[str, list[str]]) -> None:
         redirect = query["redirect_uri"][0]
-        urllib.request.urlopen(  # noqa: S310
+        urllib.request.urlopen(
             f"{redirect}?error=access_denied&state={query['state'][0]}", timeout=5
         ).read()
 

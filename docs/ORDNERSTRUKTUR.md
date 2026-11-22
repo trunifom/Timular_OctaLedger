@@ -240,6 +240,7 @@ octaledger/
   tests/gui/test_gui_parallel.py
   tests/gui/test_gui_player.py
   tests/gui/test_gui_redesign.py
+  tests/gui/test_gui_resilience.py
   tests/gui/test_gui_settings_areas.py
   tests/gui/test_gui_start.py
   tests/hardware/.gitkeep

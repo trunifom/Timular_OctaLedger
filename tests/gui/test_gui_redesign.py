@@ -1,7 +1,7 @@
 """Tests for the redesigned GUI: grouped menu, status bar, first steps, quick start, assets."""
 
 import re
-from datetime import date, timedelta
+from datetime import UTC, date, timedelta
 from pathlib import Path
 
 import pytest
@@ -27,11 +27,12 @@ def goto(at: AppTest, slug: str) -> AppTest:
 
 
 def test_menu_is_grouped_by_task_in_the_documented_order() -> None:
-    assert GROUPS == ("Start", "Alltag", "Würfel", "Einstellungen", "System")
+    assert GROUPS == ("Start", "Alltag", "Zeiten", "Würfel", "Einstellungen", "System")
     order = {group: [p.slug for p in PAGES.values() if p.group == group] for group in GROUPS}
     assert order == {
         "Start": ["start"],
-        "Alltag": ["overview", "live", "player", "journal", "entries", "charts", "statistics"],
+        "Alltag": ["overview", "live", "player"],
+        "Zeiten": ["journal", "entries", "charts", "statistics"],
         "Würfel": ["devices", "inspector", "datasheet", "faces"],
         "Einstellungen": ["settings", "catalog", "display", "connections"],
         "System": ["data", "diagnostics"],
@@ -157,12 +158,12 @@ def test_quick_start_tile_starts_an_activity_with_one_click(api_server: RunningA
 
 
 def test_quick_start_ranks_by_recent_usage_and_limits_to_four(api_server: RunningApi) -> None:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     client = api_server.client
     names = ["Anna", "Berta", "Cäsar", "Dora", "Emil", "Zoe"]
     ids = {n: client.create_item("activities", n)["id"] for n in names}
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for i in range(3):  # Zoe is used most, although she is last alphabetically
         client.add_session(
             ids["Zoe"], now - timedelta(days=3, hours=i + 1), now - timedelta(days=3, hours=i)

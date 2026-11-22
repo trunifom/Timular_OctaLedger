@@ -1,6 +1,6 @@
 """Tests for reports: clipping, midnight/DST splitting, overlap handling, uncertainty, filters."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -19,7 +19,7 @@ from octaledger.domain.models import Activity, Device, Project, Quality, Session
 from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 
-UTC = timezone.utc
+UTC = UTC
 ZURICH = ZoneInfo("Europe/Zurich")
 H = timedelta(hours=1)
 NOW = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)

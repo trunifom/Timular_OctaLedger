@@ -70,7 +70,7 @@ class ActionDispatcher:
             handled = 0
             try:
                 handled = self._service.process_due()
-            except Exception:  # noqa: BLE001 - the dispatcher must outlive any single failure
+            except Exception:
                 logger.exception("The action dispatcher hit an unexpected error")
             if handled == 0:
                 self._stop.wait(self._interval)

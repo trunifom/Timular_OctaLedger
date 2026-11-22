@@ -1,7 +1,7 @@
 """The cube's button and the low-battery warning (AP-37), all with synthetic data."""
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,7 @@ from octaledger.infrastructure.storage.database import Database
 from octaledger.infrastructure.storage.repositories import Storage
 from tests.unit.test_supervisor import Env, env, finish, run, start_ready, wait_until  # noqa: F401
 
-T0 = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 M = timedelta(minutes=1)
 
 

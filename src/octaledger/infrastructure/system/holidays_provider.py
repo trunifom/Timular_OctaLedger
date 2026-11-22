@@ -37,7 +37,7 @@ def holiday_dates(region: str, first: date, last: date) -> frozenset[date]:
             subdiv=subdiv or None,
             years=range(first.year, last.year + 1),
         )
-    except Exception:  # noqa: BLE001 - unknown country/subdivision must not break the report
+    except Exception:
         logger.warning("Holidays for %s are not available", region, exc_info=True)
         return frozenset()
     return frozenset(d for d in calendar if first <= d <= last)

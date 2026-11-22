@@ -1,7 +1,7 @@
 """The working day: auto-stop, idle questions, reminders (AP-38) with an injected clock."""
 
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -32,7 +32,7 @@ from octaledger.infrastructure.storage.repositories import Storage
 from octaledger.infrastructure.system.idle import FixedInputProbe, WindowsInputProbe
 
 TZ = ZoneInfo("Europe/Zurich")
-UTC = timezone.utc
+UTC = UTC
 # Monday 2026-01-05, Zurich is UTC+1 in January: 16:00 UTC = 17:00 local.
 MON = datetime(2026, 1, 5, 7, 0, tzinfo=UTC)  # 08:00 local
 H = timedelta(hours=1)

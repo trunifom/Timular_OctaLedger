@@ -1,6 +1,6 @@
 """Connection loss with a grace period and the attention centre (AP-36)."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -14,7 +14,7 @@ from tests.unit.test_tracking_service import T0, Env, M, env, sessions  # noqa: 
 
 # ------------------------------------------------------------------- pure rule
 
-LOST = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+LOST = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 GRACE = timedelta(minutes=5)
 
 

@@ -12,7 +12,7 @@ from tests.gui.test_gui_devices_catalog import open_page
 def browser(api_server: RunningApi) -> BrowserAdapter:
     """The test server only knows fakes; register the real browser adapter in it."""
     adapter = BrowserAdapter()
-    api_server.context.integrations._adapters["browser"] = adapter  # type: ignore[union-attr]  # noqa: SLF001
+    api_server.context.integrations._adapters["browser"] = adapter  # type: ignore[union-attr]
     return adapter
 
 

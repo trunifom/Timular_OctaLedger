@@ -1,7 +1,7 @@
 """Tray model, notifications and autostart (AP-39) with stand-ins; no registry, no desktop."""
 
 import sys
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -35,7 +35,7 @@ from octaledger.infrastructure.system.toast import toast_available
 from tests.unit.test_attention import Env as ApiEnv
 from tests.unit.test_attention import env as api_env  # noqa: F401
 
-T0 = datetime(2026, 1, 5, 12, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 12, 0, tzinfo=UTC)
 
 
 # ---------------------------------------------------------------------- autostart

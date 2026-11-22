@@ -11,7 +11,7 @@ The builders are pure functions in :mod:`octaledger.dashboard.charts`; this modu
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Final
 from zoneinfo import ZoneInfo
 
@@ -102,7 +102,7 @@ def render(client: ApiClient, tz: str) -> None:
             "Sie die Filter."
         )
         return
-    frame = ch.to_frame(hits, tz, datetime.now(timezone.utc))
+    frame = ch.to_frame(hits, tz, datetime.now(UTC))
     _key_figures(frame)
     catalog = {
         "activities": {a["name"]: a["color"] for a in activities if a.get("color")},

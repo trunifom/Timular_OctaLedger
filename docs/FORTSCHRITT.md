@@ -87,6 +87,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-57 | Sammelbearbeitung (Backend): `EntryService` (zuordnen, taggen, Notiz, Qualität, verschieben, löschen; alles oder nichts, Grund Pflicht, Prüfspur je Feld, Sicherung vor dem Löschen, laufende Einträge ausgelassen), API `/entries/edit`, `/entries/delete`, `/entries/history` | 2026-11-22 | 23:00 | 35c0cef |
 | AP-58 | Seite „Einträge“: Suche und Filter (Zeitraum, Tätigkeit, Projekt, Gerät, Tags beliebig/alle/keiner, Qualität, Quelle, Dauer, Wochentag, Tageszeit), Suchprotokoll, Tabelle mit allen Werten und Mehrfachauswahl, Sammelaktionen, Änderungsprotokoll | 2026-11-22 | 23:30 | ec9ed60 |
 | AP-59 | Seite „Diagramme“: 17 interaktive Diagramme in fünf Gruppen (Verlauf, Anteile, Muster, Dauer, Zeitstrahl), Kennzahlen, gemeinsame Filterleiste mit „Einträge“, Klick auf ein Element listet die Einträge dahinter, Zahlen und CSV je Diagramm; im echten Browser nicht geprüft | 2026-11-22 | 23:59 | 9d1f743 |
+| AP-60 | Qualitätsdurchgang: strengere Lint-Regeln (alle Funde behoben), Log für nicht abgefangene Ausnahmen (Hauptthread und Threads), Dashboard fängt Seitenfehler ohne Stacktrace und protokolliert API-Fehler mit Code, Menügruppe „Zeiten“, toter Code entfernt, Wortwahl „Eintrag“, veraltete Doku-Zahlen korrigiert | 2026-11-22 | 22:30 | (folgt) |
 
 ## Offen
 

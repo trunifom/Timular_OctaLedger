@@ -1,7 +1,7 @@
 """GUI tests for the data, settings and diagnostics pages (AppTest against the real server)."""
 
 import json
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 
@@ -13,7 +13,7 @@ from tests.gui.test_gui_devices_catalog import all_help, open_page
 DATA = "data"
 SETTINGS = "settings"
 DIAG = "diagnostics"
-UTC = timezone.utc
+UTC = UTC
 
 
 def seed_session(api: RunningApi) -> str:

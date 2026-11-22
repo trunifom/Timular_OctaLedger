@@ -77,7 +77,7 @@ class Housekeeper:
         for task in self._tasks:
             try:
                 task()
-            except Exception:  # noqa: BLE001 - the housekeeper must outlive any single failure
+            except Exception:
                 logger.exception("A housekeeper task failed")
 
     def _run(self) -> None:

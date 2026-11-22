@@ -1,6 +1,6 @@
 """Tests for interval algebra: day splitting (incl. DST), overlaps, unions, windows."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -19,7 +19,7 @@ from octaledger.domain.time_rules import (
     validate_interval,
 )
 
-UTC = timezone.utc
+UTC = UTC
 ZURICH = ZoneInfo("Europe/Zurich")
 H = timedelta(hours=1)
 

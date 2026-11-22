@@ -63,7 +63,21 @@ target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+# E/F/I: pycodestyle, pyflakes, import order. B: likely bugs. UP: modern syntax. BLE: blind
+# excepts (each one carries a reason). T20: no print in library code. C4/PIE/SIM: simpler
+# code. S: security smells. RUF100: stale ``noqa`` comments.
+select = ["E", "F", "I", "B", "UP", "BLE", "T20", "C4", "PIE", "SIM", "S", "RUF100"]
+ignore = [
+  "SIM102",  # nested ``if`` is often clearer than one long condition
+  "SIM117",  # nested ``with`` is clearer around savepoints/transactions
+  "UP047",   # PEP 695 generics: the project keeps TypeVar for tooling compatibility
+  "S101",    # ``assert`` narrows types for mypy; it is not used for validation
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/octaledger/cli.py" = ["T201"]  # the command line prints by design
+"scripts/**" = ["T201", "S603", "S607"]  # maintenance scripts talk to the console and to git
+"tests/**" = ["S", "T20", "B008", "BLE", "SIM"]  # test code: fixtures, sockets, fake secrets
 
 [tool.mypy]
 python_version = "3.12"

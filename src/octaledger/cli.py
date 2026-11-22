@@ -143,7 +143,7 @@ def _cmd_dashboard(args: argparse.Namespace) -> int:
         "true",  # serves the self-hosted Inter font from dashboard/static
     ]
     print(f"Dashboard startet auf http://127.0.0.1:8501 (Datenordner: {paths.root})")
-    return subprocess.call(command)
+    return subprocess.call(command)  # noqa: S603 - a fixed command list, no user input
 
 
 def _cmd_status(args: argparse.Namespace) -> int:
@@ -164,7 +164,7 @@ def _cmd_status(args: argparse.Namespace) -> int:
         if running and tracking["activity"]
         else ("pausiert" if tracking["paused"] else "keine"),
     )
-    print(f"Unsichere Sitzungen: {tracking['uncertain_count']}")
+    print(f"Unsichere Einträge: {tracking['uncertain_count']}")
     for device in status["devices"]:
         live = device["live"]
         print(

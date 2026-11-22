@@ -2,7 +2,7 @@
 
 import dataclasses
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -24,7 +24,7 @@ from octaledger.domain.models import (
 )
 from octaledger.domain.time_rules import ensure_utc, utc_now
 
-T0 = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 
 
 def _event(kind: EventKind, value: int | None, **kwargs: object) -> RawEvent:
@@ -54,7 +54,7 @@ def test_utc_now_is_aware_utc() -> None:
 def test_ensure_utc_converts_offsets() -> None:
     plus_two = timezone(timedelta(hours=2))
     result = ensure_utc(datetime(2026, 1, 1, 12, tzinfo=plus_two))
-    assert result == datetime(2026, 1, 1, 10, tzinfo=timezone.utc)
+    assert result == datetime(2026, 1, 1, 10, tzinfo=UTC)
     assert result.utcoffset() == timedelta(0)
 
 
@@ -218,7 +218,7 @@ def test_session_normalises_timezones() -> None:
     plus_two = timezone(timedelta(hours=2))
     session = Session(activity_id="a", started_at=datetime(2026, 1, 5, 10, tzinfo=plus_two))
     assert session.started_at == T0
-    assert session.started_at.tzinfo is timezone.utc
+    assert session.started_at.tzinfo is UTC
 
 
 def test_session_rejects_inverted_interval() -> None:

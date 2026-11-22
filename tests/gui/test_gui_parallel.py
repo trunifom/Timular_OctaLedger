@@ -1,6 +1,6 @@
 """GUI test for AP-55: the overview says who controls what; the history shows conflict notes."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from tests.conftest import RunningApi
 from tests.gui.test_gui_devices_catalog import open_page
@@ -24,8 +24,8 @@ def test_the_overview_lists_owner_target_and_title(api_server: RunningApi) -> No
     with api_server.storage.transaction() as repos:
         repos.state.set(
             f"music_owner:{connection['id']}",
-            '{"device_id": "%s", "label": "Lofi", "since": "%s"}'
-            % (cube["id"], datetime.now(timezone.utc).isoformat()),
+            f'{{"device_id": "{cube["id"]}", "label": "Lofi", '
+            f'"since": "{datetime.now(UTC).isoformat()}"}}',
         )
     at = open_page(api_server, "overview")
     assert not at.exception

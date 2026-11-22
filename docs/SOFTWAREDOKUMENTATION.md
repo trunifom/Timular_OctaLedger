@@ -1010,7 +1010,7 @@ importierbar, automatisch getestet); `dashboard/app.py` startet sie nur. Das Das
 |---|---|
 | `main.py` | `run()` wird bei **jeder** Interaktion ausgeführt (Streamlit-Rerun): Seiteneinstellungen, Logging (einmal je Prozess), Client holen, Theme anwenden, Seitenleiste, Seite zeichnen. Keine langsame Arbeit, keine Schleifen. Zustand in `st.session_state`: `_client`, `_display`, `nav` |
 | `theme.py` | helle/dunkle Farbschemata als eingefügtes CSS, genau zwei Schriftstufen (16 px / 20 px), WCAG-Kontrastberechnung |
-| `ui.py` | Formatierung (`format_hms`, `format_hm`, `format_local`), `page_help`, `help_popover`, `show_error`, `call` (API-Aufruf, der Fehler anzeigt statt zu werfen), Zustandsbezeichnungen |
+| `ui.py` | Formatierung (`format_hms`, `format_hm`, `format_local`), `page_help`, `show_error`, `show_unexpected`, `call` (API-Aufruf, der Fehler anzeigt statt zu werfen), Zustandsbezeichnungen |
 | `pages/__init__.py` | `PAGES`: Beschriftung → `render(client, timezone)`; die Reihenfolge ist die Navigationsreihenfolge |
 | `pages/overview.py` | Übersicht: laufende Zeit, Start/Pause/Fortsetzen/Stopp, Tracker-Status, Qualitätshinweis |
 
@@ -2068,3 +2068,13 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Filterleiste (`filter_bar.py`):** gemeinsame Widgets für *Einträge* und *Diagramme* mit Schlüssel-Präfix (`ent`, `chart`), weil Streamlit den Zustand nicht gezeichneter Widgets vergisst und die Seiten sich so nicht überschreiben.
 * **Mypy:** pandas-Typen sind streng; deshalb werden Zeilen per `zip(... .tolist())` statt `itertuples` durchlaufen und Gruppierungen mit `.reset_index()` gebildet.
 * **Grenzen:** Gerätezeit, keine Doppelzählung-Bereinigung (Seite *Statistik*). Das Verhalten der Diagramme und des Klicks in einem **echten Browser** ist nicht von einem Agenten geprüft (die Tests prüfen Figuren, Zahlen, Klick-Zuordnung und die Seite im Testrahmen). Die Streamlit-Auswahl über Plotly benötigt eine aktuelle Streamlit-Version (hier 1.67).
+
+
+## 45. Qualitätsdurchgang (AP-60): Lint-Regeln, Fehlersicherheit, Menü
+
+* **Lint (`pyproject.toml`):** Neben E, F, I gelten jetzt **B** (wahrscheinliche Fehler), **UP** (moderne Syntax, `datetime.UTC`), **BLE** (blinde `except`; jedes trägt eine Begründung), **T20** (kein `print` außer in `cli.py` und `scripts/`), **C4/PIE/SIM** (einfacherer Code), **S** (Sicherheitsmuster, in Tests aus) und **RUF100** (veraltete `noqa`-Kommentare). Bewusst ausgenommen: SIM102/SIM117 (verschachtelte `if`/`with` sind oft lesbarer), UP047, S101 (`assert` dient mypy). Jede Ausnahme im Code hat eine Begründung hinter dem `noqa`.
+* **Unbehandelte Ausnahmen im Prozess (`core.logging.install_exception_hooks`):** `configure_logging` ersetzt die Standard-Hooks `sys.excepthook` und `threading.excepthook` (nur diese, nie fremde). Eine nicht abgefangene Ausnahme im Hauptthread steht als **CRITICAL**, in einem Thread (BLE-Schleife, Dispatcher, API) als **ERROR** mit Thread-Name und Traceback im Log (`octaledger.unhandled`). Strg+C ist kein Absturz.
+* **Dashboard (`ui.show_unexpected`, `main.run`):** Ein Fehler, den niemand vorhergesehen hat, blankt nicht mehr die App: Die Seite zeigt eine ruhige Meldung mit dem Code `OL-GENERIC-000` und dem Hinweis auf die Seite *Diagnose*; der **Traceback steht im Log**, nie auf der Seite. Menü und andere Seiten funktionieren weiter. `ui.call` schreibt jeden gezeigten API-Fehler mit Code als WARNING ins Log, damit eine Meldung dem Logeintrag zugeordnet werden kann.
+* **Menü:** Die Gruppe *Alltag* war mit sieben Seiten überladen. Neu: **Alltag** (Übersicht, Würfel live, Musik-Player) und **Zeiten** (Zeitjournal, Einträge, Diagramme, Statistik).
+* **Aufgeräumt:** ungenutzte Funktionen/Konstanten entfernt (`help_popover`, `default_engine`, `RESET_ASK_KEY`), Wortwahl „Eintrag“ statt „Sitzung“ in Meldungen der Zeitverwaltung und der Kommandozeile.
+* **Grenzen:** Der Durchgang ist belegt durch Werkzeuge (Lint, mypy, Tests, eine Suche nach nicht referenziertem Code), nicht durch ein Review jeder Zeile. Ein echter Blick auf die Oberfläche im Browser bleibt Sache des Anwenders.

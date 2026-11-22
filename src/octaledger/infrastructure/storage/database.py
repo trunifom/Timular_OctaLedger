@@ -31,7 +31,7 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 from typing import Final
@@ -356,7 +356,7 @@ class Database:
                     migration.version,
                     migration.name,
                     migration.checksum,
-                    datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                    datetime.now(UTC).isoformat(timespec="seconds"),
                 ),
             )
             connection.execute("COMMIT")
@@ -372,7 +372,7 @@ class Database:
         if self._backup_dir is None:
             logger.warning("No backup directory configured; migrating without backup")
             return
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
         target = self._backup_dir / f"octaledger-pre-migration-v{old}-to-v{new}-{stamp}.sqlite3"
         self._copy_to(connection, target)
         logger.info("Pre-migration backup written to %s", target)

@@ -126,14 +126,15 @@ Meldungen erscheinen als eine verständliche Zeile mit Fehlercode, z. B.
 ## 5. Das Dashboard bedienen
 
 ### Die Seitenleiste (Menü)
-Das Menü ist nach Ihren Aufgaben in **fünf Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
+Das Menü ist nach Ihren Aufgaben in **sechs Gruppen** geordnet, jeder Eintrag hat ein Symbol und einen
 Text. Die **aktive Seite ist gefüllt** hervorgehoben, und der Seitentitel entspricht immer dem Menütext.
 
 | Gruppe | Einträge | Wofür |
 |---|---|---|
 | **Start** | Startseite | Was ist der Würfel? Geführte Einrichtung und dieses Handbuch zum Nachlesen |
-| **Alltag** | Übersicht · Würfel live · Zeitjournal · Einträge · Diagramme · Statistik | tägliche Arbeit: Zeit starten/stoppen, den Würfel beobachten, Einträge prüfen, auswerten |
-| **Würfel** | Würfel verwalten · Seiten zuordnen | **alles rund um die Würfel**: hinzufügen, verbinden, Kopplung aufheben, entfernen; den Seiten Tätigkeiten oder Aktionen geben |
+| **Alltag** | Übersicht · Würfel live · Musik-Player | was gerade passiert: Zeit starten/stoppen, den Würfel beobachten, Musik |
+| **Zeiten** | Zeitjournal · Einträge · Diagramme · Statistik | erfasste Zeiten ansehen, korrigieren, gesammelt bearbeiten und auswerten |
+| **Würfel** | Würfel verwalten · Würfel-Inspektor · Würfel-Datenblatt · Seiten zuordnen | **alles rund um die Würfel**: hinzufügen, verbinden, Kopplung aufheben, entfernen; den Seiten Tätigkeiten oder Aktionen geben |
 | **Einstellungen** | App · Tätigkeiten & Projekte · Darstellung · Smarthome & Verbindungen | **je eine Seite pro Art von Einstellung** (siehe unten) |
 | **System** | Daten · Diagnose | Export, Sicherung, Import, Löschen; Fehlersuche |
 

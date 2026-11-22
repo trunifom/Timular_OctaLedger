@@ -30,7 +30,6 @@ from typing import Any, Final
 from octaledger.core.errors import IntegrationError, ValidationError
 from octaledger.domain.music_source import MusicSource, SourceKind
 from octaledger.infrastructure.audio.engine import (
-    AudioEngine,
     MiniaudioEngine,
     UnavailableEngine,
     audio_available,
@@ -324,8 +323,3 @@ class PlayerAdapter(Adapter):
                         if len(files) >= MAX_LISTED_FILES:
                             return {"files": files}
         return {"files": files} if files else {}
-
-
-def default_engine() -> AudioEngine:
-    """The engine used when none is injected (real playback if the extra is installed)."""
-    return MiniaudioEngine() if audio_available() else UnavailableEngine()

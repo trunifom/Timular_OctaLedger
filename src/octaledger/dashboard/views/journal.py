@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -298,7 +298,7 @@ def _tag_form(client: ApiClient, entry: dict[str, Any], tags: list[dict[str, Any
 
 
 def _datetime_inputs(prefix: str, tz: str, iso_value: str | None, label: str) -> tuple[date, time]:
-    moment = to_local(iso_value, tz) or datetime.now(timezone.utc).astimezone(ZoneInfo(tz))
+    moment = to_local(iso_value, tz) or datetime.now(UTC).astimezone(ZoneInfo(tz))
     day_col, time_col = st.columns(2)
     day = day_col.date_input(
         f"{label} (Datum)",
@@ -455,7 +455,7 @@ def _add(
             format_func=lambda p: "– kein Projekt –" if p is None else p["name"],
             help="Optionales Projekt.",
         )
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         start_day, start_time = _datetime_inputs("add_start", tz, now, "Beginn")
         end_day, end_time = _datetime_inputs("add_end", tz, now, "Ende")
         note = st.text_input("Notiz (optional)", key="add_note", max_chars=500, help="Freier Text.")

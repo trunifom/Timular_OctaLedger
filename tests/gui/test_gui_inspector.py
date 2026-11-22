@@ -100,7 +100,7 @@ def test_music_cube_shows_title_target_and_the_holder(api_server: RunningApi) ->
     at = open_page(api_server, PAGE)
     assert not at.exception
     assert any("Stille-Seite" in i.value for i in at.info)  # nothing set up: a silence face
-    frames = [r for r in at.dataframe]
+    frames = list(at.dataframe)
     assert frames and any("Halterung" in str(f.value) for f in frames)  # the holder row
 
 

@@ -46,7 +46,7 @@ class WinregRunKey:
 
     def read(self, name: str) -> str | None:
         """Return the value or ``None``."""
-        import winreg  # noqa: PLC0415 - only exists on Windows
+        import winreg
 
         try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
@@ -62,7 +62,7 @@ class WinregRunKey:
 
     def write(self, name: str, value: str) -> None:
         """Create or replace the value."""
-        import winreg  # noqa: PLC0415
+        import winreg
 
         try:
             with winreg.CreateKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
@@ -75,7 +75,7 @@ class WinregRunKey:
 
     def delete(self, name: str) -> None:
         """Remove the value."""
-        import winreg  # noqa: PLC0415
+        import winreg
 
         try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:

@@ -1,12 +1,12 @@
 """GUI tests for the "Löschen" tab: preview, two-step confirmation, safety backup, reset."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from tests.conftest import RunningApi
 from tests.gui.test_gui_devices_catalog import open_page
 
 DATA = "data"
-UTC = timezone.utc
+UTC = UTC
 
 
 def seed(api: RunningApi, count: int = 3) -> None:

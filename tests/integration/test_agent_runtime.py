@@ -8,7 +8,7 @@ import socket
 import threading
 import time
 from collections.abc import Callable, Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -136,7 +136,7 @@ def test_whole_chain_from_tracker_to_dashboard_client(agent: Agent) -> None:
 
     agent.factory.last.push(b"\x01")  # then to face 1 (Meeting)
     wait_for(lambda: agent.client.status()["tracking"]["activity"]["name"] == "Meeting")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     entries = agent.client.journal(now - timedelta(days=1), now + timedelta(days=1))
     assert [e["activity_name"] for e in entries] == ["Meeting", "Code"]
 
@@ -318,7 +318,7 @@ def test_turning_the_cube_in_control_mode_sends_the_action_and_records_no_time(
     time.sleep(0.4)
     assert len(adapter.calls) == 1
     assert agent.client.status()["tracking"]["running"] is None  # no time was recorded
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     assert agent.client.journal(now - timedelta(days=1), now + timedelta(days=1)) == []
     live = agent.client.live_view(ids["device"])
     assert (

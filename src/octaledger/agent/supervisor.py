@@ -30,6 +30,7 @@ Rules implemented here (``docs/ARCHITEKTUR.md``)
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from collections import deque
@@ -421,10 +422,8 @@ class DeviceWorker:
             self._machine.attempt, base=self._tuning.backoff_base, cap=self._tuning.backoff_cap
         )
         logger.info("Reconnecting in %.1f s (attempt %d)", delay, self._machine.attempt)
-        try:
+        with contextlib.suppress(TimeoutError):  # the delay simply elapsed: reconnect now
             await asyncio.wait_for(self._stop.wait(), timeout=delay)
-        except TimeoutError:
-            pass
 
     async def _cycle(self) -> bool:
         """Run one connection cycle. Returns ``True`` if the worker must not retry."""
@@ -729,7 +728,7 @@ class DeviceWorker:
             await transport.stop_notify(ORIENTATION_CHARACTERISTIC_UUID)
             await transport.stop_notify(BUTTON_CHARACTERISTIC_UUID)
             await transport.disconnect()
-        except Exception:  # noqa: BLE001 - closing must never fail the worker
+        except Exception:
             logger.debug("Ignoring error while closing the transport", exc_info=True)
         # Only a link that was actually established has data worth reporting as lost.
         if was_up:

@@ -6,7 +6,7 @@ import threading
 import time
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -73,7 +73,7 @@ class FakeAgent:
         self.stopped.append(device_id)
 
     def device_statuses(self) -> list[DeviceStatus]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return [
             DeviceStatus(
                 d,

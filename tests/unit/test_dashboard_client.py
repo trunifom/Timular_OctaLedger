@@ -1,6 +1,6 @@
 """Unit tests for the dashboard API client with a fake HTTP session (no network)."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +23,7 @@ from octaledger.dashboard_client.client import ApiClient, error_from_response, r
 
 TOKEN = "k" * 43
 BASE = "http://127.0.0.1:8765"
-T0 = datetime(2026, 1, 5, 8, 0, tzinfo=timezone.utc)
+T0 = datetime(2026, 1, 5, 8, 0, tzinfo=UTC)
 
 
 class FakeResponse:

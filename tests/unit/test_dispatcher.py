@@ -3,7 +3,7 @@
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,7 @@ class Env:
         ).integration.id
 
     def enqueue(self, key: str) -> str:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         job = IntegrationJob(
             key,
             self.integration,

@@ -862,7 +862,7 @@ class TrackingService:
             if not original.started_at < at < end_limit:
                 raise ValidationError(
                     "Split time must lie strictly inside the session",
-                    user_message="Der Teilungszeitpunkt muss innerhalb der Sitzung liegen.",
+                    user_message="Der Teilungszeitpunkt muss innerhalb des Eintrags liegen.",
                     details={"session_id": session_id},
                 )
             first = repos.sessions.correct(session_id, {"ended_at": at}, reason)

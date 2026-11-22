@@ -2,7 +2,7 @@
 
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -28,7 +28,7 @@ def lose_link(env: Env, minutes_ago: int = 60) -> tuple[str, str]:
         repos.mappings.assign(device.id, 1, activity)
     tracking = env.context.tracking
     tracking.set_active_device(device.id)
-    start = datetime.now(timezone.utc) - timedelta(minutes=minutes_ago + 30)
+    start = datetime.now(UTC) - timedelta(minutes=minutes_ago + 30)
     for kind, value, at in (
         (EventKind.FACE_CHANGE, 1, start),
         (EventKind.DISCONNECT, None, start + timedelta(minutes=30)),
@@ -64,7 +64,7 @@ def test_waiting_connection_shows_when_it_will_stop(env: Env) -> None:
         repos.mappings.assign(device.id, 1, activity)
     tracking = env.context.tracking
     tracking.set_active_device(device.id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for kind, value, at in (
         (EventKind.FACE_CHANGE, 1, now - timedelta(minutes=20)),
         (EventKind.DISCONNECT, None, now - timedelta(minutes=1)),
@@ -122,9 +122,7 @@ def test_attention_needs_the_token(env: Env) -> None:
 
 def test_old_open_questions_expire(env: Env) -> None:
     lose_link(env)
-    service = AttentionService(
-        env.storage, clock=lambda: datetime.now(timezone.utc) + timedelta(days=31)
-    )
+    service = AttentionService(env.storage, clock=lambda: datetime.now(UTC) + timedelta(days=31))
     assert service.expire_old() == 1 and service.list_open() == []
     assert service.list_recent()[0].status is AttentionStatus.EXPIRED
     with pytest.raises(NotFoundError):
@@ -202,7 +200,7 @@ def test_idle_and_auto_stop_questions_are_answered_through_the_same_endpoint(env
     from octaledger.domain.attention import AttentionItem, AttentionKind
 
     activity = make_activity(env)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with env.storage.transaction() as repos:
         from octaledger.domain.models import Session, SessionSource
 
@@ -322,7 +320,7 @@ def test_tag_billing_and_budget_endpoints(env: Env) -> None:
     assert env.get("/reports/budgets").json()[0]["name"] == "Alpha"
     tags = env.call("PUT", f"/sessions/{started['id']}/tags", json={"tag_ids": [tag_id]}).json()
     assert [t["name"] for t in tags] == ["Kunde A"]
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     journal = env.get(
         "/sessions",
         params={

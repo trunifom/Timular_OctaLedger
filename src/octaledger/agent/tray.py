@@ -196,7 +196,7 @@ class PystrayTray:
                 target=self._icon.run, name="octaledger-tray", daemon=True
             )
             self._thread.start()
-        except Exception:  # noqa: BLE001 - the tray must never prevent the agent from running
+        except Exception:
             logger.warning("The tray icon could not be started", exc_info=True)
             self._icon = None
             return False
@@ -217,7 +217,7 @@ class PystrayTray:
         if icon is not None:
             try:
                 icon.stop()
-            except Exception:  # noqa: BLE001 - closing must not fail
+            except Exception:
                 logger.debug("Ignoring error while removing the tray icon", exc_info=True)
 
     @staticmethod
@@ -226,7 +226,7 @@ class PystrayTray:
             """Menu callback: pystray passes extra arguments, the action takes none."""
             try:
                 action()
-            except Exception:  # noqa: BLE001 - a menu action must not kill the tray thread
+            except Exception:
                 logger.exception("A tray menu action failed")
 
         return run

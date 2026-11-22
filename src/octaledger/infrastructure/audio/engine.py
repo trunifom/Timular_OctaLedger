@@ -129,7 +129,7 @@ class MiniaudioEngine:
             try:
                 device.stop()
                 device.close()
-            except Exception:  # noqa: BLE001 - closing must never fail the worker
+            except Exception:
                 logger.debug("Ignoring error while stopping the audio device", exc_info=True)
         if source is not None:
             try:

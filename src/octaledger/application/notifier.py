@@ -129,6 +129,6 @@ class NotificationRelay:
                 try:
                     notifier.notify(title, message)
                     sent += 1
-                except Exception:  # noqa: BLE001 - a failing display must never stop the agent
+                except Exception:
                     logger.exception("A notifier failed")
         return sent

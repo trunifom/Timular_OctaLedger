@@ -30,5 +30,5 @@ class WinToastNotifier:
             from winotify import Notification  # type: ignore[import-not-found,unused-ignore]
 
             Notification(app_id=APP_ID, title=title, msg=message).show()
-        except Exception:  # noqa: BLE001 - display problems must not reach the caller
+        except Exception:
             logger.warning("The toast could not be shown", exc_info=True)

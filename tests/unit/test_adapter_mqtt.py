@@ -10,7 +10,7 @@ import struct
 import threading
 import time
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -488,7 +488,7 @@ def test_a_queued_action_is_published_through_the_service(broker: Broker, tmp_pa
         connection.integration.id,
         "Lampe",
         {"action": "publish", "topic": "licht/an", "payload": "ON", "qos": "1", "retain": False},
-        expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
+        expires_at=datetime.now(UTC) + timedelta(seconds=30),
     )
     with storage.transaction() as repos:
         repos.jobs.enqueue(job)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import streamlit as st
@@ -25,7 +25,7 @@ def build_report(
     lines = [
         "OctaLedger Diagnosebericht (anonymisiert)",
         f"Programmversion: {__version__}",
-        f"Erstellt: {datetime.now(timezone.utc).isoformat(timespec='seconds')}",
+        f"Erstellt: {datetime.now(UTC).isoformat(timespec='seconds')}",
         "",
         f"Datenbank-Integrität: {'in Ordnung' if integrity.get('ok') else 'PROBLEME'}",
     ]

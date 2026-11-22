@@ -16,6 +16,7 @@ connection can take seconds. So the adapter only **puts a command into a queue**
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import queue
 import threading
@@ -215,10 +216,8 @@ class AudioWorker:
         thread = self._thread
         if thread is None:
             return
-        try:
+        with contextlib.suppress(queue.Full):  # a full queue means the thread is busy anyway
             self._queue.put(None, timeout=1)
-        except queue.Full:
-            pass
         thread.join(timeout)
 
     def _ensure_thread(self) -> None:
@@ -243,7 +242,7 @@ class AudioWorker:
                 self.last_error = exc.user_message
                 self.playing = None
                 logger.warning("Audio command %s failed: %s", command.kind, exc)
-            except Exception:  # noqa: BLE001 - the worker must outlive any engine bug
+            except Exception:
                 self.last_error = "Unerwarteter Fehler beim Abspielen."
                 self.playing = None
                 logger.exception("Audio worker hit an unexpected error")
@@ -262,7 +261,7 @@ class AudioWorker:
             engine.play(stream, volume)
             self.playing = "stream"
         elif command.kind == "play_file":
-            engine.play(Path(str(command.value)).open("rb"), volume)
+            engine.play(Path(str(command.value)).open("rb"), volume)  # noqa: SIM115 - the engine closes it
             self.playing = "file"
         else:  # pragma: no cover - the adapter only sends the four kinds above
             raise IntegrationError(f"Unknown audio command {command.kind!r}")

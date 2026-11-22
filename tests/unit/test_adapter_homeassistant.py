@@ -9,7 +9,7 @@ import socket
 import threading
 import time
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -100,7 +100,7 @@ class FakeHomeAssistant:
                     return None
                 return self._answer(404)
 
-            do_GET = do_POST = _handle  # noqa: N815
+            do_GET = do_POST = _handle
 
             def log_message(self, *_args: object) -> None:
                 return
@@ -445,7 +445,7 @@ def test_a_queued_action_reaches_home_assistant_through_the_service(
         connection.integration.id,
         "Schreibtischlampe",
         {"action": "toggle", "entity_id": "light.schreibtisch"},
-        expires_at=datetime.now(timezone.utc) + timedelta(seconds=30),
+        expires_at=datetime.now(UTC) + timedelta(seconds=30),
     )
     with storage.transaction() as repos:
         repos.jobs.enqueue(job)

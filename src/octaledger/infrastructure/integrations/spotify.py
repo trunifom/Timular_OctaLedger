@@ -125,7 +125,7 @@ def _make_handler(state: _Callback) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         """Accepts the single redirect of the Spotify login on ``/callback``."""
 
-        def do_GET(self) -> None:  # noqa: N802 - name fixed by BaseHTTPRequestHandler
+        def do_GET(self) -> None:
             """Check path and ``state``, then store the code or the refusal."""
             parts = urlsplit(self.path)
             if parts.path != "/callback":
@@ -152,7 +152,7 @@ def _make_handler(state: _Callback) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(data)
 
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        def log_message(self, format: str, *args: Any) -> None:
             """Stay silent: the request line contains the one-time code."""
 
     return Handler

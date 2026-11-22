@@ -287,7 +287,7 @@ class AgentRuntime:
                 asyncio.run_coroutine_threadsafe(supervisor.shutdown(), loop).result(
                     timeout=self._tuning.shutdown_grace + 5
                 )
-            except Exception:  # noqa: BLE001 - shutting down must always finish
+            except Exception:
                 logger.exception("Error while stopping the trackers")
             loop.call_soon_threadsafe(loop.stop)
         if self._ble_thread is not None:
