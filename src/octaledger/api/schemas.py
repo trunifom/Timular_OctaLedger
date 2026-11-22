@@ -17,6 +17,7 @@ from typing import Any, Final
 from pydantic import BaseModel, ConfigDict, Field
 
 from octaledger.agent.supervisor import DeviceStatus
+from octaledger.application.battery_service import BatterySummary
 from octaledger.application.device_service import DeviceInfo
 from octaledger.application.ics_import import IcsPreview
 from octaledger.application.integration_service import IntegrationInfo, JobInfo
@@ -683,6 +684,24 @@ def ics_preview_out(preview: IcsPreview) -> dict[str, Any]:
             for p in preview.proposals
         ],
         "skipped": dict(preview.skipped),
+    }
+
+
+def battery_out(summary: BatterySummary | None) -> dict[str, Any] | None:
+    """Serialise a battery summary (``None`` while nothing is known)."""
+    if summary is None:
+        return None
+    return {
+        "percent": summary.percent,
+        "stage": summary.stage.key,
+        "stage_text": summary.stage.text,
+        "level": summary.stage.level,
+        "icon": summary.stage.icon,
+        "bar": summary.bar,
+        "live": summary.live,
+        "measured_at": iso(summary.measured_at) if summary.measured_at else None,
+        "days_left": None if summary.days_left is None else round(summary.days_left, 1),
+        "estimate_text": summary.estimate_text,
     }
 
 

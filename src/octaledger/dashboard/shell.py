@@ -19,6 +19,8 @@ from typing import Any
 import streamlit as st
 
 from octaledger.core.errors import OctaLedgerError
+from octaledger.dashboard.battery import battery_html, needs_attention, warning_text
+from octaledger.dashboard.identity import cube_html
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import STATE_LABELS, STATE_LEVEL, format_hms
 from octaledger.dashboard_client.client import ApiClient
@@ -47,6 +49,19 @@ def tracker_summary(status: dict[str, Any]) -> tuple[str, str, bool]:
     text = f"{active['alias']}{mark}: {STATE_LABELS.get(state, state)}"
     level = STATE_LEVEL.get(state, "warn")
     return text, level, state in NOT_RECORDING
+
+
+def _batteries(devices: list[dict[str, Any]]) -> None:
+    """One line per cube with its battery (always visible) and a warning for a weak one."""
+    if not devices:
+        return
+    lines = [f"{cube_html(d)} {battery_html(d.get('battery'))}" for d in devices]
+    st.markdown(
+        '<div class="ol-batteries">' + "<br>".join(lines) + "</div>", unsafe_allow_html=True
+    )
+    for device in devices:
+        if needs_attention(device.get("battery")):
+            st.warning(warning_text(device), icon=":material/battery_alert:")
 
 
 @st.fragment(run_every="5s")
@@ -95,6 +110,7 @@ def status_bar(client: ApiClient) -> None:
             else:
                 st.rerun(scope="app")
 
+    _batteries(status["devices"])
     if attention and status["devices"]:
         st.warning(
             "**Der Tracker liefert gerade keine Werte.** Würfelbewegungen werden nicht erfasst, "

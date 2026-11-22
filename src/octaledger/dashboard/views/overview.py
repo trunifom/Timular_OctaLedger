@@ -21,6 +21,7 @@ import pandas as pd
 import streamlit as st
 
 from octaledger.core.errors import OctaLedgerError
+from octaledger.dashboard.battery import battery_html
 from octaledger.dashboard.identity import cube_html, mode_text
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import (
@@ -236,8 +237,7 @@ def _tracker_box(status: dict[str, Any]) -> None:
                 unsafe_allow_html=True,
             )
             st.markdown(status_dot(level, label), unsafe_allow_html=True)
-            if live and live.get("battery_percent") is not None:
-                st.caption(f"Batterie: {live['battery_percent']} %")
+            st.markdown(battery_html(device.get("battery")), unsafe_allow_html=True)
             if live and live.get("last_error"):
                 st.caption(f"Letzte Meldung: {live['last_error']}")
         if not status["agent_running"]:

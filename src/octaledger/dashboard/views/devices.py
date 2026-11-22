@@ -7,6 +7,7 @@ from typing import Any
 
 import streamlit as st
 
+from octaledger.dashboard.battery import render_history
 from octaledger.dashboard.identity import cube_html
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import (
@@ -194,9 +195,9 @@ def _device_panel(
             + ("gespeichert" if device["has_address"] else "noch nicht zugeordnet"),
             f"registriert: {format_local(device['created_at'], tz)}",
         ]
-        if live and live.get("battery_percent") is not None:
-            details.append(f"Batterie: {live['battery_percent']} %")
         st.caption(" · ".join(details))
+        with st.expander("Batterie: Stand und Verlauf", key=f"battery_{did}"):
+            render_history(client, device, tz)
         if live and live.get("last_error"):
             st.warning(f"Letzte Meldung: {live['last_error']}", icon="⚠️")
 

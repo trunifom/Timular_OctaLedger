@@ -78,7 +78,8 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-48 | Musik-Modus (Kern): dritte Betriebsart, Link-Erkennung, Auslöse-Regeln (Halterung/Stille-Seite/Zielwechsel), Ziele Player und Home Assistant, „läuft gerade“, Wächter bei Verbindungsverlust, Editor; Halterungs-Rohwert nicht hardwarebestätigt | 2026-11-22 | 16:00 | ff0ce39 |
 | AP-49 | Spotify direkt: Adapter `spotify` (Web API, PKCE-Kopplung per Browser mit lokalem Rückkanal, Wiedergabe/Pause/Lautstärke), Kopplung mit langem Zeitlimit; nur gegen Attrappe getestet | 2026-11-22 | 17:00 | deba4d5 |
 | AP-50 | Player in der App: Adapter `browser`, Seite „Musik-Player“ (Zustimmung vor dem Laden von youtube.com, nur bei geöffneter Seite), API `/music/browser-state`; Fix `spotify_play` als Wiedergabe-Aktion; nicht im echten Browser geprüft | 2026-11-22 | 18:00 | 3a5750d |
-| AP-51 | Würfel-Identität: Nummer, Name und Farbe je Würfel, ausgewählter Würfel in der Seitenleiste (gilt überall), Banner, Karten in der Übersicht, Farbwahl, Sicherung | 2026-11-22 | 17:00 | _folgt_ |
+| AP-51 | Würfel-Identität: Nummer, Name und Farbe je Würfel, ausgewählter Würfel in der Seitenleiste (gilt überall), Banner, Karten in der Übersicht, Farbwahl, Sicherung | 2026-11-22 | 17:00 | 086dada |
+| AP-52 | Batterie-Cockpit: Batterie jedes Würfels immer sichtbar (Text + Zahl), Verlauf gespeichert, Stufen-Warnungen, Schätzung der Restdauer; Meldefrequenz des Würfels nicht hardwarebestätigt | 2026-11-22 | 18:00 | _folgt_ |
 
 ## Offen
 

@@ -119,7 +119,7 @@ def test_connect_and_disconnect(api_server: RunningApi, agent: FakeAgent) -> Non
     at = open_page(api_server, DEVICES)
     button(at, "Verbinden").click().run()
     assert agent.started == [device["id"]]
-    assert "Bereit" in texts(at) and "Batterie: 87 %" in texts(at)
+    assert "Bereit" in texts(at) and "87 %" in texts(at) and "Batterie" in texts(at)
     button(at, "Trennen").click().run()
     assert agent.stopped == [device["id"]]
 

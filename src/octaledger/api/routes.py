@@ -78,6 +78,7 @@ from octaledger.api.schemas import (
     adapter_out,
     attention_out,
     balance_out,
+    battery_out,
     billing_out,
     budget_out,
     device_out,
@@ -169,6 +170,9 @@ def build_router(ctx: AppContext) -> APIRouter:
         """Overview: running session, active tracker, live device states."""
         moment = now()
         live = device_statuses()
+        batteries = ctx.battery.summary(
+            {device_id: s.battery_percent for device_id, s in live.items()}
+        )
         return {
             "tracking": tracking_status_out(ctx.tracking.status(), moment),
             "devices": [
@@ -180,6 +184,7 @@ def build_router(ctx: AppContext) -> APIRouter:
                     "badge": badge(info.number),
                     "is_active": info.is_active,
                     "mode": info.device.mode.value,
+                    "battery": battery_out(batteries.get(info.device.id)),
                     "live": device_out(info, live.get(info.device.id))["status"],
                 }
                 for info in ctx.devices.list_devices()
@@ -214,6 +219,19 @@ def build_router(ctx: AppContext) -> APIRouter:
         if body.color is not None:
             ctx.devices.set_color(device_id, body.color)
         return device_out(ctx.devices.get(device_id))
+
+    @router.get("/devices/{device_id}/battery")
+    def device_battery(
+        device_id: str, days: int = Query(default=60, ge=1, le=400)
+    ) -> dict[str, Any]:
+        """Battery of one cube: summary (live or last stored value) and the stored history."""
+        live = device_statuses().get(device_id)
+        history = ctx.battery.history(device_id, days)
+        summary = ctx.battery.summary({device_id: live.battery_percent if live else None})
+        return {
+            "summary": battery_out(summary.get(device_id)),
+            "history": [{"at": iso(at), "percent": percent} for at, percent in history],
+        }
 
     @router.delete("/devices/{device_id}", status_code=204)
     def remove_device(device_id: str) -> None:

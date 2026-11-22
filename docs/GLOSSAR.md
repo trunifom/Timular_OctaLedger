@@ -60,6 +60,8 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Batterie-Stufe** – gut (ab 40 %), bald tauschen (20–39 %), schwach (10–19 %), fast leer (unter 10 %); steht immer mit Zahl und Text da, nie nur als Farbe.
+
 **Ausgewählter Würfel** – der Würfel, den die Oberfläche gerade zeigt und bearbeitet (Wähler in der Seitenleiste, gilt auf allen Seiten). Nicht zu verwechseln mit dem **aktiven Zeit-Würfel** (⭐), der die Zeiterfassung steuert.
 
 **Würfel-Identität** – Name, Nummer und Farbe eines Würfels; die Farbe steht nie allein, Nummer und Name stehen dabei.

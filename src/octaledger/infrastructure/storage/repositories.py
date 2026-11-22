@@ -1766,6 +1766,46 @@ class DeviceButtonRepository:
                 )
 
 
+class BatteryRepository:
+    """The stored battery readings of the cubes (see ``domain/battery.py``)."""
+
+    def __init__(self, connection: sqlite3.Connection) -> None:
+        """Bind to an open connection."""
+        self._c = connection
+
+    def add(self, device_id: str, at: datetime, percent: int) -> None:
+        """Store a reading (a second reading at the very same moment is ignored)."""
+        with _db_errors("write battery reading"):
+            self._c.execute(
+                "INSERT OR IGNORE INTO battery_log (device_id, at, percent) VALUES (?, ?, ?)",
+                (device_id, to_db_time(at), percent),
+            )
+
+    def latest(self, device_id: str) -> tuple[datetime, int] | None:
+        """The newest reading of a cube, or ``None``."""
+        with _db_errors("read battery reading"):
+            row = self._c.execute(
+                "SELECT at, percent FROM battery_log WHERE device_id = ? ORDER BY at DESC LIMIT 1",
+                (device_id,),
+            ).fetchone()
+        return None if row is None else (from_db_time(row["at"]), int(row["percent"]))
+
+    def since(self, device_id: str, start: datetime) -> list[tuple[datetime, int]]:
+        """The readings of a cube from ``start`` on, oldest first."""
+        with _db_errors("read battery history"):
+            rows = self._c.execute(
+                "SELECT at, percent FROM battery_log WHERE device_id = ? AND at >= ? ORDER BY at",
+                (device_id, to_db_time(start)),
+            ).fetchall()
+        return [(from_db_time(r["at"]), int(r["percent"])) for r in rows]
+
+    def prune(self, before: datetime) -> int:
+        """Delete readings older than ``before``; returns how many."""
+        with _db_errors("prune battery history"):
+            cursor = self._c.execute("DELETE FROM battery_log WHERE at < ?", (to_db_time(before),))
+        return cursor.rowcount
+
+
 class ScheduleRepository:
     """The versioned weekly target (see :class:`WorkSchedule`)."""
 
@@ -2138,6 +2178,7 @@ SIMPLE_TABLES: Final[dict[str, tuple[str, ...]]] = {
         "enabled",
         "condition",
     ),
+    "battery_log": ("device_id", "at", "percent"),
     "tags": ("id", "name", "color"),
     "session_tags": ("session_id", "tag_id"),
     "activity_tags": ("activity_id", "tag_id"),
@@ -2350,6 +2391,7 @@ class Repositories:
     schedule: ScheduleRepository
     absences: AbsenceRepository
     tags: TagRepository
+    battery: BatteryRepository
 
     @classmethod
     def bind(cls, connection: sqlite3.Connection) -> Repositories:
@@ -2375,6 +2417,7 @@ class Repositories:
             ("schedule", ScheduleRepository(connection)),
             ("absences", AbsenceRepository(connection)),
             ("tags", TagRepository(connection)),
+            ("battery", BatteryRepository(connection)),
         ):
             object.__setattr__(bundle, name, value)
         object.__setattr__(bundle, "backup", BackupRepository(connection, bundle))

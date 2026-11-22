@@ -72,6 +72,7 @@ octaledger/
   src/octaledger/api/security.py
   src/octaledger/application/__init__.py
   src/octaledger/application/attention_service.py
+  src/octaledger/application/battery_service.py
   src/octaledger/application/battery_watch.py
   src/octaledger/application/budget_watch.py
   src/octaledger/application/catalog_service.py
@@ -99,6 +100,7 @@ octaledger/
   src/octaledger/core/settings.py
   src/octaledger/dashboard/__init__.py
   src/octaledger/dashboard/attention.py
+  src/octaledger/dashboard/battery.py
   src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/docs_reader.py
   src/octaledger/dashboard/forms.py
@@ -138,6 +140,7 @@ octaledger/
   src/octaledger/dashboard_client/client.py
   src/octaledger/domain/__init__.py
   src/octaledger/domain/attention.py
+  src/octaledger/domain/battery.py
   src/octaledger/domain/break_rules.py
   src/octaledger/domain/conditions.py
   src/octaledger/domain/device_identity.py
@@ -188,6 +191,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0008_action_steps.sql
   src/octaledger/infrastructure/storage/migrations/0009_music_mode.sql
   src/octaledger/infrastructure/storage/migrations/0010_device_color.sql
+  src/octaledger/infrastructure/storage/migrations/0011_battery_log.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -200,6 +204,7 @@ octaledger/
   tests/fixtures/.gitkeep
   tests/gui/__init__.py
   tests/gui/test_gui_attention.py
+  tests/gui/test_gui_battery.py
   tests/gui/test_gui_connections.py
   tests/gui/test_gui_control.py
   tests/gui/test_gui_core.py
@@ -233,6 +238,7 @@ octaledger/
   tests/unit/test_api_security.py
   tests/unit/test_attention.py
   tests/unit/test_balance.py
+  tests/unit/test_battery.py
   tests/unit/test_ble_bleak_layer.py
   tests/unit/test_ble_protocol_and_fake.py
   tests/unit/test_button_and_battery.py

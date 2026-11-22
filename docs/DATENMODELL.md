@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0010`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0011`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -138,6 +138,14 @@ Zusätzlich je Würfel ein Schlüssel `link_lost:<device_id>` (JSON `{at, stoppe
 
 `work_schedule`: `valid_from` (lokales Datum, Schlüssel), `mon_minutes` … `sun_minutes` (0–1440). Eine neue Version ändert frühere Tage nicht. `absences`: `id`, `start_date`, `end_date` (einschließlich, lokale Daten), `kind` (`vacation`, `sick`, `holiday_custom`, `other`), `target_minutes` (leer = 0), `note`. Beide Tabellen sind Teil der Sicherung (Schema 3, Abschnitt `tables`).
 
+### `battery_log` (0011)
+
+| Spalte | Bedeutung |
+|---|---|
+| `device_id` | Würfel (`ON DELETE CASCADE`) |
+| `at` | Zeitpunkt der Messung (UTC) |
+| `percent` | Prozentwert, den der Würfel selbst meldet (0–100) |
+
 ### `device_buttons` (0005)
 
 `device_id` (löscht sich mit dem Würfel), `press` (`short`/`long`), `action` (`pause_resume`, `stop`, `start_last`). Ohne Zeile geschieht beim Druck nichts. Teil der Sicherung ab Schema 3 (Abschnitt `tables`). Migration 0005 baut außerdem `raw_events` neu auf, damit die Ereignisart `button` erlaubt ist; alle Zeilen werden unverändert übernommen.
@@ -224,6 +232,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
+| 0011 | `0011_battery_log.sql` | Tabelle `battery_log` (`device_id`, `at`, `percent` 0–100, Schlüssel `(device_id, at)`, löscht mit dem Würfel): der Batterie-Verlauf (AP-52); ein Eintrag, wenn sich der Wert ändert, spätestens alle 6 Stunden; Aufbewahrung 400 Tage; Teil der Sicherung |
 | 0010 | `0010_device_color.sql` | Spalte `devices.color` (Text, leer = nicht gewählt): die Farbe eines Würfels, zusammen mit Nummer und Name seine Identität (AP-51); die Nummer wird nicht gespeichert, sondern aus der Reihenfolge der Anlage berechnet; ohne Farbe gilt die Palettenfarbe der Nummer; in der Sicherung als optionales Feld `color` je Gerät (ältere Dateien ohne das Feld bleiben lesbar) |
 | 0009 | `0009_music_mode.sql` | Spalte `devices.music`: Der Musik-Modus wird als Modus `control` plus Kennzeichen gespeichert (SQLite kann die Bedingung von `devices.mode` nur durch einen Tabellenneubau ändern, der alles Abhängige mitlöschen würde); die Anwendung bildet das Paar wieder auf `music` ab |
 | 0008 | `0008_action_steps.sql` | `face_action_steps` (bestehende Aktionen werden Schritt 0), Spalten `chain_id`, `step`, `continue_on_error` bei `integration_jobs` |

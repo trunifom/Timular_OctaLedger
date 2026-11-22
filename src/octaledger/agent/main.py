@@ -41,6 +41,7 @@ from octaledger.agent.tray import PystrayTray, TrayModel, tray_available
 from octaledger.api.app import create_app
 from octaledger.api.context import AppContext
 from octaledger.api.security import TOKEN_FILE_NAME, load_or_create_token
+from octaledger.application.battery_service import percent_map
 from octaledger.application.battery_watch import BatteryWatch
 from octaledger.application.budget_watch import BudgetWatch
 from octaledger.application.catalog_service import CatalogService
@@ -196,6 +197,7 @@ class AgentRuntime:
                 self.context.attention.expire_old,
                 self.context.workday.tick,
                 self._music_watchdog,
+                self._record_battery,
                 self._battery_watch.check,
                 self._budget_watch.check,
                 self._relay.check,
@@ -396,6 +398,10 @@ class AgentRuntime:
         tray = PystrayTray(model)
         if tray.start():
             self._tray = tray
+
+    def _record_battery(self) -> None:
+        """Housekeeper task: store the battery readings that are due and log stage changes."""
+        self.context.battery.record(percent_map(self.device_statuses()))
 
     def _music_watchdog(self) -> None:
         """Housekeeper task: stop music of cubes that stayed disconnected beyond the grace."""

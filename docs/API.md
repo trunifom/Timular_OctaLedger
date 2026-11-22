@@ -110,6 +110,8 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `GET /health` | Lebenszeichen, **ohne Token** | `{"status":"ok","api_version":1,"version":"…"}` |
 | `GET /status` | Übersicht: laufende Sitzung, Geräte mit Modus und Live-Zustand | siehe unten |
 
+**Batterie (AP-52):** jeder Eintrag von `devices` in `GET /status` trägt `battery` (dieselbe Zusammenfassung wie oben, `null`, solange nichts bekannt ist). `live: false` heißt: der Würfel ist nicht verbunden, der Wert ist der **zuletzt gespeicherte** (`measured_at`).
+
 **Identität eines Würfels (AP-51):** jedes **Gerät** (und jeder Eintrag von `devices` in `GET /status`) trägt `number` (Reihenfolge der Anlage, 1, 2 …), `color` (`#RRGGBB`; ohne gewählte Farbe die Palettenfarbe der Nummer), `badge` (Nummernzeichen wie `②`) und beim Gerät zusätzlich `color_name` (deutscher Farbname). Die Anzeige kombiniert immer Farbe, Nummer **und** Name.
 
 `GET /status` liefert:
@@ -141,6 +143,7 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `DELETE /devices/{id}` | entfernen (nur ohne erfasste Daten, sonst 409) | – | 204 |
 | `PUT /devices/{id}/faces/{1..8}` | Seite einer Aktivität (und Projekt) zuordnen | `{"activity_id"?, "project_id"?}` | **Gerät** |
 | `DELETE /devices/{id}/faces/{1..8}` | Zuordnung einer Seite löschen | – | **Gerät** |
+| `GET /devices/{id}/battery?days=60` | Batterie eines Würfels: Zusammenfassung (Live-Wert oder letzter gespeicherter) und gespeicherter Verlauf (AP-52) | – | `{summary: {percent, stage (good\|soon\|weak\|empty), stage_text, level, icon, bar, live, measured_at, days_left, estimate_text}\|null, history: [{at, percent}]}` |
 | `GET /devices/{id}/observed-face` | zuletzt gesehene Seite (für das geführte Zuordnen) | – | `{"face", "received_at", "kind"}` oder `{"face": null}` |
 | `GET /devices/{id}/live` | Live-Ansicht: Position, Entprellung, Bewegungen, Wirkung | – | siehe unten |
 | `GET /devices/{id}/buttons` | Aktionen der Würfeltaste (kurz/lang) | – | `{"buttons": {"short": …\|null, "long": …\|null}}` |

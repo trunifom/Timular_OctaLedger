@@ -1996,3 +1996,12 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Speicher/Dienst:** Migration 0010 (`devices.color`); `DeviceService` vergibt beim Registrieren die erste freie Farbe, berechnet `DeviceInfo.number` und `DeviceInfo.color` (gewählte, sonst Palettenfarbe der Nummer) und bietet `set_color`. Sicherung: optionales Feld `color`.
 * **API:** `PATCH /devices/{id}` mit `alias` und/oder `color`; `number`, `color`, `badge`, `color_name` in Gerät und Status.
 * **Oberfläche:** `dashboard/identity.py`: `cube_html` (Punkt + Nummer + Name, escaped), `selected_cube` (eine Auswahl je Sitzung in `st.session_state["cube_selected"]`, ersetzt Verschwundenes), `sidebar_selector`, `banner`. Die Seiten *Seiten zuordnen* und *Würfel live* benutzen die gemeinsame Auswahl statt eigener Auswahlfelder.
+
+
+## 37. Batterie-Cockpit (`domain.battery`, `application.battery_service`, `dashboard.battery`, AP-52)
+
+* **Domäne (rein):** Stufen (`stage_for`: ab 40 gut, 20–39 bald tauschen, 10–19 schwach, unter 10 fast leer) mit Text, Symbol und Ebene; `bar` (fünf Segmente, eines je angefangene 20 %); `should_record` (erste, geänderte oder 6 Stunden alte Messung); `is_worse`; `estimate_days_left` (Gerade durch den Verlauf der letzten 45 Tage nach dem letzten Batteriewechsel, mindestens 5 Punkte über 3 Tage, fallender Trend) und `describe_days` (immer als Schätzung gekennzeichnet).
+* **Dienst:** `BatteryService.record(readings)` wird vom Housekeeper alle 5 Sekunden mit den Live-Werten aufgerufen, speichert fällige Messungen, protokolliert den Wechsel in eine **schlechtere Stufe einmal** (auch nach einem Neustart: die Stufe wird aus der letzten gespeicherten Messung wiederhergestellt) und löscht Verlauf älter als 400 Tage. `summary(live)` liefert je Würfel den Live-Wert oder den letzten gespeicherten (`live=False`).
+* **Speicher:** Migration 0011 (`battery_log`), `BatteryRepository`, Teil von `SIMPLE_TABLES` (Sicherung).
+* **API/Oberfläche:** `battery` in `GET /status`, `GET /devices/{id}/battery`; `dashboard/battery.py` (`battery_html`, Warntext, Verlauf mit `st.line_chart`) in Statusleiste, Übersicht und Würfel-Verwaltung.
+* **Grenzen:** Die Prozentwerte sind die des Würfels; wie oft und wie genau er sie meldet, ist unbekannt [HW].

@@ -25,6 +25,11 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Batterie-Cockpit, AP-52)
+- **Batterie immer sichtbar:** eine Zeile je Würfel unter der Statusleiste (Balken, Prozent, Stufe als Text, bei fehlender Verbindung der zuletzt gemessene Wert), Warnung auf jeder Seite bei *schwach* und *fast leer*; Karten in der Übersicht.
+- **Verlauf gespeichert** (Migration 0011, `battery_log`; Änderung oder alle 6 Stunden, 400 Tage, in der Sicherung), Kurve und **ehrlich gekennzeichnete Schätzung** der Restdauer; `GET /devices/{id}/battery`, `battery` in `GET /status`.
+- Stufenwechsel nach unten stehen einmal im Protokoll (WARNING, *fast leer* ERROR), auch über einen Neustart hinweg.
+
 ### Hinzugefügt (Würfel-Identität, AP-51)
 - Jeder Würfel hat **Nummer, Name und Farbe** (Migration 0010, `devices.color`; automatische, unterscheidbare Palette; änderbar über `PATCH /devices/{id}`); API-Felder `number`, `color`, `color_name`, `badge`; Sicherung mit optionalem Feld `color`.
 - **Ausgewählter Würfel** in der Seitenleiste (gilt auf allen Seiten), **Banner** „Sie bearbeiten: …“ auf *Seiten zuordnen* und *Würfel live*, Übersicht mit Nummer und Bereich, Farbwahl auf *Würfel verwalten*. Die Auswahlfelder „Tracker“ der einzelnen Seiten entfallen.

@@ -12,6 +12,7 @@ from typing import Protocol
 
 from octaledger.agent.supervisor import DeviceStatus
 from octaledger.application.attention_service import AttentionService
+from octaledger.application.battery_service import BatteryService
 from octaledger.application.catalog_service import CatalogService
 from octaledger.application.data_service import DataService
 from octaledger.application.device_service import DeviceService
@@ -88,6 +89,7 @@ class AppContext:
     worktime: WorkTimeService = field(init=False)
     tag_service: TagService = field(init=False)
     ics: IcsService = field(init=False)
+    battery: BatteryService = field(init=False)
     music: MusicService | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
@@ -96,6 +98,7 @@ class AppContext:
         self.worktime = WorkTimeService(self.storage)
         self.tag_service = TagService(self.storage)
         self.ics = IcsService(self.storage)
+        self.battery = BatteryService(self.storage)
         if self.integrations is not None:
             self.music = MusicService(
                 self.storage, self.integrations, lambda: self.settings.settings
