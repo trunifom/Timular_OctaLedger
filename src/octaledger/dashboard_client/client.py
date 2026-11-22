@@ -237,11 +237,12 @@ class ApiClient:
         result: dict[str, Any] = self._post("/devices", {"alias": alias})
         return result
 
-    def rename_device(self, device_id: str, alias: str) -> dict[str, Any]:
-        """Change a tracker's alias."""
-        result: dict[str, Any] = self._request(
-            "PATCH", f"/devices/{device_id}", json={"alias": alias}
-        )
+    def rename_device(
+        self, device_id: str, alias: str | None = None, color: str | None = None
+    ) -> dict[str, Any]:
+        """Change a tracker's alias and/or identity colour."""
+        body = {k: v for k, v in {"alias": alias, "color": color}.items() if v is not None}
+        result: dict[str, Any] = self._request("PATCH", f"/devices/{device_id}", json=body)
         return result
 
     def remove_device(self, device_id: str) -> None:

@@ -29,6 +29,7 @@ from octaledger.application.reporting_service import (
 )
 from octaledger.application.tracking_service import TrackingStatus
 from octaledger.domain.attention import AttentionItem
+from octaledger.domain.device_identity import badge, color_name
 from octaledger.domain.models import (
     FACE_NUMBERS,
     Activity,
@@ -70,9 +71,10 @@ class AddressBody(_Strict):
 
 
 class DeviceRename(_Strict):
-    """Change a tracker's alias."""
+    """Change a tracker's alias and/or identity colour (at least one of them)."""
 
-    alias: str = Field(max_length=200)
+    alias: str | None = Field(default=None, max_length=200)
+    color: str | None = Field(default=None, max_length=7)
 
 
 class FaceAssign(_Strict):
@@ -629,6 +631,10 @@ def device_out(info: DeviceInfo, status: DeviceStatus | None = None) -> dict[str
     return {
         "id": device.id,
         "alias": device.alias,
+        "number": info.number,
+        "color": info.color,
+        "color_name": color_name(info.color),
+        "badge": badge(info.number),
         "has_address": device.platform_address is not None,
         "model": device.model,
         "firmware": device.firmware,

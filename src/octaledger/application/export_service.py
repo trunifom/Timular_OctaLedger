@@ -336,6 +336,7 @@ class ExportService:
                     "firmware": d.firmware,
                     "created_at": to_db_time(d.created_at),
                     "mode": d.mode.value,
+                    "color": d.color,
                 }
                 for d in content.devices
             ],
@@ -561,9 +562,11 @@ class ExportService:
                 "devices",
                 lambda r: Device(
                     **{
-                        **exact(r, device_keys),
+                        # ``color`` is optional: files from before AP-51 do not have it
+                        **exact({k: v for k, v in r.items() if k != "color"}, device_keys),
                         "created_at": from_db_time(r["created_at"]),
                         "mode": DeviceMode(r.get("mode", DeviceMode.TIME.value)),
+                        "color": r.get("color", ""),
                     }
                 ),
             ),

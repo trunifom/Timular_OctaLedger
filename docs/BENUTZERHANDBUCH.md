@@ -458,6 +458,15 @@ Damit nicht jedes kurze Wackeln eine neue Tätigkeit startet, gelten diese Regel
 
 „Verbunden“ heißt noch nicht „bereit“: Erfasst wird erst im Status **Bereit**.
 
+## 8a. Mehrere Würfel: welcher ist es?
+
+Jeder Würfel hat **Namen, Nummer und Farbe**, zum Beispiel „● ② Regenbogen“. Die Farbe wird **nie allein** benutzt: Nummer und Name stehen immer dabei. Neue Würfel bekommen automatisch eine freie Farbe; Sie ändern sie auf der Seite *Würfel verwalten* → *Verwalten* → **Farbe des Würfels**.
+
+- **Ausgewählter Würfel:** In der **Seitenleiste** (oben) wählen Sie den Würfel, den Sie gerade ansehen und bearbeiten. **Die Auswahl gilt auf allen Seiten** (Seiten zuordnen, Würfel live …). Mit nur einem Würfel entfällt die Auswahl.
+- **Banner:** Oben auf diesen Seiten steht „Sie bearbeiten: ● ② Regenbogen · Musik“. So sehen Sie immer, welcher Würfel gerade bearbeitet wird.
+- **⭐ erfasst die Zeit** ist etwas anderes: Es ist der Würfel, der die **Zeiterfassung** steuert (ein einziger). Der ausgewählte Würfel ist dagegen nur der, den die Oberfläche gerade zeigt.
+- Die **Übersicht** zeigt alle Würfel mit Nummer, Bereich (Zeit, Smarthome oder Musik) und Verbindung.
+
 ## 9. Verbindungsverhalten im Alltag
 
 - **Automatisch wieder verbinden:** Reißt die Bluetooth-Verbindung ab (Tracker außer Reichweite,

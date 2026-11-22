@@ -1988,3 +1988,11 @@ Bestätigungstext, Entfernen/Unpair, Einstellungen zurücksetzen. `tests/gui/tes
 * **Adapter `browser`:** kein Netzwerkziel; `execute` ändert nur den thread-sicheren Zustand `{playing, video_id, list_id, volume, nonce}` (`nonce` wächst bei jedem Befehl). Die IDs werden streng geprüft. `GET /music/browser-state` liefert den Zustand (über `IntegrationService.adapter_for`, kein globaler Zustand).
 * **Seite „Musik-Player“:** zeigt zuerst nur die Zustimmung (nichts Externes wird geladen); danach liest ein Fragment (`run_every=1s`) den Zustand und zeichnet `player_document(state)` (reine Funktion, **kein fremdes Skript** – nur ein `<iframe>` auf `youtube-nocookie.com/embed/<ID>?enablejsapi=1&autoplay=1`, Befehle per `postMessage`; validiert die IDs erneut, JSON für `<script>` maskiert; gleicher Zustand → gleicher Text → der Browser behält den Player).
 * **Grenzen:** läuft nur bei geöffneter Seite; Autoplay/Einbettbarkeit nur im echten Browser prüfbar.
+
+
+## 36. Würfel-Identität und ausgewählter Würfel (`domain.device_identity`, `dashboard.identity`, AP-51)
+
+* **Domäne:** `device_identity.py` (rein): feste `PALETTE` von acht gut unterscheidbaren Farben, `next_free_color`, `numbering` (Nummer = Reihenfolge der Anlage, bei gleicher Zeit nach Id), `badge` (②), `color_name`. `Device.color` ist `""` (nicht gewählt) oder `#RRGGBB`.
+* **Speicher/Dienst:** Migration 0010 (`devices.color`); `DeviceService` vergibt beim Registrieren die erste freie Farbe, berechnet `DeviceInfo.number` und `DeviceInfo.color` (gewählte, sonst Palettenfarbe der Nummer) und bietet `set_color`. Sicherung: optionales Feld `color`.
+* **API:** `PATCH /devices/{id}` mit `alias` und/oder `color`; `number`, `color`, `badge`, `color_name` in Gerät und Status.
+* **Oberfläche:** `dashboard/identity.py`: `cube_html` (Punkt + Nummer + Name, escaped), `selected_cube` (eine Auswahl je Sitzung in `st.session_state["cube_selected"]`, ersetzt Verschwundenes), `sidebar_selector`, `banner`. Die Seiten *Seiten zuordnen* und *Würfel live* benutzen die gemeinsame Auswahl statt eigener Auswahlfelder.

@@ -21,6 +21,7 @@ import streamlit as st
 from octaledger.core.errors import OctaLedgerError
 from octaledger.core.settings import Theme
 from octaledger.dashboard.cube import FaceLabel, cube_svg
+from octaledger.dashboard.identity import banner, selected_cube
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import (
     STATE_LABELS,
@@ -164,15 +165,8 @@ def render(client: ApiClient, tz: str) -> None:
             help="Öffnet die Startseite mit der geführten Einrichtung.",
         )
         return
-    device = devices[0]
-    if len(devices) > 1:
-        device = st.selectbox(
-            "Tracker",
-            devices,
-            key="live_device",
-            format_func=lambda d: d["alias"] + (" ⭐" if d["is_active"] else ""),
-            help="Welchen Tracker Sie beobachten. Der Stern markiert den aktiven Tracker.",
-        )
+    device = selected_cube(devices) or devices[0]
+    banner(device, key="live_banner", action="beobachten")
     display = st.session_state.get("_display", {})
     _live(client, device["id"], tz, Theme(display.get("theme", Theme.LIGHT.value)))
 

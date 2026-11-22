@@ -113,6 +113,7 @@ from octaledger.core.settings import (
     settings_to_mapping,
 )
 from octaledger.domain.attention import AttentionKind
+from octaledger.domain.device_identity import badge
 from octaledger.domain.models import DeviceMode
 from octaledger.domain.music import MusicSettings
 from octaledger.domain.time_rules import ensure_utc, local_day_bounds, utc_now
@@ -174,6 +175,9 @@ def build_router(ctx: AppContext) -> APIRouter:
                 {
                     "id": info.device.id,
                     "alias": info.device.alias,
+                    "number": info.number,
+                    "color": info.color,
+                    "badge": badge(info.number),
                     "is_active": info.is_active,
                     "mode": info.device.mode.value,
                     "live": device_out(info, live.get(info.device.id))["status"],
@@ -199,8 +203,16 @@ def build_router(ctx: AppContext) -> APIRouter:
 
     @router.patch("/devices/{device_id}")
     def rename_device(device_id: str, body: DeviceRename) -> dict[str, Any]:
-        """Change a tracker's alias."""
-        ctx.devices.rename(device_id, body.alias)
+        """Change a tracker's alias and/or identity colour."""
+        if body.alias is None and body.color is None:
+            raise ValidationError(
+                "Nothing to change",
+                user_message="Bitte einen neuen Namen oder eine neue Farbe angeben.",
+            )
+        if body.alias is not None:
+            ctx.devices.rename(device_id, body.alias)
+        if body.color is not None:
+            ctx.devices.set_color(device_id, body.color)
         return device_out(ctx.devices.get(device_id))
 
     @router.delete("/devices/{device_id}", status_code=204)

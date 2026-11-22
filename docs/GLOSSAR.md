@@ -60,6 +60,10 @@ Drehung zählt.
 
 **Arbeitstag** – die Einstellungen für Arbeitsende (Auto-Stopp), Arbeitstage, Leerlauf und Erinnerungen.
 
+**Ausgewählter Würfel** – der Würfel, den die Oberfläche gerade zeigt und bearbeitet (Wähler in der Seitenleiste, gilt auf allen Seiten). Nicht zu verwechseln mit dem **aktiven Zeit-Würfel** (⭐), der die Zeiterfassung steuert.
+
+**Würfel-Identität** – Name, Nummer und Farbe eines Würfels; die Farbe steht nie allein, Nummer und Name stehen dabei.
+
 **Musik-Modus** – dritte Betriebsart eines Würfels: Jede Seite spielt einen Titel, die Halterung (keine Seite oben) beendet die Musik. Erzeugt nie Zeiteinträge.
 
 **Stille-Seite** – eine Seite eines Musik-Würfels ohne Titel; sie beendet die Musik wie die Halterung.

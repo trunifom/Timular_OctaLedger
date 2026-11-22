@@ -1,7 +1,7 @@
 # OctaLedger – Datenmodell, Dateien und Sicherungsformat
 
 Dieses Dokument beschreibt, **was OctaLedger speichert und wo**: die Dateien im Benutzerprofil, jede Tabelle der SQLite-Datenbank
-(Migrationen `0001`–`0009`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
+(Migrationen `0001`–`0010`), die Regeln, die die Datenbank selbst durchsetzt, die Zeitkodierung, das Format der JSON-Sicherung und
 die CSV-Spalten. Begriffe erklärt das [Glossar](GLOSSAR.md); den Zusammenhang der Bausteine die [Architektur](ARCHITEKTUR.md).
 
 **Inhalt**
@@ -224,6 +224,7 @@ Eine Datenbank, die neuer ist als das Programm, wird **nicht** angefasst (Fehler
 |---|---|---|
 | 0001 | `0001_initial.sql` | Grundschema: Geräte, Katalog, Zuordnungen, Rohereignisse, Sitzungen samt Regeln, Korrekturen, Auditspur |
 | 0002 | `0002_app_state.sql` | `app_state` (aktiver Würfel, Pause) |
+| 0010 | `0010_device_color.sql` | Spalte `devices.color` (Text, leer = nicht gewählt): die Farbe eines Würfels, zusammen mit Nummer und Name seine Identität (AP-51); die Nummer wird nicht gespeichert, sondern aus der Reihenfolge der Anlage berechnet; ohne Farbe gilt die Palettenfarbe der Nummer; in der Sicherung als optionales Feld `color` je Gerät (ältere Dateien ohne das Feld bleiben lesbar) |
 | 0009 | `0009_music_mode.sql` | Spalte `devices.music`: Der Musik-Modus wird als Modus `control` plus Kennzeichen gespeichert (SQLite kann die Bedingung von `devices.mode` nur durch einen Tabellenneubau ändern, der alles Abhängige mitlöschen würde); die Anwendung bildet das Paar wieder auf `music` ab |
 | 0008 | `0008_action_steps.sql` | `face_action_steps` (bestehende Aktionen werden Schritt 0), Spalten `chain_id`, `step`, `continue_on_error` bei `integration_jobs` |
 | 0003 | `0003_integrations.sql` | Spalte `devices.mode` (bestehende Würfel bleiben `time`), `integrations`, `face_actions`, `integration_jobs` |

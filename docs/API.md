@@ -110,6 +110,8 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 | `GET /health` | Lebenszeichen, **ohne Token** | `{"status":"ok","api_version":1,"version":"…"}` |
 | `GET /status` | Übersicht: laufende Sitzung, Geräte mit Modus und Live-Zustand | siehe unten |
 
+**Identität eines Würfels (AP-51):** jedes **Gerät** (und jeder Eintrag von `devices` in `GET /status`) trägt `number` (Reihenfolge der Anlage, 1, 2 …), `color` (`#RRGGBB`; ohne gewählte Farbe die Palettenfarbe der Nummer), `badge` (Nummernzeichen wie `②`) und beim Gerät zusätzlich `color_name` (deutscher Farbname). Die Anzeige kombiniert immer Farbe, Nummer **und** Name.
+
 `GET /status` liefert:
 
 ```json
@@ -135,7 +137,7 @@ Die Eingabe wird **streng** geprüft: Unbekannte Felder in einer Anfrage führen
 |---|---|---|---|
 | `GET /devices` | alle Würfel mit Belegung und Live-Zustand | – | Liste von **Gerät** |
 | `POST /devices` | Würfel anlegen (der erste wird „aktiv“) | `{"alias", "platform_address"?}` | **Gerät**, 201 |
-| `PATCH /devices/{id}` | umbenennen | `{"alias"}` | **Gerät** |
+| `PATCH /devices/{id}` | umbenennen und/oder Farbe wählen (mindestens eines von beiden, sonst 422) | `{"alias"?, "color"?: "#RRGGBB"}` | **Gerät** |
 | `DELETE /devices/{id}` | entfernen (nur ohne erfasste Daten, sonst 409) | – | 204 |
 | `PUT /devices/{id}/faces/{1..8}` | Seite einer Aktivität (und Projekt) zuordnen | `{"activity_id"?, "project_id"?}` | **Gerät** |
 | `DELETE /devices/{id}/faces/{1..8}` | Zuordnung einer Seite löschen | – | **Gerät** |

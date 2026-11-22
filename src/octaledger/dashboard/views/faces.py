@@ -23,6 +23,7 @@ import streamlit as st
 from octaledger.core.errors import OctaLedgerError
 from octaledger.core.settings import Theme
 from octaledger.dashboard.cube import cube_svg
+from octaledger.dashboard.identity import banner, selected_cube
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import call, page_help
 from octaledger.dashboard.views.faces_actions import render_action_editor
@@ -112,16 +113,8 @@ def render(client: ApiClient, tz: str) -> None:
             help="Öffnet die Startseite mit der geführten Einrichtung.",
         )
         return
-    device = next((d for d in devices if d["is_active"]), devices[0])
-    if len(devices) > 1:
-        device = st.selectbox(
-            "Tracker",
-            devices,
-            key="faces_device",
-            index=devices.index(device),
-            format_func=lambda d: d["alias"] + (" ⭐" if d["is_active"] else ""),
-            help="Für welchen Tracker Sie die Seiten einrichten.",
-        )
+    device = selected_cube(devices) or devices[0]
+    banner(device, key="faces_banner")
     key = target_key(device["id"])
     # A widget key must not change after its widget exists in this run, so callers leave the
     # wished face in PENDING_KEY and it is applied here, before the face picker is created.

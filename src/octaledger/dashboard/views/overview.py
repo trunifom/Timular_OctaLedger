@@ -21,6 +21,7 @@ import pandas as pd
 import streamlit as st
 
 from octaledger.core.errors import OctaLedgerError
+from octaledger.dashboard.identity import cube_html, mode_text
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import (
     STATE_LABELS,
@@ -229,11 +230,12 @@ def _tracker_box(status: dict[str, Any]) -> None:
             live = device["live"]
             label = STATE_LABELS.get(live["state"], live["state"]) if live else "Nicht verbunden"
             level = STATE_LEVEL.get(live["state"], "warn") if live else "bad"
-            star = " ⭐ aktiv" if device["is_active"] else ""
+            star = " ⭐ erfasst die Zeit" if device["is_active"] else ""
             st.markdown(
-                status_dot(level, f"**{html.escape(device['alias'])}**{star} – {label}"),
+                f"{cube_html(device)} · {html.escape(mode_text(device))}{star}",
                 unsafe_allow_html=True,
             )
+            st.markdown(status_dot(level, label), unsafe_allow_html=True)
             if live and live.get("battery_percent") is not None:
                 st.caption(f"Batterie: {live['battery_percent']} %")
             if live and live.get("last_error"):

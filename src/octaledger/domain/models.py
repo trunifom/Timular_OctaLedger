@@ -255,6 +255,8 @@ class Device:
         firmware: Optional firmware version reported by the device.
         created_at: Registration time (UTC).
         mode: Whether the faces record time or trigger actions (:class:`DeviceMode`).
+        color: ``#RRGGBB`` identity colour; empty means "not chosen" (the interface then shows
+            the palette colour of the cube's number, see ``domain/device_identity.py``).
     """
 
     alias: str
@@ -264,10 +266,12 @@ class Device:
     firmware: str | None = None
     created_at: datetime = field(default_factory=utc_now)
     mode: DeviceMode = DeviceMode.TIME
+    color: str = ""
 
     def __post_init__(self) -> None:
         """Validate and normalise all fields."""
         object.__setattr__(self, "id", _check_id(self.id, "id"))
+        object.__setattr__(self, "color", _check_color(self.color) if self.color else "")
         object.__setattr__(
             self,
             "alias",

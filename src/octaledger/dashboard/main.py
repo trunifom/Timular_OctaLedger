@@ -25,6 +25,7 @@ from octaledger.core.errors import ConfigurationError, OctaLedgerError
 from octaledger.core.logging import configure_logging
 from octaledger.core.settings import FontSize, Theme, load_settings, resolve_paths
 from octaledger.dashboard.attention import attention_panel
+from octaledger.dashboard.identity import sidebar_selector
 from octaledger.dashboard.nav import DEFAULT_PAGE, GROUPS, NAV_STATE_KEY, go
 from octaledger.dashboard.shell import status_bar
 from octaledger.dashboard.theme import apply_native_theme, css
@@ -143,6 +144,11 @@ def _sidebar(client: ApiClient, display: dict[str, str], agent_up: bool) -> str:
     with st.sidebar:
         st.markdown("### :material/schedule: OctaLedger")
         st.caption("Lokale Zeiterfassung für Ihren Würfel")
+        if agent_up:
+            try:
+                sidebar_selector(client.devices())
+            except OctaLedgerError:
+                pass  # the pages show the API error themselves
         for group in GROUPS:
             st.markdown(f'<div class="ol-nav-group">{group}</div>', unsafe_allow_html=True)
             for page in (p for p in PAGES.values() if p.group == group):

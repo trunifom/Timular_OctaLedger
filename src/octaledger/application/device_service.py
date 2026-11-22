@@ -21,6 +21,7 @@ from datetime import datetime
 
 from octaledger.application.tracking_service import STATE_ACTIVE_DEVICE
 from octaledger.core.errors import ConflictError, InvalidStateError, ValidationError
+from octaledger.domain.device_identity import PALETTE, next_free_color, numbering
 from octaledger.domain.models import (
     FACE_NUMBERS,
     ButtonAction,
@@ -37,6 +38,21 @@ from octaledger.infrastructure.storage.repositories import Storage
 logger = logging.getLogger(__name__)
 
 
+def _identity(devices: list[Device]) -> dict[str, tuple[int, str]]:
+    """``{device id: (number, colour shown)}`` for all cubes (see ``domain/device_identity.py``)."""
+    numbers = numbering([(d.id, d.created_at.isoformat()) for d in devices])
+    return {
+        d.id: (numbers[d.id], d.color or PALETTE[(numbers[d.id] - 1) % len(PALETTE)][0])
+        for d in devices
+    }
+
+
+def _effective(devices: list[Device]) -> list[Device]:
+    """The cubes with the colour that is actually shown (an unset colour becomes its default)."""
+    shown = _identity(devices)
+    return [replace(d, color=shown[d.id][1]) for d in devices]
+
+
 @dataclass(frozen=True, slots=True)
 class DeviceInfo:
     """A device together with its calibration and active flag (for the GUI)."""
@@ -46,6 +62,10 @@ class DeviceInfo:
     is_active: bool
     #: Actions per face (only meaningful in control mode).
     actions: dict[int, FaceAction] = field(default_factory=dict)
+    #: Registration order (1, 2, ...); with ``color`` the identity of the cube (AP-51).
+    number: int = 0
+    #: The colour shown for the cube (the chosen one, else the palette colour of its number).
+    color: str = ""
 
     @property
     def configured_faces(self) -> int:
@@ -122,10 +142,14 @@ class DeviceService:
             ValidationError: For an invalid alias.
             ConflictError: If the alias is already used.
         """
-        device = Device(
-            alias=alias, platform_address=platform_address, model=model, firmware=firmware
-        )
         with self._storage.transaction() as repos:
+            device = Device(
+                alias=alias,
+                platform_address=platform_address,
+                model=model,
+                firmware=firmware,
+                color=next_free_color(d.color or "" for d in _effective(repos.devices.list_all())),
+            )
             repos.devices.add(device)
             if repos.state.get(STATE_ACTIVE_DEVICE) is None:
                 repos.state.set(STATE_ACTIVE_DEVICE, device.id)
@@ -136,14 +160,18 @@ class DeviceService:
         """Return all devices with calibration and active flag, ordered by alias."""
         with self._storage.read() as repos:
             active = repos.state.get(STATE_ACTIVE_DEVICE)
+            devices = repos.devices.list_all()
+            identity = _identity(devices)
             return [
                 DeviceInfo(
                     device=device,
                     mappings={m.face: m for m in repos.mappings.list_for_device(device.id)},
                     is_active=device.id == active,
                     actions={a.face: a for a in repos.actions.list_for_device(device.id)},
+                    number=identity[device.id][0],
+                    color=identity[device.id][1],
                 )
-                for device in repos.devices.list_all()
+                for device in devices
             ]
 
     def get(self, device_id: str) -> DeviceInfo:
@@ -154,11 +182,14 @@ class DeviceService:
         """
         with self._storage.read() as repos:
             device = repos.devices.require(device_id)
+            number, color = _identity(repos.devices.list_all())[device_id]
             return DeviceInfo(
                 device=device,
                 mappings={m.face: m for m in repos.mappings.list_for_device(device_id)},
                 is_active=repos.state.get(STATE_ACTIVE_DEVICE) == device_id,
                 actions={a.face: a for a in repos.actions.list_for_device(device_id)},
+                number=number,
+                color=color,
             )
 
     def set_mode(self, device_id: str, mode: DeviceMode) -> Device:
@@ -209,6 +240,16 @@ class DeviceService:
         """Change the alias (must stay unique)."""
         with self._storage.transaction() as repos:
             return repos.devices.update(replace(repos.devices.require(device_id), alias=alias))
+
+    def set_color(self, device_id: str, color: str) -> Device:
+        """Choose the identity colour of a cube (``#RRGGBB``).
+
+        Raises:
+            ValidationError: For anything that is not ``#RRGGBB``.
+            NotFoundError: If the device does not exist.
+        """
+        with self._storage.transaction() as repos:
+            return repos.devices.update(replace(repos.devices.require(device_id), color=color))
 
     def update_hardware_info(
         self,

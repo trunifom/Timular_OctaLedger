@@ -25,6 +25,10 @@ Format orientiert an *Keep a Changelog*; Versionierung nach PEP 440. Es gibt noc
 - **Dokumentation:** Benutzerhandbuch, Softwaredokumentation, Installationsanleitung, Testplan,
   Fortschrittsprotokoll, verbindliche Agentenregeln (`CLAUDE.md`).
 
+### Hinzugefügt (Würfel-Identität, AP-51)
+- Jeder Würfel hat **Nummer, Name und Farbe** (Migration 0010, `devices.color`; automatische, unterscheidbare Palette; änderbar über `PATCH /devices/{id}`); API-Felder `number`, `color`, `color_name`, `badge`; Sicherung mit optionalem Feld `color`.
+- **Ausgewählter Würfel** in der Seitenleiste (gilt auf allen Seiten), **Banner** „Sie bearbeiten: …“ auf *Seiten zuordnen* und *Würfel live*, Übersicht mit Nummer und Bereich, Farbwahl auf *Würfel verwalten*. Die Auswahlfelder „Tracker“ der einzelnen Seiten entfallen.
+
 ### Geändert (Log-Auswertung vom 2026-11-22)
 - **Musik-Player sicherer:** Statt des YouTube-Skripts (`iframe_api`) im Dashboard gibt es nur noch einen eingebetteten Rahmen von `youtube-nocookie.com`; Lautstärke/Start per `postMessage`. Kein fremdes Skript hat damit Zugriff auf das Dashboard.
 - **Unbekannte Rohwerte (0x09/0x0B/0x0D beim Rollen):** nur das erste Vorkommen je Wert und Verbindung wird als `invalid`-Ereignis gespeichert, der Rest gezählt und beim Verbindungsende im Protokoll zusammengefasst.

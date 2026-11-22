@@ -102,6 +102,7 @@ octaledger/
   src/octaledger/dashboard/cube.py
   src/octaledger/dashboard/docs_reader.py
   src/octaledger/dashboard/forms.py
+  src/octaledger/dashboard/identity.py
   src/octaledger/dashboard/main.py
   src/octaledger/dashboard/nav.py
   src/octaledger/dashboard/shell.py
@@ -139,6 +140,7 @@ octaledger/
   src/octaledger/domain/attention.py
   src/octaledger/domain/break_rules.py
   src/octaledger/domain/conditions.py
+  src/octaledger/domain/device_identity.py
   src/octaledger/domain/link_loss.py
   src/octaledger/domain/models.py
   src/octaledger/domain/music.py
@@ -185,6 +187,7 @@ octaledger/
   src/octaledger/infrastructure/storage/migrations/0007_tags_budgets.sql
   src/octaledger/infrastructure/storage/migrations/0008_action_steps.sql
   src/octaledger/infrastructure/storage/migrations/0009_music_mode.sql
+  src/octaledger/infrastructure/storage/migrations/0010_device_color.sql
   src/octaledger/infrastructure/storage/repositories.py
   src/octaledger/infrastructure/system/__init__.py
   src/octaledger/infrastructure/system/autostart.py
@@ -204,6 +207,7 @@ octaledger/
   tests/gui/test_gui_data_settings_diagnostics.py
   tests/gui/test_gui_devices_catalog.py
   tests/gui/test_gui_faces.py
+  tests/gui/test_gui_identity.py
   tests/gui/test_gui_journal_statistics.py
   tests/gui/test_gui_live.py
   tests/gui/test_gui_player.py
@@ -239,6 +243,7 @@ octaledger/
   tests/unit/test_data_service.py
   tests/unit/test_database.py
   tests/unit/test_device_catalog_services.py
+  tests/unit/test_device_identity.py
   tests/unit/test_dispatcher.py
   tests/unit/test_docs_reader.py
   tests/unit/test_documentation.py

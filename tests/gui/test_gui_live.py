@@ -82,7 +82,7 @@ def test_a_tracker_that_is_not_active_is_called_out(
     api_server.client.set_device_address(second["id"], "CC:DD")
     api_server.client.connect_device(second["id"])
     at = open_page(api_server, LIVE)
-    at.selectbox(key="live_device").select_index(1).run()
+    at.sidebar.selectbox(key="cube_selected").select_index(1).run()
     assert any("nicht der aktive" in w.value for w in at.warning)
 
 

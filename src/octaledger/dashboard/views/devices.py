@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import html
 from typing import Any
 
 import streamlit as st
 
+from octaledger.dashboard.identity import cube_html
 from octaledger.dashboard.nav import go
 from octaledger.dashboard.ui import (
     STATE_LABELS,
@@ -176,7 +178,12 @@ def _device_panel(
         badge += " · 🎛 Steuerung"
     if device["mode"] == "music":
         badge += " · 🎵 Musik"
-    with st.expander(f"{device['alias']}{badge}", expanded=expanded):
+    title = f"{device.get('badge', '')} {device['alias']}".strip()
+    with st.expander(f"{title}{badge}", expanded=expanded):
+        st.markdown(
+            f"{cube_html(device)} · Farbe {html.escape(device.get('color_name', ''))}",
+            unsafe_allow_html=True,
+        )
         label = STATE_LABELS.get(live["state"], live["state"]) if live else "Nicht verbunden"
         level = STATE_LEVEL.get(live["state"], "warn") if live else "bad"
         st.markdown(status_dot(level, f"**{label}**"), unsafe_allow_html=True)
@@ -395,6 +402,23 @@ def _manage(client: ApiClient, device: dict[str, Any]) -> None:
         )
         if st.button("✏️ Umbenennen", key=f"rename_btn_{did}", help="Speichert den neuen Namen."):
             if call(client.rename_device, did, new_alias)[0]:
+                st.rerun()
+
+        new_color = st.color_picker(
+            "Farbe des Würfels",
+            value=device["color"],
+            key=f"color_{did}",
+            help="Mit dieser Farbe (und der Nummer) erkennen Sie den Würfel überall wieder: in "
+            "der Seitenleiste, im Banner, auf den Karten. Nur die Anzeige ändert sich.",
+        )
+        if st.button(
+            "Farbe speichern",
+            key=f"color_btn_{did}",
+            icon=":material/palette:",
+            disabled=new_color.upper() == device["color"].upper(),
+            help="Speichert die gewählte Farbe für diesen Würfel.",
+        ):
+            if call(client.rename_device, did, None, new_color)[0]:
                 st.rerun()
 
         st.markdown("**Kopplung aufheben**")
