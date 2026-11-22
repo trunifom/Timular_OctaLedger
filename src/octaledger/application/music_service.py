@@ -354,6 +354,8 @@ class MusicService:
                 if playing is None:
                     continue
                 settings = load_settings(repos, device_id)
+                if settings.base_action == "continue":
+                    continue  # the user chose that the music runs on without the cube
                 kind = CommandKind.PAUSE if settings.base_action == "pause" else CommandKind.STOP
                 targets = sorted(set(_titles(repos, device_id).values()))
                 queued += _queue(

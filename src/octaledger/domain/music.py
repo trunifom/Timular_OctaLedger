@@ -6,8 +6,9 @@ is left. The rules therefore differ from the control mode:
 * a face with a title **replaces** whatever plays; if the title needs *another target* than the
   one that plays now, that target is stopped first (otherwise two sources would play at once);
 * a face **without** a title stops the music like the holder does (a "silence face");
-* the **holder** (no face up, the neutral value) stops the music - or pauses it, as chosen - on
-  **every target the cube uses**, but only if something plays;
+* the **holder** (no face up, the neutral value) stops the music - or pauses it, or leaves it
+  running (``continue``, so that only the app or another face ends it), as chosen - on **every
+  target the cube uses**, but only if something plays;
 * a lost connection does nothing at once (the housekeeper stops after the grace period);
 * the first value after connecting does nothing, except that a cube resting in its holder while
   music plays stops it.
@@ -26,6 +27,7 @@ from octaledger.core.errors import ValidationError
 
 BASE_STOP: Final = "stop"
 BASE_PAUSE: Final = "pause"
+BASE_CONTINUE: Final = "continue"
 MAX_STOP_DELAY_MS: Final = 60_000
 
 
@@ -42,7 +44,8 @@ class MusicSettings:
     """Per-cube behaviour of the music mode.
 
     Attributes:
-        base_action: ``stop`` (default) or ``pause`` when the cube rests in its holder.
+        base_action: ``stop`` (default), ``pause`` or ``continue`` (keep playing) when the cube
+            rests in its holder.
         stop_delay_ms: Wait before stopping in the holder (0 = at once).
         default_volume: Volume in percent that a new title starts with.
     """
@@ -53,10 +56,10 @@ class MusicSettings:
 
     def __post_init__(self) -> None:
         """Validate the three values."""
-        if self.base_action not in (BASE_STOP, BASE_PAUSE):
+        if self.base_action not in (BASE_STOP, BASE_PAUSE, BASE_CONTINUE):
             raise ValidationError(
                 f"Invalid base action {self.base_action!r}",
-                user_message="In der Halterung kann die Musik nur gestoppt oder pausiert werden.",
+                user_message="In der Halterung kann die Musik enden, pausieren oder weiterlaufen.",
             )
         if (
             isinstance(self.stop_delay_ms, bool)
@@ -126,6 +129,8 @@ def decide(
     """
     release = CommandKind.PAUSE if settings.base_action == BASE_PAUSE else CommandKind.STOP
     if event == "neutral" or (event == "baseline" and value == 0):
+        if settings.base_action == BASE_CONTINUE:
+            return []  # the music keeps playing in the holder; the app or a face ends it
         return _release(playing, targets, release, settings.stop_delay_ms)
     if event != "face_change" or value is None:
         return []

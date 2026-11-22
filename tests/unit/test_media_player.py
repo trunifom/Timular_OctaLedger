@@ -499,8 +499,18 @@ def test_the_player_is_registered_with_help_everywhere() -> None:
     spec = default_adapters()["player"].spec
     fields = [f for a in spec.actions for f in a.fields] + list(spec.config_fields)
     assert spec.title.startswith("Lokaler Player") and all(f.help for f in fields)
-    assert [a.id for a in spec.actions] == ["play_url", "play_file", "stop", "volume"]
-    assert "AAC" in spec.setup_guide and "Nutzung Ihnen erlaubt" in spec.setup_guide
+    assert [a.id for a in spec.actions] == [
+        "play_url",
+        "play_file",
+        "play_path",
+        "stop",
+        "pause",
+        "resume",
+        "next",
+        "previous",
+        "volume",
+    ]
+    assert "AAC" in spec.setup_guide and "Spielen Sie nur Inhalte ab" in spec.setup_guide
 
 
 def test_playing_a_stream_returns_at_once_and_uses_the_default_volume() -> None:

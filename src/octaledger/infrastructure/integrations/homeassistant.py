@@ -380,6 +380,11 @@ class HomeAssistantAdapter(Adapter):
                 "No media player chosen",
                 user_message="Bitte wählen Sie das Mediengerät (Lautsprecher oder Display).",
             )
+        if source.kind is SourceKind.LOCAL:
+            raise ValidationError(
+                "Home Assistant cannot reach files of this computer",
+                user_message="Dateien dieses Computers spielt nur der Lokale Player.",
+            )
         if source.kind is SourceKind.SPOTIFY:
             media = f"spotify:{source.ref}"
         elif source.kind is SourceKind.YOUTUBE:

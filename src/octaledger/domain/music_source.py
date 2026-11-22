@@ -9,6 +9,7 @@ pasted                                                     normalised
 ``spotify:<type>:<id>``                                      unchanged
 ``https://music.youtube.com/watch?v=ID`` / ``www.youtube``   ``youtube:ID``
 ``https://youtu.be/ID`` (``list=`` is kept)                  ``youtube:ID`` (+ list)
+``C:/Music/song.mp3`` / ``C:/Music`` / ``file:///C:/Music``      ``local:<absolute path>``
 any other ``http(s)://`` address (a stream)                  ``url:<address>``
 =========================================================  ==========================
 
@@ -23,7 +24,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import StrEnum
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from octaledger.core.errors import ValidationError
 
@@ -32,6 +33,8 @@ _SPOTIFY_ID = re.compile(r"^[A-Za-z0-9]{10,40}$")
 _YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 _YOUTUBE_LIST = re.compile(r"^[A-Za-z0-9_-]{10,60}$")
 MAX_LENGTH = 2000
+MAX_PATH_LENGTH = 1000
+_DRIVE_PATH = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 class SourceKind(StrEnum):
@@ -40,6 +43,7 @@ class SourceKind(StrEnum):
     SPOTIFY = "spotify"
     YOUTUBE = "youtube"
     URL = "url"
+    LOCAL = "local"
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +69,8 @@ class MusicSource:
             return f"spotify:{self.ref}"
         if self.kind is SourceKind.YOUTUBE:
             return f"youtube:{self.ref}" + (f"?list={self.playlist}" if self.playlist else "")
+        if self.kind is SourceKind.LOCAL:
+            return f"local:{self.ref}"
         return f"url:{self.ref}"
 
     @property
@@ -82,6 +88,8 @@ class MusicSource:
             return labels.get(self.ref.split(":")[0], "Spotify")
         if self.kind is SourceKind.YOUTUBE:
             return "YouTube-Video" + (" mit Playlist" if self.playlist else "")
+        if self.kind is SourceKind.LOCAL:
+            return "Lokale Datei, Ordner oder Playlist"
         return "Stream-Adresse"
 
     @property
@@ -96,7 +104,8 @@ def _reject(reason: str) -> ValidationError:
         f"Unrecognised music source: {reason}",
         user_message=(
             f"{reason} Erkannt werden Spotify-Links (open.spotify.com/track/…), YouTube- und "
-            "YouTube-Music-Links (…/watch?v=…) und Stream-Adressen (https://…)."
+            "YouTube-Music-Links (…/watch?v=…), Stream-Adressen (https://…) und Pfade auf diesem "
+            "Computer (C:\\Musik\\lied.mp3)."
         ),
     )
 
@@ -110,6 +119,9 @@ def parse_source(text: str) -> MusicSource:
     if not isinstance(text, str) or not text.strip():
         raise _reject("Bitte fügen Sie einen Link ein.")
     raw = text.strip()
+    local = _local_path(raw)
+    if local is not None:
+        return local
     if len(raw) > MAX_LENGTH or any(c.isspace() or ord(c) < 32 for c in raw):
         raise _reject("Der Link enthält Leerzeichen oder Sonderzeichen oder ist zu lang.")
     if raw.startswith("spotify:"):
@@ -136,6 +148,28 @@ def parse_source(text: str) -> MusicSource:
         video = parts.path.strip("/")
         return _youtube({"v": [video], **parse_qs(parts.query)}, raw)
     return MusicSource(SourceKind.URL, raw, original=raw)
+
+
+def _local_path(raw: str) -> MusicSource | None:
+    """A path on this computer (drive letter and folder, quotes allowed, or ``file:///C:/Musik``).
+
+    Paths may contain spaces, so they are recognised **before** the "no spaces" rule of links.
+    The path is only checked for its *shape* here; the player checks that it exists and may be
+    played when it plays it. Network paths are refused.
+    """
+    text = raw.strip().strip('"').strip("'").strip()
+    if text.lower().startswith("file:"):
+        parts = urlsplit(text)
+        text = unquote(parts.path)
+        if re.match(r"^/[A-Za-z]:", text):
+            text = text[1:]
+    elif text.replace("/", "\\").startswith("\\\\"):
+        raise _reject("Netzwerkpfade (\\\\Server\\Freigabe) sind nicht erlaubt.")
+    if not _DRIVE_PATH.match(text):
+        return None
+    if len(text) > MAX_PATH_LENGTH or any(ord(c) < 32 for c in text):
+        raise _reject("Der Pfad ist zu lang oder enthält Steuerzeichen.")
+    return MusicSource(SourceKind.LOCAL, text, original=raw)
 
 
 def _spotify_uri(uri: str, original: str) -> MusicSource:

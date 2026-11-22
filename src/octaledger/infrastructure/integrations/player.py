@@ -4,18 +4,27 @@ The adapter is a *thin sender*: it validates the request, then hands a command t
 :class:`~octaledger.infrastructure.audio.worker.AudioWorker` (a separate thread) and returns at
 once, so neither the Bluetooth loop nor the action dispatcher ever waits for audio.
 
+What it plays (AP-61): internet radio streams, **single files, whole folders (albums) and
+playlist files** (``.m3u``) from this computer - once, as a loop over everything, or one track
+endlessly, optionally shuffled - with next, previous, pause and stop at any time. The path may be
+typed or picked in a file dialog; files from the optional released folders of the connection keep
+working as before.
+
 Safety rules (the player reaches out on behalf of a typed address, so they matter):
 
 * web addresses: only ``http``/``https``, no credentials, the host is resolved and loopback,
   link-local and cloud-metadata addresses are always refused; **home-network addresses only with
   "LAN-Adressen erlauben"**; every redirect hop is checked again; only ``audio/*`` answers are
   played; nothing is downloaded or saved;
-* files: only from **folders the user released**; the resolved path must stay below the folder
-  (no ``..``, no links pointing out), only MP3/FLAC/WAV/OGG, size limit;
+* files chosen from the **released folders**: the resolved path must stay below the folder (no
+  ``..``, no links pointing out), only MP3/FLAC/WAV/OGG, size limit;
+* free **local paths** (typed or picked): absolute, on a local drive (no network or device paths),
+  only playable extensions, scanned with a depth and count limit;
 * the volume of this player is changed, never the system volume.
 
 Honest limits: the bundled engine (optional extra ``audio``, ``miniaudio``) plays MP3, FLAC, WAV
-and Vorbis but **no AAC**; real playback is not tested here. "Spielen Sie nur Inhalte ab, deren
+and Vorbis; **AAC/M4A, WMA, Opus and the sound of video files need FFmpeg** on the computer; real
+playback and FFmpeg are not tested against real hardware here. "Spielen Sie nur Inhalte ab, deren
 Nutzung Ihnen erlaubt ist."
 """
 
@@ -23,21 +32,27 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Final
 
 from octaledger.core.errors import IntegrationError, ValidationError
+from octaledger.domain.media_formats import support_text
 from octaledger.domain.music_source import MusicSource, SourceKind
+from octaledger.domain.playlist import REPEAT_TEXT, Repeat, parse_repeat
 from octaledger.infrastructure.audio.engine import (
     MiniaudioEngine,
     UnavailableEngine,
     audio_available,
 )
+from octaledger.infrastructure.audio.ffmpeg import find_ffmpeg
+from octaledger.infrastructure.audio.paths import clean_path_text, reject_unsafe, resolve_media
 from octaledger.infrastructure.audio.worker import (
     AUDIO_EXTENSIONS,
     AudioWorker,
     Command,
+    PlayerStatus,
     resolve_file,
 )
 from octaledger.infrastructure.integrations.base import (
@@ -50,6 +65,25 @@ from octaledger.infrastructure.integrations.urlcheck import check_media_url
 
 logger = logging.getLogger(__name__)
 
+
+def _int_between(value: Any, low: int, high: int, name: str) -> int:
+    """``value`` as an integer within ``low..high``.
+
+    Raises:
+        ValidationError: With a German message naming ``name`` if it is not.
+    """
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        number = low - 1
+    if isinstance(value, bool) or not low <= number <= high:
+        raise ValidationError(
+            f"Value out of range: {value!r}",
+            user_message=f"{name} muss eine Zahl von {low} bis {high} sein.",
+        )
+    return number
+
+
 MAX_FOLDERS: Final = 10
 MAX_LISTED_FILES: Final = 200
 SCAN_DEPTH: Final = 3
@@ -58,18 +92,24 @@ SETUP_GUIDE: Final = """\
 **Wofür:** Spielt einen **Internetradio-Stream** oder eine **Musikdatei** direkt an diesem PC ab, wenn Sie
 den Würfel drehen. Kein Home Assistant nötig.
 
-1. **Zusatzpaket** installieren: `pip install -e ".[audio]"` (MP3, FLAC, WAV, OGG; **kein AAC**).
-2. **Verbindung anlegen** (keine Angaben nötig). Für eigene Dateien unter *Erweiterte Einstellungen* die
-   **Ordner** eintragen, aus denen gespielt werden darf (mehrere mit Semikolon trennen).
-3. Einer Würfelseite die Aktion **Stream abspielen** (Adresse eintragen) oder **Datei abspielen** geben und
-   eine zweite Seite oder die Würfel-Halterung mit **Stoppen** belegen.
+1. **Zusatzpaket** installieren: `pip install -e ".[audio]"` (MP3, FLAC, WAV, OGG). Für **AAC/M4A, WMA, Opus
+   und den Ton von Videodateien** zusätzlich **FFmpeg** installieren (`winget install ffmpeg`); OctaLedger
+   findet es selbst.
+2. **Verbindung anlegen** (keine Angaben nötig).
+3. Im **Musik-Modus** einer Würfelseite einen **Pfad** geben: eine Datei, einen **Ordner (Album)** oder eine
+   Playlist-Datei (.m3u) von diesem Computer, dazu **einmal**, **alles wiederholen** oder **einen Titel
+   endlos** und optional **zufällige Reihenfolge**. Im **Musik-Player** können Sie dasselbe jederzeit direkt
+   starten, anhalten, überspringen und stoppen.
+4. Im Steuerungsmodus gibt es die Aktionen **Stream abspielen**, **Datei abspielen** und **Pfad abspielen**
+   sowie **Stoppen**.
 
 **Sicherheit:** Es werden nur `http(s)`-Adressen geöffnet, nie Adressen dieses Computers; Adressen im
-**Heimnetz** nur, wenn Sie „LAN-Adressen erlauben“ einschalten. Dateien nur aus den freigegebenen Ordnern.
-Es wird nichts gespeichert. Spielen Sie nur Inhalte ab, deren Nutzung Ihnen erlaubt ist.
+**Heimnetz** nur, wenn Sie „LAN-Adressen erlauben“ einschalten. Pfade nur auf **lokalen Laufwerken**
+(keine Netzwerkpfade). Es wird nichts kopiert oder gespeichert. Spielen Sie nur Inhalte ab, deren Nutzung
+Ihnen erlaubt ist.
 
-**Grenzen:** Streams im **AAC**-Format laufen mit der eingebauten Engine nicht. Echte Wiedergabe ist noch
-nicht an Ihrem Gerät geprüft.
+**Grenzen:** Echte Wiedergabe und FFmpeg sind noch nicht an Ihrem Gerät geprüft. Die Lautstärke gilt nur für
+diesen Player, nicht für Windows.
 """  # noqa: E501
 
 
@@ -165,7 +205,54 @@ class PlayerAdapter(Adapter):
                 idempotent=False,
                 capability="music",
             ),
+            ActionSpec(
+                "play_path",
+                "Pfad abspielen (Datei, Ordner, Album)",
+                "Spielt eine Datei, einen Ordner (Album) oder eine Playlist-Datei von diesem "
+                "Computer (ersetzt, was gerade läuft).",
+                (
+                    FieldSpec(
+                        "path",
+                        "Pfad",
+                        required=True,
+                        placeholder="C:/Musik/Album oder C:/Musik/lied.mp3",
+                        help="Der vollständige Pfad einer Datei, eines Ordners oder einer .m3u-"
+                        "Playlist auf einem lokalen Laufwerk (keine Netzwerkpfade). Ein Ordner "
+                        "wird mit allen Unterordnern in Dateinamen-Reihenfolge gespielt.",
+                    ),
+                    FieldSpec(
+                        "repeat",
+                        "Wiederholen",
+                        kind="choice",
+                        choices=tuple((key, text) for key, text in REPEAT_TEXT.items()),
+                        default=Repeat.OFF.value,
+                        help="Einmal abspielen, alles immer wieder oder einen Titel endlos. "
+                        "Voreinstellung: einmal.",
+                    ),
+                    FieldSpec(
+                        "shuffle",
+                        "Zufällige Reihenfolge",
+                        kind="bool",
+                        default=False,
+                        help="Mischt die Titel eines Ordners oder einer Playlist.",
+                    ),
+                    FieldSpec(
+                        "volume",
+                        "Lautstärke in % (optional)",
+                        kind="int",
+                        minimum=0,
+                        maximum=100,
+                        help="Leer lassen für die Voreinstellung der Verbindung.",
+                    ),
+                ),
+                idempotent=False,
+                capability="music",
+            ),
             ActionSpec("stop", "Stoppen", "Beendet die Wiedergabe ganz.", capability="music"),
+            ActionSpec("pause", "Pausieren", "Hält die Wiedergabe an (Fortsetzen geht weiter)."),
+            ActionSpec("resume", "Fortsetzen", "Setzt eine pausierte Wiedergabe fort."),
+            ActionSpec("next", "Nächster Titel", "Springt zum nächsten Titel der Liste."),
+            ActionSpec("previous", "Vorheriger Titel", "Springt zum vorherigen Titel der Liste."),
             ActionSpec(
                 "volume",
                 "Lautstärke setzen",
@@ -186,9 +273,78 @@ class PlayerAdapter(Adapter):
         can_discover=True,
     )
 
-    def __init__(self, worker: AudioWorker | None = None) -> None:
-        """Create the adapter (``worker`` is replaceable for tests)."""
+    def __init__(
+        self,
+        worker: AudioWorker | None = None,
+        ffmpeg_finder: Callable[[], str | None] = find_ffmpeg,
+    ) -> None:
+        """Create the adapter (``worker`` and the FFmpeg lookup are replaceable for tests)."""
         self._worker = worker
+        self._find_ffmpeg = ffmpeg_finder
+
+    def status(self) -> dict[str, Any]:
+        """What the player does now (see ``PlayerStatus`` of the audio worker).
+
+        The audio worker is only created when something was played; before that the player is
+        simply stopped, so asking never starts a thread.
+        """
+        if self._worker is None:
+            return {**asdict(PlayerStatus()), "ffmpeg": self._find_ffmpeg() is not None}
+        return asdict(self._worker.status())
+
+    def control(self, action: str, value: Any = None) -> str:
+        """Control the running playback from the app (same actions the cube can trigger).
+
+        Args:
+            action: ``stop``, ``pause``, ``resume``, ``next``, ``previous``, ``volume``,
+                ``repeat``, ``shuffle`` or ``jump`` (``value`` is the 0-based queue position).
+            value: Level (0-100), repeat mode, ``True``/``False`` or the position.
+
+        Raises:
+            ValidationError: For an unknown action or a wrong value.
+            IntegrationError: If the player is busy.
+        """
+        worker = self._audio()
+        if action in ("stop", "pause", "resume", "next", "previous"):
+            worker.submit(Command(action))
+        elif action == "volume":
+            level = _int_between(value, 0, 100, "Die Lautstärke")
+            worker.submit(Command("volume", level / 100))
+        elif action == "repeat":
+            worker.submit(Command("set_repeat", parse_repeat(value).value))
+        elif action == "shuffle":
+            worker.submit(Command("set_shuffle", bool(value)))
+        elif action == "jump":
+            worker.submit(Command("jump", float(_int_between(value, 0, 100000, "Die Nummer"))))
+        else:
+            raise ValidationError(
+                f"Unknown player action {action!r}",
+                user_message="Diese Aktion kennt der Player nicht.",
+            )
+        return "ok"
+
+    def play(
+        self, path: str, *, repeat: str = "off", shuffle: bool = False, volume: int = 50
+    ) -> int:
+        """Play a local file, folder or playlist now (used by the page *Musik-Player*).
+
+        Returns:
+            The number of tracks that were queued.
+
+        Raises:
+            ValidationError: If the path is unsafe, missing or has nothing playable.
+        """
+        tracks = resolve_media(path, ffmpeg=self._find_ffmpeg() is not None)
+        self._audio().submit(
+            Command(
+                "play_queue",
+                tracks=tuple(tracks),
+                repeat=parse_repeat(repeat),
+                shuffle=shuffle,
+                volume=_int_between(volume, 0, 100, "Die Lautstärke") / 100,
+            )
+        )
+        return len(tracks)
 
     def _audio(self) -> AudioWorker:
         """The worker, created on first use with the real engine when it is installed."""
@@ -228,6 +384,9 @@ class PlayerAdapter(Adapter):
     def validate_action(self, params: Mapping[str, Any]) -> dict[str, Any]:
         """Check the address syntax (the LAN rule is applied when the action runs)."""
         cleaned = super().validate_action(params)
+        if cleaned["action"] == "play_path":
+            cleaned["path"] = str(reject_unsafe(clean_path_text(cleaned["path"])))
+            cleaned["repeat"] = parse_repeat(cleaned.get("repeat", Repeat.OFF.value)).value
         if cleaned["action"] == "play_url":
             # The connection's LAN setting is not known here, so LAN addresses pass this check
             # and are refused at run time unless allowed; unsafe addresses never pass.
@@ -242,12 +401,27 @@ class PlayerAdapter(Adapter):
         """A stream address or a chosen file; Spotify and YouTube links need another target."""
         if options.get("file"):
             return [{"action": "play_file", "file": options["file"], "volume": volume}]
+        if source.kind is SourceKind.LOCAL:
+            repeat = parse_repeat(options.get("repeat", Repeat.OFF.value)).value
+            shuffle = str(options.get("shuffle", "")).lower() in ("1", "true", "yes", "ja")
+            # Checked now so a wrong path is reported when the title is saved, not on the first
+            # turn of the cube; the folder is read again when it plays (new files are found).
+            resolve_media(source.ref, ffmpeg=self._find_ffmpeg() is not None)
+            return [
+                {
+                    "action": "play_path",
+                    "path": source.ref,
+                    "repeat": repeat,
+                    "shuffle": shuffle,
+                    "volume": volume,
+                }
+            ]
         if source.kind is not SourceKind.URL:
             raise ValidationError(
-                "The local player plays only streams and files",
-                user_message="Der lokale Player spielt nur Stream-Adressen und Dateien. "
-                "Spotify-Links gehen über „Spotify“ oder Home Assistant, YouTube-Links über "
-                "Home Assistant (Cast) oder den Player in der App.",
+                "The local player plays only streams and local files",
+                user_message="Der lokale Player spielt nur Stream-Adressen und Pfade auf diesem "
+                "Computer. Spotify-Links gehen über „Spotify“ oder Home Assistant, YouTube-Links "
+                "über „Player in der App“ oder Home Assistant (Cast).",
             )
         return [{"action": "play_url", "url": source.ref, "volume": volume}]
 
@@ -273,7 +447,9 @@ class PlayerAdapter(Adapter):
                 "No audio engine",
                 user_message='Das Zusatzpaket „audio“ fehlt: pip install -e ".[audio]".',
             )
-        return "Der lokale Player ist bereit (MP3, FLAC, WAV, OGG; kein AAC)."
+        return "Der lokale Player ist bereit. " + support_text(
+            ffmpeg=self._find_ffmpeg() is not None
+        )
 
     def execute(
         self,
@@ -288,6 +464,26 @@ class PlayerAdapter(Adapter):
         default = int(config.get("volume", 50)) / 100
         level = params.get("volume")
         volume = default if level is None else int(level) / 100
+        if action in ("pause", "resume", "next", "previous"):
+            self._audio().submit(Command(action))
+            return {
+                "pause": "Wiedergabe pausiert.",
+                "resume": "Wiedergabe fortgesetzt.",
+                "next": "Nächster Titel.",
+                "previous": "Vorheriger Titel.",
+            }[action]
+        if action == "play_path":
+            tracks = resolve_media(params["path"], ffmpeg=self._find_ffmpeg() is not None)
+            self._audio().submit(
+                Command(
+                    "play_queue",
+                    tracks=tuple(tracks),
+                    repeat=parse_repeat(params.get("repeat", Repeat.OFF.value)),
+                    shuffle=bool(params.get("shuffle", False)),
+                    volume=volume,
+                )
+            )
+            return f"{len(tracks)} Titel werden abgespielt."
         if action == "stop":
             self._audio().submit(Command("stop"))
             return "Wiedergabe beendet."

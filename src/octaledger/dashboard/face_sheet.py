@@ -199,9 +199,14 @@ def music_sheet(
 
 def holder_sheet(settings: Mapping[str, Any]) -> FaceSheet:
     """The "holder" row of a music cube (what happens when no face is up)."""
-    action = "pausiert" if settings.get("base_action") == "pause" else "beendet"
+    base = settings.get("base_action")
+    action = {"pause": "pausiert", "continue": "nicht angehalten (sie läuft weiter)"}.get(
+        str(base), "beendet"
+    )
     delay = int(settings.get("stop_delay_ms") or 0)
-    wait = f" nach {delay / 1000:g} Sekunden" if delay else " sofort"
+    wait = (
+        "" if base == "continue" else (f" nach {delay / 1000:g} Sekunden" if delay else " sofort")
+    )
     lines = (
         f"In der **Halterung** (keine Seite oben) wird die Musik{wait} **{action}**.",
         f"**Standard-Lautstärke** neuer Titel: {int(settings.get('default_volume', 50))} %.",
