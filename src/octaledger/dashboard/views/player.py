@@ -2,8 +2,8 @@
 
 The agent cannot control a browser, so this page *is* the player: it reads the wanted state from
 ``GET /music/browser-state`` every second and draws the embedded YouTube player. **Music plays only
-while this page is open.** The player loads scripts and videos from youtube.com, so nothing is
-loaded until the user agrees on this page (the agreement lasts for the browser session only).
+while this page is open.** The player loads the video from youtube-nocookie.com (a cross-origin frame; no third-party
+script runs in the dashboard), so nothing is loaded until the user agrees on this page (the agreement lasts for the browser session only).
 
 The HTML is built by :func:`player_document` from a few validated values (a video id, an optional
 playlist id, a volume); the same state yields the **same** text, so the browser keeps the running
@@ -12,9 +12,11 @@ player instead of reloading it on every refresh.
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from typing import Any
+from urllib.parse import urlencode
 
 import streamlit as st
 
@@ -25,6 +27,8 @@ CONSENT_KEY = "player_consent"
 _VIDEO = re.compile(r"^[A-Za-z0-9_-]{11}$")
 _LIST = re.compile(r"^[A-Za-z0-9_-]{10,60}$")
 HEIGHT = 340
+ORIGIN = "https://www.youtube-nocookie.com"
+EMBED = ORIGIN + "/embed"
 
 
 def _json_for_script(value: dict[str, Any]) -> str:
@@ -36,6 +40,10 @@ def player_document(state: dict[str, Any]) -> str:
     """The HTML page of the embedded player for ``state`` (pure; the ids are validated again).
 
     A stopped state, or ids of the wrong shape, give a page without any external content.
+
+    The player is a plain cross-origin ``<iframe>`` of youtube-nocookie.com; **no third-party
+    script runs in this page** (volume and play are sent with ``postMessage``). The only script
+    here is ours and contains nothing but validated values.
     """
     video = str(state.get("video_id") or "")
     playlist = str(state.get("list_id") or "")
@@ -46,36 +54,43 @@ def player_document(state: dict[str, Any]) -> str:
         "list": playlist if _LIST.match(playlist) else "",
         "volume": max(0, min(100, int(state.get("volume", 50)))),
     }
+    query = {"autoplay": "1", "playsinline": "1", "enablejsapi": "1", "rel": "0"}
+    if config["list"]:
+        query.update({"list": str(config["list"]), "listType": "playlist"})
+    source = f"{EMBED}/{video}?{urlencode(query)}"
     return f"""<!doctype html><meta charset="utf-8">
-<style>body{{margin:0;font-family:sans-serif}}button{{margin:8px 0;padding:6px 12px}}</style>
-<div id="p"></div>
+<style>body{{margin:0;font-family:sans-serif}}iframe{{border:0;width:100%;height:240px}}
+button{{margin:8px 0;padding:6px 12px}}</style>
+<iframe id="yt" src="{html.escape(source, quote=True)}" title="YouTube"
+  allow="autoplay; encrypted-media; picture-in-picture"
+  referrerpolicy="strict-origin-when-cross-origin"></iframe>
 <button id="unlock" type="button">Wiedergabe freischalten</button>
 <p id="msg"></p>
 <script>
 const CFG = {_json_for_script(config)};
-let player = null;
+const ORIGIN = {_json_for_script({"o": ORIGIN})}.o;
+const frame = document.getElementById('yt');
 const msg = (t) => {{ document.getElementById('msg').textContent = t; }};
-function onYouTubeIframeAPIReady() {{
-  const vars = {{autoplay: 1, playsinline: 1}};
-  if (CFG.list) {{ vars.list = CFG.list; vars.listType = 'playlist'; }}
-  player = new YT.Player('p', {{
-    host: 'https://www.youtube-nocookie.com',
-    width: '100%', height: '240', videoId: CFG.video, playerVars: vars,
-    events: {{
-      onReady: (e) => {{ e.target.setVolume(CFG.volume); e.target.playVideo(); }},
-      onError: (e) => {{
-        msg([101, 150].includes(e.data)
-          ? 'Dieses Video darf nicht eingebettet werden.'
-          : 'Das Video kann nicht abgespielt werden (Code ' + e.data + ').');
-      }},
-    }},
-  }});
-}}
-document.getElementById('unlock').addEventListener('click', () => {{
-  if (player) {{ player.setVolume(CFG.volume); player.playVideo(); msg(''); }}
+const send = (func, args) => frame.contentWindow.postMessage(
+  JSON.stringify({{event: 'command', func: func, args: args || []}}), ORIGIN);
+const start = () => {{ send('setVolume', [CFG.volume]); send('playVideo'); }};
+frame.addEventListener('load', () => {{
+  frame.contentWindow.postMessage(JSON.stringify({{event: 'listening', id: 1}}), ORIGIN);
+  setTimeout(start, 600);
 }});
-</script>
-<script src="https://www.youtube.com/iframe_api"></script>"""
+window.addEventListener('message', (e) => {{
+  if (e.origin !== ORIGIN || e.source !== frame.contentWindow) return;
+  let data = null;
+  try {{ data = JSON.parse(e.data); }} catch (err) {{ return; }}
+  if (data.event === 'onReady') start();
+  if (data.event === 'onError') {{
+    msg([101, 150].includes(data.info)
+      ? 'Dieses Video darf nicht eingebettet werden.'
+      : 'Das Video kann nicht abgespielt werden (Code ' + data.info + ').');
+  }}
+}});
+document.getElementById('unlock').addEventListener('click', () => {{ start(); msg(''); }});
+</script>"""
 
 
 def render(client: ApiClient, tz: str) -> None:

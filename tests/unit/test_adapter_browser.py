@@ -100,7 +100,10 @@ def test_stopped_state_loads_nothing_external() -> None:
 def test_player_page_contains_the_ids_and_is_stable() -> None:
     state = {"playing": True, "video_id": VIDEO, "list_id": "", "volume": 150, "nonce": 7}
     page = player_document(state)
-    assert VIDEO in page and "iframe_api" in page and "youtube-nocookie" in page
+    assert f"https://www.youtube-nocookie.com/embed/{VIDEO}?" in page
+    assert "enablejsapi=1" in page and "autoplay=1" in page
+    # no third-party script runs inside the dashboard origin: the only <script> is our own
+    assert page.count("<script") == 1 and "<script src" not in page and "iframe_api" not in page
     assert '"volume": 100' in page  # clamped
     # the nonce does not change the text, so a refresh keeps the running player
     assert page == player_document({**state, "nonce": 8})
@@ -110,11 +113,18 @@ def test_player_page_contains_the_ids_and_is_stable() -> None:
 def test_a_bad_id_never_reaches_the_page() -> None:
     evil = {"playing": True, "video_id": '"></script><script>alert(1)//', "volume": 50}
     page = player_document(evil)
-    assert "alert" not in page and "iframe_api" not in page
+    assert "alert" not in page and "youtube" not in page
     listed = player_document(
         {"playing": True, "video_id": VIDEO, "list_id": "</script>", "volume": 50}
     )
-    assert "</script><" not in listed and '"list": ""' in listed
+    assert "</script><" not in listed and '"list": ""' in listed and "list=" not in listed
+
+
+def test_playlist_goes_into_the_embed_address() -> None:
+    page = player_document(
+        {"playing": True, "video_id": VIDEO, "list_id": "PLabcdefghijk123", "volume": 50}
+    )
+    assert "list=PLabcdefghijk123" in page and "listType=playlist" in page
 
 
 def test_api_returns_the_wanted_state(api_server: RunningApi, browser: BrowserAdapter) -> None:
