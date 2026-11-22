@@ -60,7 +60,7 @@ _DEFINITIONS = (
         "Musik-Player",
         "music_note",
         "Alltag",
-        "Der eingebaute Player für YouTube und YouTube Music (läuft nur bei geöffneter Seite)",
+        "Lokale Musik, YouTube, YouTube Music und Spotify abspielen und steuern",
         player.render,
         areas=frozenset({"music"}),
     ),

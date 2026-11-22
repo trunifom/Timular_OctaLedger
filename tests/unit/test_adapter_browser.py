@@ -41,6 +41,8 @@ def test_play_then_stop_changes_the_state_and_the_nonce() -> None:
         "list_id": "PLabcdefghijk123",
         "volume": 30,
         "nonce": 1,
+        "repeat": "off",
+        "shuffle": False,
     }
     run(adapter, action="browser_stop")
     stopped = adapter.state()
@@ -64,11 +66,30 @@ def test_only_youtube_sources() -> None:
         parse_source(f"https://www.youtube.com/watch?v={VIDEO}&list=PLabcdefghijk123"), 40, {}
     )
     assert plays == [
-        {"action": "browser_play", "video_id": VIDEO, "volume": 40, "list_id": "PLabcdefghijk123"}
+        {
+            "action": "browser_play",
+            "video_id": VIDEO,
+            "volume": 40,
+            "repeat": "off",
+            "shuffle": False,
+            "list_id": "PLabcdefghijk123",
+        }
     ]
     assert adapter.music_play_params(parse_source(f"https://youtu.be/{VIDEO}"), 40, {}) == [
-        {"action": "browser_play", "video_id": VIDEO, "volume": 40}
+        {
+            "action": "browser_play",
+            "video_id": VIDEO,
+            "volume": 40,
+            "repeat": "off",
+            "shuffle": False,
+        }
     ]
+    chosen = adapter.music_play_params(
+        parse_source(f"https://youtu.be/{VIDEO}"), 40, {"repeat": "all", "shuffle": "true"}
+    )
+    assert chosen[0]["repeat"] == "all" and chosen[0]["shuffle"] is True
+    with pytest.raises(ValidationError):
+        adapter.music_play_params(parse_source(f"https://youtu.be/{VIDEO}"), 40, {"repeat": "x"})
     for other in ("https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC", "https://r.example/a"):
         with pytest.raises(ValidationError):
             adapter.music_play_params(parse_source(other), 40, {})

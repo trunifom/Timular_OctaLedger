@@ -32,6 +32,7 @@ from typing import Any, Final
 
 from octaledger.core.errors import ValidationError
 from octaledger.domain.music_source import MusicSource, SourceKind
+from octaledger.domain.playlist import REPEAT_TEXT, Repeat, parse_repeat
 from octaledger.infrastructure.integrations.base import (
     ActionSpec,
     Adapter,
@@ -66,6 +67,10 @@ class PlayerState:
     list_id: str = ""
     volume: int = 50
     nonce: int = 0
+    #: ``off``, ``all`` or ``one``. A playlist can only repeat as a whole (``one`` acts like
+    #: ``all`` there); a single video repeats itself.
+    repeat: str = "off"
+    shuffle: bool = False
 
 
 class BrowserAdapter(Adapter):
@@ -106,6 +111,23 @@ class BrowserAdapter(Adapter):
                         maximum=100,
                         help="0 bis 100 Prozent.",
                     ),
+                    FieldSpec(
+                        "repeat",
+                        "Wiederholen",
+                        kind="choice",
+                        choices=tuple((key, text) for key, text in REPEAT_TEXT.items()),
+                        default=Repeat.OFF.value,
+                        help="Einmal abspielen oder wiederholen. Bei einer Playlist wird immer die "
+                        "ganze Playlist wiederholt; „einen Titel endlos“ gilt für ein einzelnes "
+                        "Video.",
+                    ),
+                    FieldSpec(
+                        "shuffle",
+                        "Zufällige Reihenfolge",
+                        kind="bool",
+                        default=False,
+                        help="Mischt die Titel einer Playlist.",
+                    ),
                 ),
                 idempotent=True,
                 capability="music",
@@ -145,6 +167,8 @@ class BrowserAdapter(Adapter):
             "action": "browser_play",
             "video_id": source.ref,
             "volume": volume,
+            "repeat": parse_repeat(options.get("repeat", Repeat.OFF.value)).value,
+            "shuffle": str(options.get("shuffle", "")).lower() in ("1", "true", "yes", "ja"),
         }
         if source.playlist:
             params["list_id"] = source.playlist
@@ -166,6 +190,8 @@ class BrowserAdapter(Adapter):
             raise ValidationError(
                 "Invalid video id", user_message="Die Video-Kennung ist ungültig."
             )
+        if "repeat" in cleaned:
+            cleaned["repeat"] = parse_repeat(cleaned["repeat"]).value
         playlist = cleaned.get("list_id")
         if playlist is not None and not LIST_ID.match(str(playlist)):
             raise ValidationError(
@@ -201,6 +227,8 @@ class BrowserAdapter(Adapter):
                     str(params.get("list_id") or ""),
                     int(params.get("volume", 50)),
                     nonce,
+                    parse_repeat(params.get("repeat", Repeat.OFF.value)).value,
+                    bool(params.get("shuffle", False)),
                 )
                 return "Player in der App gestartet (nur sichtbar, wenn die Seite offen ist)."
             if action == "browser_stop":

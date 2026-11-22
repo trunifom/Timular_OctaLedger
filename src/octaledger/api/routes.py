@@ -60,6 +60,9 @@ from octaledger.api.schemas import (
     MusicSettingsBody,
     MusicTitleBody,
     ParseBody,
+    PickBody,
+    PlayBody,
+    PlayerControlBody,
     ProbeBody,
     ReadoutBody,
     ReasonBody,
@@ -122,10 +125,13 @@ from octaledger.core.settings import (
 )
 from octaledger.domain.attention import AttentionKind
 from octaledger.domain.device_identity import badge
+from octaledger.domain.media_formats import support_text
 from octaledger.domain.models import DeviceMode
 from octaledger.domain.music import MusicSettings
 from octaledger.domain.time_rules import ensure_utc, local_day_bounds, utc_now
+from octaledger.infrastructure.audio.ffmpeg import find_ffmpeg
 from octaledger.infrastructure.integrations.browser import BrowserAdapter
+from octaledger.infrastructure.system.file_dialog import dialog_available, pick_path
 from octaledger.infrastructure.system.holidays_provider import holidays_available
 from octaledger.infrastructure.system.toast import toast_available
 
@@ -551,6 +557,44 @@ def build_router(ctx: AppContext) -> APIRouter:
         if not isinstance(adapter, BrowserAdapter):  # pragma: no cover - registry guarantees it
             raise ApiUnavailableError("The browser player is not available")
         return adapter.state()
+
+    def require_player() -> Any:
+        """Return the player service or answer 503 when it is not available."""
+        if ctx.player is None:
+            raise ApiUnavailableError("The player is not available in this process")
+        return ctx.player
+
+    @router.get("/player/status")
+    def player_status() -> dict[str, Any]:
+        """What the local player, the player in the app and Spotify do (page "Musik-Player")."""
+        return {
+            **require_player().status(),
+            "dialog": dialog_available(),
+            "formats": support_text(ffmpeg=bool(find_ffmpeg())),
+        }
+
+    @router.post("/player/play")
+    def player_play(body: PlayBody) -> dict[str, Any]:
+        """Play a link or a local path (file, folder, playlist) right now."""
+        result: dict[str, Any] = require_player().play(
+            body.source, repeat=body.repeat, shuffle=body.shuffle, volume=body.volume
+        )
+        return result
+
+    @router.post("/player/control")
+    def player_control(body: PlayerControlBody) -> dict[str, str]:
+        """Pause, resume, skip, repeat, shuffle, set the volume or stop one player."""
+        return {"result": require_player().control(body.target, body.action, body.value)}
+
+    @router.post("/player/stop")
+    def player_stop() -> dict[str, Any]:
+        """Stop every player; ``problems`` names players that could not be stopped."""
+        return {"problems": require_player().stop_all()}
+
+    @router.post("/system/pick-path")
+    def pick_media_path(body: PickBody) -> dict[str, Any]:
+        """Show the file or folder dialog on this computer (``path`` is ``null`` if cancelled)."""
+        return {"path": pick_path(body.kind)}
 
     @router.post("/music/parse")
     def music_parse(body: ParseBody) -> dict[str, Any]:

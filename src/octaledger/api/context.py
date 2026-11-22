@@ -21,6 +21,7 @@ from octaledger.application.export_service import ExportService
 from octaledger.application.ics_import import IcsService
 from octaledger.application.integration_service import IntegrationService
 from octaledger.application.music_service import MusicService
+from octaledger.application.player_service import PlayerService
 from octaledger.application.readout_service import ReadoutService
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tag_service import TagService
@@ -102,6 +103,7 @@ class AppContext:
     readout: ReadoutService = field(init=False)
     entries: EntryService = field(init=False)
     music: MusicService | None = field(init=False, default=None)
+    player: PlayerService | None = field(init=False, default=None)
 
     def __post_init__(self) -> None:
         """Build the attention and data-management services from the other services."""
@@ -116,6 +118,7 @@ class AppContext:
             self.music = MusicService(
                 self.storage, self.integrations, lambda: self.settings.settings
             )
+            self.player = PlayerService(self.storage, self.integrations)
         self.workday = WorkdayService(self.storage, lambda: self.settings.settings, self.probe)
         if self.data is None:
             self.data = DataService(self.storage, self.exports, self.integrations, self.settings)

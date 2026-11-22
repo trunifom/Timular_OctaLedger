@@ -311,6 +311,29 @@ class ParseBody(_Strict):
     text: str = Field(max_length=2100)
 
 
+class PlayBody(_Strict):
+    """Play a link or a local path now (page "Musik-Player")."""
+
+    source: str = Field(min_length=1, max_length=2100)
+    repeat: str = Field(default="off", pattern="^(off|all|one)$")
+    shuffle: bool = False
+    volume: int = Field(default=50, ge=0, le=100)
+
+
+class PlayerControlBody(_Strict):
+    """Control one player (stop, pause, next, volume ...)."""
+
+    target: str = Field(default="local", pattern="^(local|browser|spotify)$")
+    action: str = Field(max_length=20)
+    value: Any = None
+
+
+class PickBody(_Strict):
+    """Open the file or folder dialog on this computer."""
+
+    kind: str = Field(default="file", pattern="^(file|folder)$")
+
+
 class MusicSettingsBody(_Strict):
     """Behaviour of a music cube."""
 

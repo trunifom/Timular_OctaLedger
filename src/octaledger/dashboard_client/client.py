@@ -699,6 +699,39 @@ class ApiClient:
         result: dict[str, Any] = self._get(f"/devices/{device_id}/battery", days=days)
         return result
 
+    def player_status(self) -> dict[str, Any]:
+        """What every player does (local, in the app, Spotify) and what can be played."""
+        result: dict[str, Any] = self._get("/player/status")
+        return result
+
+    def player_play(
+        self, source: str, *, repeat: str = "off", shuffle: bool = False, volume: int = 50
+    ) -> dict[str, Any]:
+        """Play a link or a local path now."""
+        result: dict[str, Any] = self._post(
+            "/player/play",
+            {"source": source, "repeat": repeat, "shuffle": shuffle, "volume": volume},
+        )
+        return result
+
+    def player_control(self, target: str, action: str, value: Any = None) -> None:
+        """Control one player (stop, pause, resume, next, previous, volume, repeat, shuffle)."""
+        self._post("/player/control", {"target": target, "action": action, "value": value})
+
+    def player_stop(self) -> list[str]:
+        """Stop every player; returns notes about players that could not be stopped."""
+        result: dict[str, Any] = self._post("/player/stop")
+        problems: list[str] = result["problems"]
+        return problems
+
+    def pick_path(self, kind: str) -> str | None:
+        """Show the file or folder dialog on this computer; ``None`` if cancelled."""
+        result: dict[str, Any] = self._request(
+            "POST", "/system/pick-path", json={"kind": kind}, timeout=(3.0, 620.0)
+        )
+        path = result["path"]
+        return str(path) if path else None
+
     def browser_player_state(self) -> dict[str, Any]:
         """The wanted state of the player on the page "Musik-Player"."""
         result: dict[str, Any] = self._get("/music/browser-state")
