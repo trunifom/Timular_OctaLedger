@@ -611,3 +611,31 @@ def test_the_real_engine_can_be_created_without_sound_hardware() -> None:
     engine = MiniaudioEngine()
     engine.set_volume(0.3)
     engine.stop()  # nothing plays: harmless
+
+
+def test_the_reader_source_satisfies_the_miniaudio_decoder_contract() -> None:
+    """Regression: miniaudio's C callback needs ``error_in_readcallback`` and ``close``.
+
+    Decodes a short WAV through the real library (no sound device involved).
+    """
+    miniaudio = pytest.importorskip("miniaudio")
+    import wave
+
+    from octaledger.infrastructure.audio.engine import _ReaderSource
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as writer:
+        writer.setnchannels(2)
+        writer.setsampwidth(2)
+        writer.setframerate(44100)
+        writer.writeframes(b"\x00\x10" * 4410)
+    buffer.seek(0)
+    source = _ReaderSource(buffer)
+    chunks = miniaudio.stream_any(
+        source,
+        output_format=miniaudio.SampleFormat.SIGNED16,
+        nchannels=2,
+        sample_rate=44100,
+    )
+    assert sum(len(chunk) for chunk in chunks) == 4410
+    assert source.error_in_readcallback is None

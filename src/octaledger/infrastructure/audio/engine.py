@@ -76,7 +76,19 @@ class UnavailableEngine:
 
 
 class _ReaderSource:
-    """Adapts a byte stream to the ``read`` interface of ``miniaudio.StreamableSource``."""
+    """Adapts a byte stream to the ``read`` interface of ``miniaudio.StreamableSource``.
+
+    ``miniaudio`` is an optional dependency, so this class duck-types ``StreamableSource``
+    instead of inheriting from it. The decoder's C read callback, however, reads and writes
+    ``error_in_readcallback`` on the source and ``stream_any`` sets ``ffi_handle``; without
+    these attributes every read raised ``AttributeError`` inside the callback and nothing
+    was decoded. They are declared here with the same defaults as the library's base class.
+    """
+
+    # Set by miniaudio's read callback when ``read`` raised; ``None`` means "no error".
+    error_in_readcallback: Exception | None = None
+    # Assigned by miniaudio (``ffi.new_handle``) while the decoder runs.
+    ffi_handle: Any = None
 
     def __init__(self, stream: BinaryIO) -> None:
         self._stream = stream
@@ -88,6 +100,9 @@ class _ReaderSource:
     def seek(self, offset: int, origin: Any) -> bool:
         """Streams cannot seek."""
         return False
+
+    def close(self) -> None:
+        """Called by miniaudio when decoding ends; the engine closes the stream itself."""
 
 
 class MiniaudioEngine:
