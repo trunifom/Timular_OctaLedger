@@ -113,6 +113,10 @@ class MiniaudioEngine:
         self._lock = threading.Lock()
         self._device: Any = None
         self._source: BinaryIO | None = None
+        # Strong reference to the adapter handed to miniaudio. ``stream_any`` keeps the source
+        # alive only through a reference cycle (``ffi_handle``), which the garbage collector may
+        # free while the audio thread still reads from it -> native abort 0xC0000409.
+        self._reader: _ReaderSource | None = None
         self._volume = 0.5
         self._paused = False
         self._generation = 0
@@ -143,12 +147,14 @@ class MiniaudioEngine:
             self._paused = False
             self._generation += 1
             generation = self._generation
+            reader: _ReaderSource | None = None
             try:
                 if getattr(source, "is_pcm", False):
                     samples = self._pcm_blocks(source)
                 else:
+                    reader = _ReaderSource(source)
                     samples = miniaudio.stream_any(
-                        _ReaderSource(source),
+                        reader,
                         output_format=miniaudio.SampleFormat.SIGNED16,
                         nchannels=CHANNELS,
                         sample_rate=SAMPLE_RATE,
@@ -168,13 +174,14 @@ class MiniaudioEngine:
                     user_message="Das Format wird nicht unterstützt oder das Audiogerät ist nicht "
                     "verfügbar.",
                 ) from exc
-            self._device, self._source = device, source
+            self._device, self._source, self._reader = device, source, reader
 
     def stop(self) -> None:
         """Stop and release the audio device and the source."""
         with self._lock:
             device, self._device = self._device, None
             source, self._source = self._source, None
+            reader, self._reader = self._reader, None
             self._generation += 1  # a late "ended" message of this track is now stale
             self._paused = False
         if device is not None:
@@ -185,6 +192,7 @@ class MiniaudioEngine:
                 logger.debug("Ignoring error while stopping the audio device", exc_info=True)
         if source is not None:
             self._close(source)
+        del reader  # only now (device closed) may the adapter be freed
 
     def pause(self) -> None:
         """Hold playback (silence is played; the track keeps its position)."""

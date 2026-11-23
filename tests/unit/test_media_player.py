@@ -639,3 +639,36 @@ def test_the_reader_source_satisfies_the_miniaudio_decoder_contract() -> None:
     )
     assert sum(len(chunk) for chunk in chunks) == 4410
     assert source.error_in_readcallback is None
+
+
+def test_the_engine_keeps_the_decoder_source_alive_while_playing(tmp_path: Path) -> None:
+    """Regression: miniaudio frees an unreferenced source -> native crash 0xC0000409.
+
+    ``stream_any`` only keeps the source alive through a reference cycle, so a garbage
+    collection during playback killed the process. Needs an audio device (skipped without).
+    """
+    import gc
+    import wave
+
+    pytest.importorskip("miniaudio")
+    from octaledger.infrastructure.audio.engine import MiniaudioEngine
+
+    path = tmp_path / "a.wav"
+    with wave.open(str(path), "wb") as writer:
+        writer.setnchannels(2)
+        writer.setsampwidth(2)
+        writer.setframerate(44100)
+        writer.writeframes(b"\x00\x10" * 44100)
+    engine = MiniaudioEngine()
+    try:
+        engine.play(path.open("rb"), 0.0)
+    except IntegrationError:
+        pytest.skip("no audio device available")
+    try:
+        gc.collect()
+        time.sleep(0.2)
+        gc.collect()
+        assert engine._reader is not None
+    finally:
+        engine.stop()
+    assert engine._reader is None
