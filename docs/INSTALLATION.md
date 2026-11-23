@@ -72,6 +72,11 @@ Nutzerdaten liegen **nicht** im Projektordner. Rangfolge für das Wurzelverzeich
 settings.toml   api_token   secrets.json   data\octaledger.sqlite3   logs\octaledger.log   backups\   exports\
 ```
 
+Der Ordner `logs\` enthält außerdem die **Absturzberichte** `crash-agent.log` und `crash-dashboard.log`
+(Stack aller Threads bei einem harten Absturz), die aufbewahrten `crash-…-<Zeit>.log` (die neuesten 5) und
+die Laufmarker `running-*.json` (nur solange ein Prozess läuft). Verschwindet das Programm ohne Meldung,
+beginnen Sie dort; die Auswertung steht beim nächsten Start in `octaledger.log`.
+
 | Datei/Ordner | Inhalt |
 |---|---|
 | `settings.toml` | Einstellungen (Vorlage: `config\settings.example.toml`); fehlt sie, gelten Standardwerte |

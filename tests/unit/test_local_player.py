@@ -518,3 +518,34 @@ def test_in_the_holder_the_music_can_keep_playing_but_a_silence_face_still_stops
     ]
     with pytest.raises(ValidationError):
         MusicSettings(base_action="forever")
+
+
+def test_a_shuffled_folder_does_not_always_start_with_its_first_file(tmp_path: Path) -> None:
+    """Regression: track 0 was pinned to the front, so a "random" start was always the same."""
+    firsts = set()
+    command = album_command(tmp_path, shuffle=True)
+    for _ in range(12):
+        engine = QueueEngine()
+        worker = new_worker(engine)
+        worker.submit(command)
+        wait_for(lambda e=engine: len(plays(e)) == 1)
+        firsts.add(plays(engine)[0])
+        worker.stop_thread()
+        time.sleep(0.002)  # the seed is the clock in milliseconds
+    assert len(firsts) > 1
+
+
+def test_an_explicit_start_track_is_still_played_first_with_a_shuffle(tmp_path: Path) -> None:
+    engine = QueueEngine()
+    worker = new_worker(engine)
+    worker.submit(album_command(tmp_path, shuffle=True, start=2))
+    wait_for(lambda: len(plays(engine)) == 1)
+    assert plays(engine)[0] == "10 ten.mp3"
+    worker.stop_thread()
+
+
+def test_a_local_path_title_marks_the_music_as_playing() -> None:
+    """Regression: "play_path" was not a play action, so the holder had nothing to stop."""
+    from octaledger.application.music_state import PLAY_ACTIONS
+
+    assert "play_path" in PLAY_ACTIONS

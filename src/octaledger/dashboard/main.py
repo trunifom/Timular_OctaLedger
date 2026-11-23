@@ -21,6 +21,7 @@ from typing import Any
 import streamlit as st
 
 from octaledger import __version__
+from octaledger.core.crash import install_crash_reporting
 from octaledger.core.errors import ConfigurationError, OctaLedgerError
 from octaledger.core.logging import configure_logging
 from octaledger.core.settings import FontSize, Theme, load_settings, resolve_paths
@@ -58,6 +59,7 @@ def _ensure_logging() -> None:
             max_bytes=settings.logging.max_bytes,
             backup_count=settings.logging.backup_count,
         )
+        install_crash_reporting(paths.logs_dir, "dashboard")
     except OctaLedgerError:
         configure_logging(console=False)  # never fail the page because of the log setup
     _logging_ready = True

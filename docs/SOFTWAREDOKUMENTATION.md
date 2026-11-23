@@ -175,6 +175,23 @@ Rotierende Datei `octaledger.log` (Standard 1 MB, 5 Sicherungen) im Log-Ordner d
 Benutzerprofils (siehe §5.1). Ist der Ordner nicht beschreibbar, läuft das
 Programm weiter: Es gibt eine WARNING und Logging ohne Datei.
 
+**Absturzberichte (`octaledger.core.crash`)**: Agent und Dashboard rufen nach dem Logging-Setup
+`install_crash_reporting(logs_dir, "agent" | "dashboard")` auf. Das fängt, was ein normales Log nicht
+sieht:
+
+| Fall | Mechanismus | Spur |
+|---|---|---|
+| harter Absturz in C-Code (Zugriffsverletzung, `abort()`, Windows-Code `0xC0000409`) | `faulthandler` schreibt den Python-Stack **aller Threads** | `crash-<prozess>.log` im Log-Ordner |
+| von Python verworfene Fehler (Callbacks von C-Bibliotheken, „Exception ignored in …“) | `sys.unraisablehook` | `octaledger.log`, Stufe ERROR |
+| nicht abgefragte asyncio-Fehler („Task exception was never retrieved“), Python-Warnungen | die Logger `asyncio` und `py.warnings` erhalten die Datei-Handler | `octaledger.log` |
+| Prozess beendet ohne Spur (Konsole geschlossen, Task-Manager, Stromausfall) | Laufmarker `running-<prozess>.json`, beim sauberen Ende (`atexit`) gelöscht | WARNING beim nächsten Start |
+
+Beim nächsten Start wertet `install_crash_reporting` die Reste aus: Ein Absturzbericht wird als ERROR ins
+Log geschrieben und als `crash-<prozess>-<Zeit>.log` aufbewahrt (die neuesten 5), ein einsamer Marker als
+WARNING. Die Funktion wirft nie; ein Fehler dabei darf das Programm nicht stoppen. Grenzen: Bei Stromausfall
+oder hartem Beenden bleibt nur der Hinweis, *dass* der Lauf nicht sauber endete; nicht jeder native Absturz
+(zum Beispiel ein zerstörter Stack) lässt sich mitschreiben.
+
 ### 3.5 Beispiel
 
 ```python

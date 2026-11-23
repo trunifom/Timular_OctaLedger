@@ -96,6 +96,7 @@ octaledger/
   src/octaledger/application/workday_service.py
   src/octaledger/cli.py
   src/octaledger/core/__init__.py
+  src/octaledger/core/crash.py
   src/octaledger/core/errors.py
   src/octaledger/core/fileio.py
   src/octaledger/core/logging.py
@@ -296,6 +297,7 @@ octaledger/
   tests/unit/test_hue_extended.py
   tests/unit/test_integration_service.py
   tests/unit/test_integrations_storage.py
+  tests/unit/test_crash.py
   tests/unit/test_link_loss.py
   tests/unit/test_local_player.py
   tests/unit/test_logging.py

@@ -51,6 +51,7 @@ from octaledger.application.integration_service import IntegrationService
 from octaledger.application.notifier import NotificationRelay
 from octaledger.application.reporting_service import ReportService
 from octaledger.application.tracking_service import TrackingService
+from octaledger.core.crash import install_crash_reporting
 from octaledger.core.errors import (
     ApiUnavailableError,
     BleConnectionError,
@@ -464,6 +465,7 @@ def run_agent(
         max_bytes=settings.logging.max_bytes,
         backup_count=settings.logging.backup_count,
     )
+    install_crash_reporting(paths.logs_dir, "agent")  # native crashes, killed runs
     logger.info("OctaLedger agent starting (data folder %s)", paths.root)
     scan_seconds = (
         float(settings.agent.scan_timeout_seconds) if settings.agent.scan_before_connect else 0.0

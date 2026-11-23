@@ -90,7 +90,8 @@ class Command:
         tracks: The tracks of ``play_queue``.
         repeat: Repeat mode of ``play_queue``.
         shuffle: Whether ``play_queue`` is shuffled.
-        start: The track of ``play_queue`` that is played first (an index into ``tracks``).
+        start: The track of ``play_queue`` that is played first (an index into ``tracks``);
+            ``None`` means "no wish": the first of the order plays (random with a shuffle).
     """
 
     kind: str
@@ -100,7 +101,7 @@ class Command:
     tracks: tuple[Track, ...] = ()
     repeat: Repeat = Repeat.OFF
     shuffle: bool = False
-    start: int = 0
+    start: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -491,16 +492,18 @@ class AudioWorker:
         items: list[_Item],
         command: Command,
         *,
-        start: int = 0,
+        start: int | None = None,
         allow_lan: bool = False,
     ) -> None:
         """Replace what plays by a new queue and start its first track."""
         if not items:
             raise ValidationError("Empty queue", user_message="Es gibt nichts abzuspielen.")
         seed = int(time.time() * 1000) & 0x7FFFFFFF
-        first = min(max(start, 0), len(items) - 1)
+        # Only a track the caller explicitly picked is pinned to the front. Pinning track 0 by
+        # default made every shuffled start begin with the first file of the folder.
+        first = None if start is None else min(max(start, 0), len(items) - 1)
         order = play_order(len(items), shuffle=command.shuffle, seed=seed, first=first)
-        position = order.index(first)
+        position = 0 if first is None else order.index(first)
         self._play = _Playback(items, order, position, command.repeat, command.shuffle, seed)
         self._allow_lan = allow_lan
         self._set_status(
@@ -522,7 +525,7 @@ class AudioWorker:
         play.shuffle = shuffle
         play.order = play_order(len(play.items), shuffle=shuffle, seed=play.seed, first=current)
         play.position = play.order.index(current)
-        self._set_status(shuffle=shuffle, queue=self._titles())
+        self._set_status(shuffle=shuffle, queue=self._titles(), position=play.position + 1)
 
     def _move(self, engine: Any, command: Command) -> None:
         play = self._play

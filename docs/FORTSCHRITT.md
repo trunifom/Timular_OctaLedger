@@ -91,6 +91,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-61 | Lokaler Player: Ordner/Alben/Playlists/Dateien (Pfad frei, Netzwerkpfade abgelehnt), Warteschlange mit einmal/alles/ein Titel endlos und Zufall, Weiter/Zurück/Pause/Springen, FFmpeg optional für weitere Formate und Video-Ton, Halterung „weiterlaufen“; echte Wiedergabe und FFmpeg nicht geprüft | 2026-11-22 | 23:10 | 0d524b8 |
 | AP-62 | Seite „Musik-Player“ neu: „Jetzt läuft“ mit Steuerung und „Alles stoppen“, Reiter Dieser PC (mit Windows-Auswahlfenster) / YouTube & YouTube Music / Spotify, API `/player/*` | 2026-11-22 | 23:20 | bfc826a |
 | AP-63 | Würfelseiten und YouTube: Pfad mit Wiederholen/Zufall und Auswahlfenster im Titel-Editor, YouTube mit Wiederholen/Zufall, Fehlertexten, optional Konto; Werbung wird nicht entfernt | 2026-11-22 | 23:30 | b330c77 |
+| AP-64 | Fehlerbehebung lokale Musik und Absturzberichte: Quelle des Audiodecoders wird gehalten (nativer Absturz 0xC0000409), Zufallswiedergabe beginnt nicht mehr immer mit Titel 1, Halterung stoppt lokale Musik (`play_path` ist Abspielaktion), Position nach Mischen-Umschalten, neues Modul `core/crash.py` (faulthandler, Laufmarker, unraisable- und asyncio-Fehler im Log); nicht mit echter Audiohardware gehört | 2026-11-23 | 12:50 | (Hash im nächsten Commit) |
 
 ## Offen
 

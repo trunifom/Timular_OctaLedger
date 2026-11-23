@@ -56,6 +56,11 @@ REDACTED: Final = "***"
 #: those and never touch handlers owned by someone else (e.g. pytest's caplog).
 _OWNED_ATTR: Final = "_octaledger_owned"
 
+#: Third-party loggers whose records would otherwise only reach a console nobody watches:
+#: ``asyncio`` reports task failures nobody awaited ("Task exception was never retrieved") and
+#: ``py.warnings`` carries Python warnings. They get the file and memory handlers, not the console.
+_FORWARDED_LOGGERS: Final = ("asyncio", "py.warnings")
+
 _LEVELS: Final[dict[str, int]] = {
     "DEBUG": logging.DEBUG,
     "INFO": logging.INFO,
@@ -212,10 +217,13 @@ def parse_level(level: str | int) -> int:
 
 def _remove_owned_handlers(logger: logging.Logger) -> None:
     """Close and detach every handler previously installed by this module."""
-    for handler in list(logger.handlers):
-        if getattr(handler, _OWNED_ATTR, False):
-            logger.removeHandler(handler)
-            handler.close()
+    forwarded = [logging.getLogger(name) for name in _FORWARDED_LOGGERS]
+    for target in (logger, *forwarded):
+        for handler in list(target.handlers):
+            if getattr(handler, _OWNED_ATTR, False):
+                target.removeHandler(handler)
+                if target is logger:
+                    handler.close()
 
 
 def _own(handler: logging.Handler) -> logging.Handler:
@@ -259,6 +267,17 @@ def install_exception_hooks() -> None:
         sys.excepthook = _log_uncaught
     if threading.excepthook is threading.__excepthook__:
         threading.excepthook = _log_uncaught_thread
+
+
+def _forward_third_party_loggers(logger: logging.Logger) -> None:
+    """Send ``asyncio`` and warning records to the file and memory sinks of ``logger``."""
+    sinks = [h for h in logger.handlers if type(h) is not logging.StreamHandler]
+    logging.captureWarnings(True)
+    for name in _FORWARDED_LOGGERS:
+        target = logging.getLogger(name)
+        for handler in sinks:
+            target.addHandler(handler)
+        target.setLevel(min(logger.level, logging.WARNING) or logging.WARNING)
 
 
 def configure_logging(
@@ -326,6 +345,7 @@ def configure_logging(
         except OSError as exc:
             file_error = exc
 
+    _forward_third_party_loggers(logger)
     if file_error is not None:
         logger.warning(
             "File logging disabled, cannot use log directory %s: %s", log_dir, file_error

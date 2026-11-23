@@ -803,6 +803,11 @@ Ordner `logs` Ihres Benutzerprofils. Sie hilft bei der Fehlersuche.
   nicht unbegrenzt.
 - Mit der Protokollstufe `DEBUG` (Einstellung) werden zusätzlich alle Programmschritte
   aufgezeichnet. Für den Alltag genügt `INFO`.
+- **Wenn OctaLedger plötzlich ohne Meldung verschwindet** (Absturz): Beim nächsten Start steht im
+  Protokoll ein Eintrag „CRASHED natively“ bzw. „did not end cleanly“. Bei einem harten Absturz liegt
+  zusätzlich die Datei `crash-agent.log` bzw. `crash-dashboard.log` (und die aufbewahrten Berichte
+  `crash-…-<Zeit>.log`) im selben Ordner `logs`. Diese Datei hilft bei der Fehlersuche; schicken Sie sie
+  zusammen mit dem Protokoll mit, wenn Sie ein Problem melden.
 - Wenn Sie ein Problem melden: Prüfen Sie die Datei vor dem Versenden trotzdem kurz auf
   persönliche Angaben (z. B. Projektnamen).
 

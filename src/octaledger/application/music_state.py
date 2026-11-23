@@ -25,7 +25,7 @@ STATE_LOST: Final = "music_lost:"
 STATE_OWNER: Final = "music_owner:"
 #: Actions that really start sound; only their success marks "now playing".
 PLAY_ACTIONS: Final = frozenset(
-    {"play_url", "play_file", "media_play", "spotify_play", "browser_play"}
+    {"play_url", "play_file", "play_path", "media_play", "spotify_play", "browser_play"}
 )
 
 
