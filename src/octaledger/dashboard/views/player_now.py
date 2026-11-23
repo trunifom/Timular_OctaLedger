@@ -231,10 +231,15 @@ def _queue(client: ApiClient, local: dict[str, Any], queue: list[str]) -> None:
 
 def _browser(client: ApiClient, browser: dict[str, Any]) -> None:
     """The card of the player in the app (YouTube): only the state, it plays in the page."""
-    link = f"https://www.youtube.com/watch?v={browser['video_id']}"
-    st.markdown(f"### ▶ YouTube-Video `{browser['video_id']}`")
+    video = str(browser.get("video_id") or "")
+    if video:
+        link = f"https://www.youtube.com/watch?v={video}"
+        st.markdown(f"### ▶ YouTube-Video `{video}`")
+    else:  # a whole playlist has no video id
+        link = f"https://www.youtube.com/playlist?list={browser.get('list_id', '')}"
+        st.markdown(f"### ▶ YouTube-Playlist `{browser.get('list_id', '')}`")
     parts = ["Player in der App"]
-    if browser.get("list_id"):
+    if video and browser.get("list_id"):
         parts.append("mit Playlist")
     parts.append(REPEAT_TEXT.get(browser.get("repeat", "off"), "").capitalize())
     if browser.get("shuffle"):

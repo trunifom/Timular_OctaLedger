@@ -159,3 +159,43 @@ def test_playing_actions_mark_now_playing() -> None:
     from octaledger.application.music_state import PLAY_ACTIONS
 
     assert {"browser_play", "spotify_play"} <= PLAY_ACTIONS
+
+
+# ------------------------------------------------------------- whole YouTube playlists
+
+PLAYLIST = "PLabcdefghijk123"
+
+
+def test_a_playlist_link_without_a_video_is_recognised() -> None:
+    for link in (
+        f"https://www.youtube.com/playlist?list={PLAYLIST}",
+        f"https://music.youtube.com/playlist?list={PLAYLIST}",
+    ):
+        source = parse_source(link)
+        assert source.ref == "" and source.playlist == PLAYLIST
+        assert source.description == "YouTube-Playlist"
+        assert source.youtube_url == f"https://www.youtube.com/playlist?list={PLAYLIST}"
+    with pytest.raises(ValidationError):
+        parse_source("https://www.youtube.com/playlist?list=zu-kurz")
+
+
+def test_a_whole_playlist_keeps_repeat_and_shuffle() -> None:
+    adapter = BrowserAdapter()
+    (params,) = adapter.music_play_params(
+        parse_source(f"https://www.youtube.com/playlist?list={PLAYLIST}"),
+        40,
+        {"repeat": "all", "shuffle": "true"},
+    )
+    assert params["video_id"] == "" and params["list_id"] == PLAYLIST
+    adapter.execute({}, {}, adapter.validate_action(params), timeout=1)
+    state = adapter.state()
+    assert state["list_id"] == PLAYLIST and state["repeat"] == "all" and state["shuffle"] is True
+
+
+def test_the_page_embeds_a_whole_playlist_as_videoseries() -> None:
+    state = {"playing": True, "video_id": "", "list_id": PLAYLIST, "shuffle": True, "repeat": "all"}
+    page = player_document(state)
+    assert "/embed/videoseries?" in page and f"list={PLAYLIST}" in page
+    assert '"shuffle": true' in page and '"loop": true' in page
+    assert f"https://www.youtube.com/playlist?list={PLAYLIST}" in page
+    assert "Es spielt nichts" in player_document({"playing": True, "video_id": "", "list_id": ""})

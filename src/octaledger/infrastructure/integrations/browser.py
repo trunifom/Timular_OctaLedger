@@ -89,18 +89,19 @@ class BrowserAdapter(Adapter):
             ActionSpec(
                 "browser_play",
                 "Im Player abspielen",
-                "Lässt den Player der App ein YouTube-Video oder eine Playlist abspielen.",
+                "Lässt den Player der App ein YouTube-Video oder eine ganze Playlist abspielen.",
                 fields=(
                     FieldSpec(
                         "video_id",
                         "YouTube-Video",
-                        required=True,
-                        help="Die 11 Zeichen lange Video-Kennung aus dem Link (…watch?v=KENNUNG).",
+                        help="Die 11 Zeichen lange Video-Kennung aus dem Link (…watch?v=KENNUNG). "
+                        "Leer lassen, wenn eine ganze Playlist läuft.",
                     ),
                     FieldSpec(
                         "list_id",
                         "Playlist (optional)",
-                        help="Die Kennung nach list= im Link; leer = nur das Video.",
+                        help="Die Kennung nach list= im Link. Mit Video: die Playlist beginnt bei "
+                        "diesem Video; ohne Video: sie beginnt vorn (oder zufällig).",
                     ),
                     FieldSpec(
                         "volume",
@@ -165,7 +166,7 @@ class BrowserAdapter(Adapter):
             )
         params: dict[str, Any] = {
             "action": "browser_play",
-            "video_id": source.ref,
+            "video_id": source.ref,  # empty for a link to a whole playlist
             "volume": volume,
             "repeat": parse_repeat(options.get("repeat", Repeat.OFF.value)).value,
             "shuffle": str(options.get("shuffle", "")).lower() in ("1", "true", "yes", "ja"),
@@ -185,7 +186,12 @@ class BrowserAdapter(Adapter):
     def validate_action(self, params: Mapping[str, Any]) -> dict[str, Any]:
         """Validate the fields and additionally the shape of the YouTube ids."""
         cleaned = super().validate_action(params)
-        video = cleaned.get("video_id")
+        video = cleaned.get("video_id") or None
+        if cleaned.get("action") == "browser_play" and not video and not cleaned.get("list_id"):
+            raise ValidationError(
+                "A video or a playlist is needed",
+                user_message="Es fehlt ein YouTube-Video oder eine Playlist.",
+            )
         if video is not None and not VIDEO_ID.match(str(video)):
             raise ValidationError(
                 "Invalid video id", user_message="Die Video-Kennung ist ungültig."
@@ -223,7 +229,7 @@ class BrowserAdapter(Adapter):
             if action == "browser_play":
                 self._state = PlayerState(
                     True,
-                    str(params["video_id"]),
+                    str(params.get("video_id") or ""),
                     str(params.get("list_id") or ""),
                     int(params.get("volume", 50)),
                     nonce,

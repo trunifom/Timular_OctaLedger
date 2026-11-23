@@ -52,8 +52,9 @@ class MusicSource:
 
     Attributes:
         kind: Spotify, YouTube or a plain stream address.
-        ref: For Spotify ``<type>:<id>``, for YouTube the video id, for a stream the address.
-        playlist: Optional YouTube playlist id (``list=``).
+        ref: For Spotify ``<type>:<id>``, for YouTube the video id (empty for a link to a whole
+            playlist), for a stream the address.
+        playlist: Optional YouTube playlist id (``list=``); with an empty ``ref``: whole playlist.
         original: What the user pasted (for display only).
     """
 
@@ -87,6 +88,8 @@ class MusicSource:
             }
             return labels.get(self.ref.split(":")[0], "Spotify")
         if self.kind is SourceKind.YOUTUBE:
+            if not self.ref:
+                return "YouTube-Playlist"
             return "YouTube-Video" + (" mit Playlist" if self.playlist else "")
         if self.kind is SourceKind.LOCAL:
             return "Lokale Datei, Ordner oder Playlist"
@@ -95,6 +98,8 @@ class MusicSource:
     @property
     def youtube_url(self) -> str:
         """The canonical YouTube address (only for ``kind == YOUTUBE``)."""
+        if not self.ref:
+            return f"https://www.youtube.com/playlist?list={self.playlist}"
         suffix = f"&list={self.playlist}" if self.playlist else ""
         return f"https://www.youtube.com/watch?v={self.ref}{suffix}"
 
@@ -181,9 +186,12 @@ def _spotify_uri(uri: str, original: str) -> MusicSource:
 
 def _youtube(query: dict[str, list[str]], original: str) -> MusicSource:
     video = (query.get("v") or [""])[0]
-    if not _YOUTUBE_ID.match(video):
-        raise _reject("In diesem YouTube-Link fehlt ein gültiges Video (v=…).")
     playlist = (query.get("list") or [""])[0] or None
     if playlist is not None and not _YOUTUBE_LIST.match(playlist):
-        playlist = None  # a malformed list is ignored, the video itself is still valid
+        playlist = None  # a malformed list is ignored, a valid video is still played
+    if not video and playlist is not None:
+        # A link to a whole playlist (youtube.com/playlist?list=...): no video id at all.
+        return MusicSource(SourceKind.YOUTUBE, "", playlist, original)
+    if not _YOUTUBE_ID.match(video):
+        raise _reject("In diesem YouTube-Link fehlt ein gültiges Video (v=…) oder eine Playlist.")
     return MusicSource(SourceKind.YOUTUBE, video, playlist, original)

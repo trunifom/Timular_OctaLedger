@@ -66,7 +66,9 @@ def player_document(state: dict[str, Any], *, account: bool = False) -> str:
     """
     video = str(state.get("video_id") or "")
     playlist = str(state.get("list_id") or "")
-    if not state.get("playing") or not _VIDEO.match(video):
+    list_ok = bool(_LIST.match(playlist))
+    # A whole playlist has no video id; one of the two ids must be valid.
+    if not state.get("playing") or not (_VIDEO.match(video) or (not video and list_ok)):
         return "<p style='font-family:sans-serif'>Es spielt nichts.</p>"
     origin = ACCOUNT_ORIGIN if account else ORIGIN
     repeat = str(state.get("repeat") or "off")
@@ -82,8 +84,13 @@ def player_document(state: dict[str, Any], *, account: bool = False) -> str:
         query.update({"list": str(config["list"]), "listType": "playlist"})
     elif config["loop"]:
         query.update({"loop": "1", "playlist": video})  # a single video loops via its own list
-    source = f"{origin}/embed/{video}?{urlencode(query)}"
-    watch = f"https://www.youtube.com/watch?v={video}"
+    # "videoseries" is YouTube's address for an embedded playlist without a first video.
+    source = f"{origin}/embed/{video or 'videoseries'}?{urlencode(query)}"
+    watch = (
+        f"https://www.youtube.com/watch?v={video}"
+        if video
+        else f"https://www.youtube.com/playlist?list={playlist}"
+    )
     return f"""<!doctype html><meta charset="utf-8">
 <style>body{{margin:0;font-family:sans-serif}}iframe{{border:0;width:100%;height:330px}}
 button{{margin:8px 8px 8px 0;padding:6px 12px}}a{{margin-left:8px}}</style>

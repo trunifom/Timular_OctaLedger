@@ -92,6 +92,7 @@ Verbindliche Arbeitsregeln: [CLAUDE.md](../CLAUDE.md).
 | AP-62 | Seite „Musik-Player“ neu: „Jetzt läuft“ mit Steuerung und „Alles stoppen“, Reiter Dieser PC (mit Windows-Auswahlfenster) / YouTube & YouTube Music / Spotify, API `/player/*` | 2026-11-22 | 23:20 | bfc826a |
 | AP-63 | Würfelseiten und YouTube: Pfad mit Wiederholen/Zufall und Auswahlfenster im Titel-Editor, YouTube mit Wiederholen/Zufall, Fehlertexten, optional Konto; Werbung wird nicht entfernt | 2026-11-22 | 23:30 | b330c77 |
 | AP-64 | Fehlerbehebung lokale Musik und Absturzberichte: Quelle des Audiodecoders wird gehalten (nativer Absturz 0xC0000409), Zufallswiedergabe beginnt nicht mehr immer mit Titel 1, Halterung stoppt lokale Musik (`play_path` ist Abspielaktion), Position nach Mischen-Umschalten, neues Modul `core/crash.py` (faulthandler, Laufmarker, unraisable- und asyncio-Fehler im Log); nicht mit echter Audiohardware gehört | 2026-11-23 | 12:50 | (Hash im nächsten Commit) |
+| AP-65 | Ganze YouTube-Playlists: Links `youtube.com/playlist?list=…` werden erkannt (auch YouTube Music), Wiederholen und Zufall wie bei einzelnen Videos, Player-Seite bettet sie als „videoseries“ ein; Verhalten von Zufall/Wiederholen hängt vom YouTube-Player ab und ist nicht im echten Browser geprüft | 2026-11-23 | 13:40 | (Hash im nächsten Commit) |
 
 ## Offen
 
